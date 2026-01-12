@@ -29,9 +29,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setLoading(false);
 
+        // Sync cookie initially
+        document.cookie = pb.authStore.exportToCookie({ httpOnly: false });
+
         // Listen to auth changes
         const unsubscribe = pb.authStore.onChange((token, model) => {
             setUser(model as User | null);
+            // Update cookie on auth change
+            document.cookie = pb.authStore.exportToCookie({ httpOnly: false });
         });
 
         return () => {
