@@ -92,6 +92,12 @@ export function createCompraFormSchema(role: UserRole, context: { isCreating: bo
             })
             : z.coerce.number().optional(),
 
+        presupuesto: isRequired("presupuesto")
+            ? z.coerce.number().min(0, {
+                message: "El presupuesto debe ser un número positivo.",
+            })
+            : z.coerce.number().optional(),
+
         valor: isRequired("valor")
             ? z.coerce.number().positive({
                 message: "El valor debe ser un número positivo.",

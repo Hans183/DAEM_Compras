@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Pencil, Trash2, FileText, X, Printer, AlertTriangle, CheckCircle, Clock, Eye } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, FileText, X, Printer, AlertTriangle, CheckCircle, Clock, Eye, Ban } from "lucide-react";
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { CompraSheet } from "./compra-sheet";
 import {
     Table,
@@ -35,10 +35,11 @@ import type { Compra, GetComprasParams } from "@/types/compra";
 import { ESTADOS_COMPRA } from "@/types/compra";
 import type { User } from "@/types/user";
 import { getCompraFileUrl } from "@/services/compras.service";
-import { canEditCompra, canDeleteCompra } from "@/utils/permissions";
+import { canEditCompra, canDeleteCompra, canCancelCompra } from "@/utils/permissions";
 
 import { DeleteCompraDialog } from "./delete-compra-dialog";
 import { CompraDialog } from "./compra-dialog";
+import { CancelCompraDialog } from "./cancel-compra-dialog";
 
 interface ComprasTableProps {
     compras: Compra[];
@@ -51,6 +52,7 @@ interface ComprasTableProps {
 export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChange, currentUser }: ComprasTableProps) {
     const [editingCompra, setEditingCompra] = useState<Compra | null>(null);
     const [deletingCompra, setDeletingCompra] = useState<Compra | null>(null);
+    const [cancelingCompra, setCancelingCompra] = useState<Compra | null>(null);
     const [viewingCompra, setViewingCompra] = useState<Compra | null>(null);
     const [showFilters, setShowFilters] = useState<boolean>(false);
 
@@ -71,6 +73,11 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
 
     const RenderDeliveryStatus = ({ compra }: { compra: Compra }) => {
         if (!compra.fecha_odd || !compra.plazo_de_entrega) return <span className="text-muted-foreground">-</span>;
+
+        // Si está anulado, mostrar estado explícito
+        if (compra.estado === "Anulado") {
+            return <Badge variant="outline" className="border-destructive/50 text-destructive bg-destructive/5">Anulado</Badge>;
+        }
 
         // Si ya está entregado, no mostrar alerta de atraso
         if (compra.estado === "Entregado" || compra.estado === "En Bodega") {
@@ -119,6 +126,8 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
             estado_filter: undefined,
             fecha_odd_from: "",
             fecha_odd_to: "",
+            created_from: "",
+            created_to: "",
             valor_min: undefined,
             valor_max: undefined,
         });
@@ -149,24 +158,36 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Unidad Requirente</TableHead>
+                                <TableHead className="w-[140px]">Fecha</TableHead>
                                 <TableHead>N° Ordinario</TableHead>
-                                <TableHead>Valor</TableHead>
-                                <TableHead>ODD</TableHead>
+                                <TableHead>Requirente</TableHead>
+                                <TableHead>Descripción</TableHead>
                                 <TableHead>Estado</TableHead>
-                                <TableHead>Fecha ODD</TableHead>
+                                <TableHead>OC</TableHead>
                                 <TableHead>Plazo Entrega</TableHead>
                                 <TableHead className="w-12"></TableHead>
                             </TableRow>
                             {showFilters && (
                                 <TableRow className="bg-muted/50">
                                     <TableHead className="py-2">
-                                        <Input
-                                            placeholder="Filtrar..."
-                                            value={filters.unidad_requirente_filter || ""}
-                                            onChange={(e) => updateFilter("unidad_requirente_filter", e.target.value)}
-                                            className="h-8 w-full"
-                                        />
+                                        <div className="flex gap-1">
+                                            <Input
+                                                type="date"
+                                                value={filters.created_from || ""}
+                                                onChange={(e) => updateFilter("created_from", e.target.value)}
+                                                className="h-8 w-[130px] text-xs px-2"
+                                                placeholder="Desde"
+                                            />
+                                        </div>
+                                        <div className="flex gap-1 mt-1">
+                                            <Input
+                                                type="date"
+                                                value={filters.created_to || ""}
+                                                onChange={(e) => updateFilter("created_to", e.target.value)}
+                                                className="h-8 w-[130px] text-xs px-2"
+                                                placeholder="Hasta"
+                                            />
+                                        </div>
                                     </TableHead>
                                     <TableHead className="py-2">
                                         <Input
@@ -180,32 +201,18 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                         />
                                     </TableHead>
                                     <TableHead className="py-2">
-                                        <div className="flex gap-1">
-                                            <Input
-                                                type="number"
-                                                placeholder="Mín"
-                                                value={filters.valor_min || ""}
-                                                onChange={(e) =>
-                                                    updateFilter("valor_min", e.target.value ? Number(e.target.value) : undefined)
-                                                }
-                                                className="h-8 w-20"
-                                            />
-                                            <Input
-                                                type="number"
-                                                placeholder="Máx"
-                                                value={filters.valor_max || ""}
-                                                onChange={(e) =>
-                                                    updateFilter("valor_max", e.target.value ? Number(e.target.value) : undefined)
-                                                }
-                                                className="h-8 w-20"
-                                            />
-                                        </div>
+                                        <Input
+                                            placeholder="Filtrar..."
+                                            value={filters.unidad_requirente_filter || ""}
+                                            onChange={(e) => updateFilter("unidad_requirente_filter", e.target.value)}
+                                            className="h-8 w-full"
+                                        />
                                     </TableHead>
                                     <TableHead className="py-2">
                                         <Input
                                             placeholder="Filtrar..."
-                                            value={filters.odd_filter || ""}
-                                            onChange={(e) => updateFilter("odd_filter", e.target.value)}
+                                            value={filters.descripcion_filter || ""}
+                                            onChange={(e) => updateFilter("descripcion_filter", e.target.value)}
                                             className="h-8 w-full"
                                         />
                                     </TableHead>
@@ -227,22 +234,12 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                         </Select>
                                     </TableHead>
                                     <TableHead className="py-2">
-                                        <div className="flex gap-1">
-                                            <Input
-                                                type="date"
-                                                value={filters.fecha_odd_from || ""}
-                                                onChange={(e) => updateFilter("fecha_odd_from", e.target.value)}
-                                                className="h-8 w-32"
-                                                placeholder="Desde"
-                                            />
-                                            <Input
-                                                type="date"
-                                                value={filters.fecha_odd_to || ""}
-                                                onChange={(e) => updateFilter("fecha_odd_to", e.target.value)}
-                                                className="h-8 w-32"
-                                                placeholder="Hasta"
-                                            />
-                                        </div>
+                                        <Input
+                                            placeholder="Filtrar..."
+                                            value={filters.odd_filter || ""}
+                                            onChange={(e) => updateFilter("odd_filter", e.target.value)}
+                                            className="h-8 w-full"
+                                        />
                                     </TableHead>
                                     <TableHead className="py-2"></TableHead>
                                     <TableHead className="py-2"></TableHead>
@@ -260,7 +257,7 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                 compras.map((compra) => (
                                     <TableRow key={compra.id}>
                                         <TableCell>
-                                            {compra.expand?.unidad_requirente?.nombre || "-"}
+                                            {format(parseISO(compra.created), "dd/MM/yyyy")}
                                         </TableCell>
                                         <TableCell className="font-medium">
                                             <div className="flex items-center gap-2">
@@ -281,20 +278,35 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                                 )}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="font-medium">
-                                            {new Intl.NumberFormat('es-CL', {
-                                                style: 'currency',
-                                                currency: 'CLP'
-                                            }).format(compra.valor)}
+                                        <TableCell>
+                                            {compra.expand?.unidad_requirente?.nombre || "-"}
                                         </TableCell>
-                                        <TableCell>{compra.odd}</TableCell>
+                                        <TableCell>
+                                            <div className="max-w-[200px] truncate" title={compra.descripcion}>
+                                                {compra.descripcion}
+                                            </div>
+                                        </TableCell>
                                         <TableCell>
                                             <Badge variant={getEstadoBadgeVariant(compra.estado)}>
                                                 {compra.estado}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            {compra.fecha_odd ? format(parseISO(compra.fecha_odd), "dd/MM/yyyy") : "-"}
+                                            {compra.odd}
+                                            {compra.adjunta_odd && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-6 w-6 ml-1"
+                                                    title="Ver Adjunto OC"
+                                                    onClick={() => {
+                                                        const url = getCompraFileUrl(compra, "adjunta_odd");
+                                                        if (url) window.open(url, "_blank");
+                                                    }}
+                                                >
+                                                    <FileText className="h-3 w-3 text-blue-500" />
+                                                </Button>
+                                            )}
                                         </TableCell>
                                         <TableCell>
                                             <RenderDeliveryStatus compra={compra} />
@@ -328,17 +340,6 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                                             <Printer className="mr-2 h-4 w-4" />
                                                             Ver Ficha
                                                         </DropdownMenuItem>
-                                                        {compra.adjunta_odd && (
-                                                            <DropdownMenuItem
-                                                                onClick={() => {
-                                                                    const url = getCompraFileUrl(compra, "adjunta_odd");
-                                                                    if (url) window.open(url, "_blank");
-                                                                }}
-                                                            >
-                                                                <FileText className="mr-2 h-4 w-4" />
-                                                                Ver Adjunto ODD
-                                                            </DropdownMenuItem>
-                                                        )}
                                                         {currentUser && canDeleteCompra(currentUser.role) && (
                                                             <DropdownMenuItem
                                                                 onClick={() => setDeletingCompra(compra)}
@@ -346,6 +347,15 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                                             >
                                                                 <Trash2 className="mr-2 h-4 w-4" />
                                                                 Eliminar
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {currentUser && canCancelCompra(currentUser.role) && compra.estado !== "Anulado" && (
+                                                            <DropdownMenuItem
+                                                                onClick={() => setCancelingCompra(compra)}
+                                                                className="text-orange-600"
+                                                            >
+                                                                <Ban className="mr-2 h-4 w-4" />
+                                                                Anular
                                                             </DropdownMenuItem>
                                                         )}
                                                     </DropdownMenuContent>
@@ -385,10 +395,26 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                 />
             )}
 
+            {cancelingCompra && (
+                <CancelCompraDialog
+                    compra={cancelingCompra}
+                    open={!!cancelingCompra}
+                    onOpenChange={(open) => !open && setCancelingCompra(null)}
+                    onSuccess={() => {
+                        setCancelingCompra(null);
+                        onCompraUpdated();
+                    }}
+                    currentUser={currentUser}
+                />
+            )}
+
             {viewingCompra && (
                 <Dialog open={!!viewingCompra} onOpenChange={(open) => !open && setViewingCompra(null)}>
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto print:max-w-none print:max-h-none print:overflow-visible print:border-0 print:shadow-none print:bg-white print:static print:transform-none">
+                    <DialogContent aria-describedby="ficha-compra-desc" className="max-w-4xl max-h-[90vh] overflow-y-auto print:max-w-none print:max-h-none print:overflow-visible print:border-0 print:shadow-none print:bg-white print:static print:transform-none">
                         <DialogTitle className="sr-only">Ficha de Compra</DialogTitle>
+                        <DialogDescription id="ficha-compra-desc" className="sr-only">
+                            Detalles completos de la solicitud de compra
+                        </DialogDescription>
 
                         <CompraSheet compra={viewingCompra} />
                     </DialogContent>

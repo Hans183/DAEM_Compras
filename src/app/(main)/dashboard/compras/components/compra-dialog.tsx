@@ -61,6 +61,7 @@ import { ESTADOS_COMPRA, type EstadoCompra } from "@/types/compra";
 import { isFieldEditable, getAvailableEstados, getEditableFields } from "@/utils/permissions";
 
 import { createCompraFormSchema, type CompraFormValues } from "../schemas/compra-form.schema";
+import { notifyBuyer } from "@/actions/send-email";
 
 interface CompraDialogProps {
     compra?: Compra;
@@ -142,15 +143,31 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
 
         if (open) {
             loadData();
+            form.reset({
+                numero_ordinario: compra?.numero_ordinario || 0,
+                unidad_requirente: compra?.unidad_requirente || "",
+                comprador: compra?.comprador || "",
+                descripcion: compra?.descripcion || "",
+                odd: compra?.odd || "",
+                fecha_odd: compra?.fecha_odd ? new Date(compra.fecha_odd).toISOString().split('T')[0] : "",
+                plazo_de_entrega: compra?.plazo_de_entrega || 1,
+                valor: compra?.valor || 0,
+                presupuesto: compra?.presupuesto || 0,
+                subvencion: compra?.subvencion || "",
+                estado: compra?.estado || "Asignado",
+                adjunta_ordinario: undefined,
+                adjunta_odd: undefined,
+            });
         }
-    }, [open]);
+    }, [open, compra, form]);
 
     const onSubmit = async (data: CompraFormValues) => {
         setIsSubmitting(true);
 
         try {
+            let result: any; // Using any temporarily to access expand safely without strict type checks if Compra type isn't fully updated in all contexts, but ideally Compra
             if (isEditing) {
-                await updateCompra(compra.id, {
+                result = await updateCompra(compra.id, {
                     numero_ordinario: data.numero_ordinario,
                     unidad_requirente: data.unidad_requirente,
                     comprador: data.comprador,
@@ -159,6 +176,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                     fecha_odd: data.fecha_odd,
                     plazo_de_entrega: data.plazo_de_entrega,
                     valor: data.valor,
+                    presupuesto: data.presupuesto,
                     subvencion: data.subvencion,
                     estado: data.estado,
                     adjunta_ordinario: data.adjunta_ordinario,
@@ -166,8 +184,25 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                     usuario_modificador: currentUser?.name || currentUser?.email || "Usuario desconocido",
                 });
                 toast.success("Compra actualizada exitosamente");
+
+                if (data.comprador && data.comprador !== compra.comprador) {
+                    // Use expanded buyer from result
+                    const buyerEmail = result?.expand?.comprador?.email;
+                    const buyerName = result?.expand?.comprador?.name || "Usuario";
+                    const unitName = result?.expand?.unidad_requirente?.nombre || "Unidad Desconocida";
+
+                    if (buyerEmail) {
+                        await notifyBuyer({
+                            email: buyerEmail,
+                            buyerName: buyerName,
+                            numeroOrdinario: data.numero_ordinario || 0,
+                            unidadRequirente: unitName,
+                            description: data.descripcion || "",
+                        });
+                    }
+                }
             } else {
-                await createCompra({
+                result = await createCompra({
                     numero_ordinario: data.numero_ordinario,
                     unidad_requirente: data.unidad_requirente,
                     comprador: data.comprador,
@@ -176,6 +211,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                     fecha_odd: data.fecha_odd,
                     plazo_de_entrega: data.plazo_de_entrega,
                     valor: data.valor,
+                    presupuesto: data.presupuesto,
                     subvencion: data.subvencion,
                     estado: data.estado,
                     adjunta_ordinario: data.adjunta_ordinario,
@@ -183,6 +219,26 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                     usuario_modificador: currentUser?.name || currentUser?.email || "Usuario desconocido",
                 });
                 toast.success("Compra creada exitosamente");
+
+                // Always notify on creation if buyer is assigned
+                // Always notify on creation if buyer is assigned
+                if (data.comprador) {
+                    // Get buyer from local state instead of rely on expand result which might hide email
+                    const selectedBuyer = usuarios.find(u => u.id === data.comprador);
+                    const buyerEmail = selectedBuyer?.email;
+                    const buyerName = selectedBuyer?.name || result?.expand?.comprador?.name || "Usuario";
+                    const unitName = result?.expand?.unidad_requirente?.nombre || "Unidad Desconocida";
+
+                    if (buyerEmail) {
+                        await notifyBuyer({
+                            email: buyerEmail,
+                            buyerName: buyerName,
+                            numeroOrdinario: data.numero_ordinario || 0,
+                            unidadRequirente: unitName,
+                            description: data.descripcion || "",
+                        });
+                    }
+                }
             }
 
             form.reset();
@@ -201,6 +257,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                 <DialogContent className="sm:max-w-[700px]">
                     <DialogHeader>
                         <DialogTitle>{isEditing ? "Editar Compra" : "Crear Nueva Compra"}</DialogTitle>
+                        <DialogDescription>Cargando datos del formulario...</DialogDescription>
                     </DialogHeader>
                     <div className="flex items-center justify-center p-8">
                         <Loader2 className="h-8 w-8 animate-spin" />
@@ -478,6 +535,34 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                         </FormItem>
                                     )}
                                 />
+
+                                <FormField
+                                    control={form.control}
+                                    name="presupuesto"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                Presupuesto
+                                                {isRequired("presupuesto") && <span className="text-red-500 ml-1">*</span>}
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="text"
+                                                    placeholder="0"
+                                                    disabled={!isFieldEditable("presupuesto", currentUser?.role || "Observador")}
+                                                    value={field.value ? new Intl.NumberFormat("es-CL").format(field.value) : ""}
+                                                    onChange={(e) => {
+                                                        const rawValue = e.target.value.replace(/\./g, "");
+                                                        if (rawValue === "" || /^\d+$/.test(rawValue)) {
+                                                            field.onChange(rawValue === "" ? 0 : Number(rawValue));
+                                                        }
+                                                    }}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                             </div>
 
                             {/* Campos detallados solo en edición (o si se requiere expandir futuros permisos) */}
@@ -490,12 +575,12 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>
-                                                        ODD
+                                                        OC
                                                         {isRequired("odd") && <span className="text-red-500 ml-1">*</span>}
                                                     </FormLabel>
                                                     <FormControl>
                                                         <Input
-                                                            placeholder="ODD-2024-001"
+                                                            placeholder="OC-2024-001"
                                                             disabled={!isFieldEditable("odd", currentUser?.role || "Observador")}
                                                             {...field}
                                                             onChange={(e) => field.onChange(e.target.value.toUpperCase())}
@@ -512,7 +597,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>
-                                                        Fecha ODD
+                                                        Fecha OC
                                                         {isRequired("fecha_odd") && <span className="text-red-500 ml-1">*</span>}
                                                     </FormLabel>
                                                     <FormControl>
@@ -581,7 +666,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                             name="adjunta_odd"
                                             render={({ field: { value, onChange, ...field } }) => (
                                                 <FormItem>
-                                                    <FormLabel>Adjunto ODD</FormLabel>
+                                                    <FormLabel>Adjunto OC</FormLabel>
                                                     <FormControl>
                                                         <Input
                                                             type="file"

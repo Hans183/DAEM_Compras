@@ -16,9 +16,19 @@ export function canDeleteCompra(role: UserRole): boolean {
 }
 
 /**
+ * Verifica si un rol puede anular compras
+ */
+export function canCancelCompra(role: UserRole): boolean {
+    return role === "Encargado compras";
+}
+
+/**
  * Verifica si un rol puede editar una compra
  */
 export function canEditCompra(role: UserRole, compra?: Compra): boolean {
+    // Si la compra está anulada, nadie puede editar
+    if (compra?.estado === "Anulado") return false;
+
     // Admin puede editar cualquier compra
     if (role === "Admin") return true;
 
@@ -64,12 +74,18 @@ type CompraField =
     | "subvencion"
     | "estado"
     | "adjunta_ordinario"
-    | "adjunta_odd";
+    | "adjunta_odd"
+    | "presupuesto";
 
 /**
  * Obtiene los campos que un rol puede editar
  */
 export function getEditableFields(role: UserRole, estadoCompra?: EstadoCompra): CompraField[] {
+    // Si el estado es Anulado, no se puede editar ningún campo
+    if (estadoCompra === "Anulado") {
+        return [];
+    }
+
     // Admin y Encargado compras pueden editar todos los campos
     if (role === "Admin" || role === "Encargado compras") {
         return [
@@ -85,6 +101,7 @@ export function getEditableFields(role: UserRole, estadoCompra?: EstadoCompra): 
             "estado",
             "adjunta_ordinario",
             "adjunta_odd",
+            "presupuesto",
         ];
     }
 

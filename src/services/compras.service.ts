@@ -21,6 +21,8 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
         estado_filter,
         fecha_odd_from,
         fecha_odd_to,
+        created_from,
+        created_to,
         valor_min,
         valor_max
     } = params;
@@ -60,6 +62,14 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
 
         if (fecha_odd_to) {
             filters.push(`fecha_odd <= "${fecha_odd_to}"`);
+        }
+
+        if (created_from) {
+            filters.push(`created >= "${created_from}"`);
+        }
+
+        if (created_to) {
+            filters.push(`created <= "${created_to}"`);
         }
 
         if (valor_min !== undefined) {
@@ -115,6 +125,7 @@ export async function createCompra(data: CompraFormData): Promise<Compra> {
         formData.append("plazo_de_entrega", String(data.plazo_de_entrega ?? 1));
         formData.append("valor", String(data.valor ?? 0));
         formData.append("subvencion", data.subvencion ?? "");
+        formData.append("presupuesto", String(data.presupuesto ?? 0));
         formData.append("estado", data.estado ?? "Asignado");
         if (data.usuario_modificador) formData.append("usuario_modificador", data.usuario_modificador);
 
@@ -126,7 +137,9 @@ export async function createCompra(data: CompraFormData): Promise<Compra> {
             formData.append("adjunta_odd", data.adjunta_odd);
         }
 
-        return await pb.collection(COMPRAS_COLLECTION).create<Compra>(formData);
+        return await pb.collection(COMPRAS_COLLECTION).create<Compra>(formData, {
+            expand: "comprador,unidad_requirente",
+        });
     } catch (error) {
         console.error("Error creating compra:", error);
         throw error;
@@ -154,9 +167,13 @@ export async function updateCompra(id: string, data: Partial<CompraFormData>): P
         if (data.valor !== undefined) {
             formData.append("valor", String(data.valor));
         }
+        if (data.presupuesto !== undefined) {
+            formData.append("presupuesto", String(data.presupuesto));
+        }
         if (data.subvencion) formData.append("subvencion", data.subvencion);
         if (data.estado) formData.append("estado", data.estado);
         if (data.usuario_modificador) formData.append("usuario_modificador", data.usuario_modificador);
+        if (data.motivo_anula) formData.append("motivo_anula", data.motivo_anula);
 
         if (data.adjunta_ordinario) {
             formData.append("adjunta_ordinario", data.adjunta_ordinario);
@@ -166,7 +183,9 @@ export async function updateCompra(id: string, data: Partial<CompraFormData>): P
             formData.append("adjunta_odd", data.adjunta_odd);
         }
 
-        return await pb.collection(COMPRAS_COLLECTION).update<Compra>(id, formData);
+        return await pb.collection(COMPRAS_COLLECTION).update<Compra>(id, formData, {
+            expand: "comprador,unidad_requirente",
+        });
     } catch (error) {
         console.error(`Error updating compra ${id}:`, error);
         throw error;

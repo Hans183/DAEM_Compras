@@ -20,6 +20,8 @@ export interface Compra extends RecordModel {
     estado: EstadoCompra;
     valor: number;
     usuario_modificador?: string;
+    motivo_anula?: string;
+    presupuesto?: number;
     expand?: {
         unidad_requirente?: Requirente;
         comprador?: User;
@@ -45,6 +47,8 @@ export interface CompraFormData {
     estado?: EstadoCompra;
     valor?: number;
     usuario_modificador?: string;
+    motivo_anula?: string;
+    presupuesto?: number;
 }
 
 /**
@@ -63,6 +67,8 @@ export interface GetComprasParams {
     estado_filter?: EstadoCompra;
     fecha_odd_from?: string;
     fecha_odd_to?: string;
+    created_from?: string;
+    created_to?: string;
     valor_min?: number;
     valor_max?: number;
 }
@@ -75,6 +81,7 @@ export const ESTADOS_COMPRA = [
     "Comprado",
     "En Bodega",
     "Entregado",
+    "Anulado",
 ] as const;
 
 export type EstadoCompra = typeof ESTADOS_COMPRA[number];
