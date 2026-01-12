@@ -62,6 +62,8 @@ import { isFieldEditable, getAvailableEstados, getEditableFields } from "@/utils
 
 import { createCompraFormSchema, type CompraFormValues } from "../schemas/compra-form.schema";
 import { notifyBuyer } from "@/actions/send-email";
+import { OrdenesCompraList } from "./ordenes-compra-list";
+import { getOrdenesByCompra } from "@/services/ordenes-compra.service";
 
 interface CompraDialogProps {
     compra?: Compra;
@@ -69,9 +71,11 @@ interface CompraDialogProps {
     onOpenChange: (open: boolean) => void;
     onSuccess: () => void;
     currentUser: User | null;
+    initialData?: Partial<Compra>;
+    isDuplicate?: boolean;
 }
 
-export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUser }: CompraDialogProps) {
+export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUser, initialData, isDuplicate }: CompraDialogProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [subvenciones, setSubvenciones] = useState<Subvencion[]>([]);
     const [usuarios, setUsuarios] = useState<User[]>([]);
@@ -144,8 +148,8 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
         if (open) {
             loadData();
             form.reset({
-                numero_ordinario: compra?.numero_ordinario || 0,
-                unidad_requirente: compra?.unidad_requirente || "",
+                numero_ordinario: compra?.numero_ordinario || initialData?.numero_ordinario || 0,
+                unidad_requirente: compra?.unidad_requirente || initialData?.unidad_requirente || "",
                 comprador: compra?.comprador || "",
                 descripcion: compra?.descripcion || "",
                 odd: compra?.odd || "",
@@ -153,13 +157,13 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                 plazo_de_entrega: compra?.plazo_de_entrega || 1,
                 valor: compra?.valor || 0,
                 presupuesto: compra?.presupuesto || 0,
-                subvencion: compra?.subvencion || "",
+                subvencion: compra?.subvencion || initialData?.subvencion || "",
                 estado: compra?.estado || "Asignado",
                 adjunta_ordinario: undefined,
                 adjunta_odd: undefined,
             });
         }
-    }, [open, compra, form]);
+    }, [open, compra, form, initialData]);
 
     const onSubmit = async (data: CompraFormValues) => {
         setIsSubmitting(true);
@@ -213,6 +217,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                     valor: data.valor,
                     presupuesto: data.presupuesto,
                     subvencion: data.subvencion,
+                    es_duplicada: isDuplicate,
                     estado: data.estado,
                     adjunta_ordinario: data.adjunta_ordinario,
                     adjunta_odd: data.adjunta_odd,
@@ -564,56 +569,40 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                     )}
                                 />
                             </div>
+                        </div>
 
-                            {/* Campos detallados solo en edición (o si se requiere expandir futuros permisos) */}
-                            {isEditing && (
+                        <Separator className="my-4" />
+
+                        {/* SECCIÓN: ÓRDENES DE COMPRA */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-medium">Órdenes de Compra</h3>
+
+                            {!isEditing ? (
+                                <Alert className="bg-muted/50">
+                                    <AlertDescription>
+                                        Para adjuntar órdenes de compra, primero debes crear y guardar la solicitud básica.
+                                    </AlertDescription>
+                                </Alert>
+                            ) : (
                                 <>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="odd"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>
-                                                        OC
-                                                        {isRequired("odd") && <span className="text-red-500 ml-1">*</span>}
-                                                    </FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            placeholder="OC-2024-001"
-                                                            disabled={!isFieldEditable("odd", currentUser?.role || "Observador")}
-                                                            {...field}
-                                                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+                                    <OrdenesCompraList
+                                        compraId={compra!.id}
+                                        canEdit={currentUser?.role === "Encargado compras" || currentUser?.role === "Comprador"}
+                                        onUpdate={async () => {
+                                            // Recalcular valor total
+                                            try {
+                                                const ocs = await getOrdenesByCompra(compra!.id);
+                                                const total = ocs.items.reduce((sum, item) => sum + item.oc_valor, 0);
+                                                form.setValue("valor", total);
+                                            } catch (error) {
+                                                console.error("Error updating total value:", error);
+                                            }
+                                        }}
+                                    />
+                                    {/* Hidden input to ensure valor is submitted */}
+                                    <input type="hidden" {...form.register("valor")} />
 
-                                        <FormField
-                                            control={form.control}
-                                            name="fecha_odd"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>
-                                                        Fecha OC
-                                                        {isRequired("fecha_odd") && <span className="text-red-500 ml-1">*</span>}
-                                                    </FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="date"
-                                                            disabled={!isFieldEditable("fecha_odd", currentUser?.role || "Observador")}
-                                                            {...field}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-2 gap-4 mt-4">
                                         <FormField
                                             control={form.control}
                                             name="plazo_de_entrega"
@@ -631,54 +620,6 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                                             {...field}
                                                         />
                                                     </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-
-                                        <FormField
-                                            control={form.control}
-                                            name="valor"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>
-                                                        Valor (CLP)
-                                                        {isRequired("valor") && <span className="text-red-500 ml-1">*</span>}
-                                                    </FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="number"
-                                                            step="0.01"
-                                                            placeholder="150000"
-                                                            disabled={!isFieldEditable("valor", currentUser?.role || "Observador")}
-                                                            {...field}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="adjunta_odd"
-                                            render={({ field: { value, onChange, ...field } }) => (
-                                                <FormItem>
-                                                    <FormLabel>Adjunto OC</FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="file"
-                                                            accept=".pdf,.jpg,.jpeg,.png,.webp"
-                                                            onChange={(e) => {
-                                                                const file = e.target.files?.[0];
-                                                                onChange(file);
-                                                            }}
-                                                            {...field}
-                                                        />
-                                                    </FormControl>
-                                                    <FormDescription>PDF o imagen (máx. 10MB)</FormDescription>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}

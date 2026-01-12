@@ -137,6 +137,10 @@ export async function createCompra(data: CompraFormData): Promise<Compra> {
             formData.append("adjunta_odd", data.adjunta_odd);
         }
 
+        if (data.es_duplicada) {
+            formData.append("es_duplicada", String(data.es_duplicada));
+        }
+
         return await pb.collection(COMPRAS_COLLECTION).create<Compra>(formData, {
             expand: "comprador,unidad_requirente",
         });

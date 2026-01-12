@@ -53,6 +53,7 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
     const [editingCompra, setEditingCompra] = useState<Compra | null>(null);
     const [deletingCompra, setDeletingCompra] = useState<Compra | null>(null);
     const [cancelingCompra, setCancelingCompra] = useState<Compra | null>(null);
+    const [duplicatingCompra, setDuplicatingCompra] = useState<Compra | null>(null);
     const [viewingCompra, setViewingCompra] = useState<Compra | null>(null);
     const [showFilters, setShowFilters] = useState<boolean>(false);
 
@@ -336,6 +337,12 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                                                 Editar
                                                             </DropdownMenuItem>
                                                         )}
+                                                        {currentUser && currentUser.role === "Encargado compras" && (
+                                                            <DropdownMenuItem onClick={() => setDuplicatingCompra(compra)}>
+                                                                <FileText className="mr-2 h-4 w-4" />
+                                                                Duplicar
+                                                            </DropdownMenuItem>
+                                                        )}
                                                         <DropdownMenuItem onClick={() => setViewingCompra(compra)}>
                                                             <Printer className="mr-2 h-4 w-4" />
                                                             Ver Ficha
@@ -402,6 +409,20 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                     onOpenChange={(open) => !open && setCancelingCompra(null)}
                     onSuccess={() => {
                         setCancelingCompra(null);
+                        onCompraUpdated();
+                    }}
+                    currentUser={currentUser}
+                />
+            )}
+
+            {duplicatingCompra && (
+                <CompraDialog
+                    initialData={duplicatingCompra}
+                    isDuplicate={true}
+                    open={!!duplicatingCompra}
+                    onOpenChange={(open) => !open && setDuplicatingCompra(null)}
+                    onSuccess={() => {
+                        setDuplicatingCompra(null);
                         onCompraUpdated();
                     }}
                     currentUser={currentUser}

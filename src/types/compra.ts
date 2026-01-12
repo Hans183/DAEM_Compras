@@ -22,6 +22,7 @@ export interface Compra extends RecordModel {
     usuario_modificador?: string;
     motivo_anula?: string;
     presupuesto?: number;
+    es_duplicada?: boolean;
     expand?: {
         unidad_requirente?: Requirente;
         comprador?: User;
@@ -49,6 +50,7 @@ export interface CompraFormData {
     usuario_modificador?: string;
     motivo_anula?: string;
     presupuesto?: number;
+    es_duplicada?: boolean;
 }
 
 /**

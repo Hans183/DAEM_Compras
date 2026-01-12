@@ -62,29 +62,11 @@ export function createCompraFormSchema(role: UserRole, context: { isCreating: bo
             })
             : z.string().optional(),
 
-        odd: isRequired("odd")
-            ? z.string().min(1, {
-                message: "El ODD es requerido.",
-            })
-            : z.string().optional(),
+        odd: z.string().optional(),
 
-        fecha_odd: isRequired("fecha_odd")
-            ? z.string().min(1, {
-                message: "La fecha ODD es requerida.",
-            })
-            : z.string().optional(),
+        fecha_odd: z.string().optional(),
 
-        adjunta_odd: z
-            .instanceof(File)
-            .optional()
-            .refine(
-                (file) => !file || file.size <= MAX_FILE_SIZE,
-                "El tamaño máximo de archivo es 10MB."
-            )
-            .refine(
-                (file) => !file || ACCEPTED_FILE_TYPES.includes(file.type),
-                "Solo se aceptan archivos PDF e imágenes."
-            ),
+        adjunta_odd: z.any().optional(),
 
         plazo_de_entrega: isRequired("plazo_de_entrega")
             ? z.coerce.number().int().min(1, {
@@ -98,11 +80,8 @@ export function createCompraFormSchema(role: UserRole, context: { isCreating: bo
             })
             : z.coerce.number().optional(),
 
-        valor: isRequired("valor")
-            ? z.coerce.number().positive({
-                message: "El valor debe ser un número positivo.",
-            })
-            : z.coerce.number().optional(),
+        // Valor ahora es opcional/calculado, pero mantenemos validación si se envía
+        valor: z.coerce.number().optional(),
 
         subvencion: isRequired("subvencion")
             ? z.string().min(1, {
