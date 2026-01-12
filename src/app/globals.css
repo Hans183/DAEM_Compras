@@ -59,8 +59,8 @@ These serve as the fallback; there is no separate default.css file. */
   --card-foreground: oklch(0.141 0.005 285.823);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.488 0.243 264.376);
-  --primary-foreground: oklch(0.97 0.014 254.604);
+  --primary: oklch(0.35 0.15 308);
+  --primary-foreground: oklch(0.98 0.01 308);
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.967 0.001 286.375);
@@ -71,15 +71,15 @@ These serve as the fallback; there is no separate default.css file. */
   --border: oklch(0.92 0.004 286.32);
   --input: oklch(0.92 0.004 286.32);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
+  --chart-1: oklch(0.75 0.12 295);
+  --chart-2: oklch(0.60 0.18 305);
+  --chart-3: oklch(0.50 0.20 310);
+  --chart-4: oklch(0.35 0.15 308);
+  --chart-5: oklch(0.28 0.13 308);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.546 0.245 262.881);
-  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
+  --sidebar-primary: oklch(0.35 0.15 308);
+  --sidebar-primary-foreground: oklch(0.98 0.01 308);
   --sidebar-accent: oklch(0.967 0.001 286.375);
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
@@ -97,8 +97,8 @@ These serve as the fallback; there is no separate default.css file. */
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.21 0.006 285.885);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.488 0.243 264.376);
-  --primary-foreground: oklch(0.97 0.014 254.604);
+  --primary: oklch(0.50 0.20 310);
+  --primary-foreground: oklch(0.98 0.01 308);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.274 0.006 286.033);
@@ -109,15 +109,15 @@ These serve as the fallback; there is no separate default.css file. */
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.809 0.105 251.813);
-  --chart-2: oklch(0.623 0.214 259.815);
-  --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
-  --chart-5: oklch(0.424 0.199 265.638);
+  --chart-1: oklch(0.75 0.12 295);
+  --chart-2: oklch(0.60 0.18 305);
+  --chart-3: oklch(0.50 0.20 310);
+  --chart-4: oklch(0.35 0.15 308);
+  --chart-5: oklch(0.28 0.13 308);
   --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.623 0.214 259.815);
-  --sidebar-primary-foreground: oklch(0.97 0.014 254.604);
+  --sidebar-primary: oklch(0.60 0.18 305);
+  --sidebar-primary-foreground: oklch(0.98 0.01 308);
   --sidebar-accent: oklch(0.274 0.006 286.033);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
@@ -212,4 +212,49 @@ html {
 
 .disable-transitions * {
   transition: none !important;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Ensure the portal and dialog wrappers don't mess up positioning */
+  [role="dialog"],
+  [data-radix-portal],
+  [data-state="open"] {
+    position: static !important;
+    transform: none !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  #printable-sheet, 
+  #printable-sheet * {
+    visibility: visible;
+  }
+
+  #printable-sheet {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px; /* Keep some padding for paper margins if needed, or remove */
+    background: white;
+  }
+
+  @page {
+    margin: 0;
+    size: auto;
+  }
 }

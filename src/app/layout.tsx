@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 import { Toaster } from "@/components/ui/sonner";
 import { APP_CONFIG } from "@/config/app-config";
+import { AuthProvider } from "@/contexts/auth-context";
 import { fontVars } from "@/lib/fonts/registry";
 import { PREFERENCE_DEFAULTS } from "@/lib/preferences/preferences-config";
 import { ThemeBootScript } from "@/scripts/theme-boot";
@@ -43,8 +44,10 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
           navbarStyle={navbar_style}
           font={font}
         >
-          {children}
-          <Toaster />
+          <AuthProvider>
+            {children}
+            <Toaster />
+          </AuthProvider>
         </PreferencesStoreProvider>
       </body>
     </html>

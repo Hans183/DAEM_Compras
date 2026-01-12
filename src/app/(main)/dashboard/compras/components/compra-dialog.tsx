@@ -1,0 +1,633 @@
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState, useEffect, useMemo } from "react";
+import { toast } from "sonner";
+import { Loader2, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
+    Form,
+    FormControl,
+    FormDescription,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { createCompra, updateCompra } from "@/services/compras.service";
+import { getSubvenciones } from "@/services/subvenciones.service";
+import { getUsers } from "@/services/users.service";
+import { getRequirentes } from "@/services/requirente.service";
+import type { Compra } from "@/types/compra";
+import type { Subvencion } from "@/types/subvencion";
+import type { User } from "@/types/user";
+import type { Requirente } from "@/types/requirente";
+import { ESTADOS_COMPRA, type EstadoCompra } from "@/types/compra";
+import { isFieldEditable, getAvailableEstados, getEditableFields } from "@/utils/permissions";
+
+import { createCompraFormSchema, type CompraFormValues } from "../schemas/compra-form.schema";
+
+interface CompraDialogProps {
+    compra?: Compra;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onSuccess: () => void;
+    currentUser: User | null;
+}
+
+export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUser }: CompraDialogProps) {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [subvenciones, setSubvenciones] = useState<Subvencion[]>([]);
+    const [usuarios, setUsuarios] = useState<User[]>([]);
+    const [requirentes, setRequirentes] = useState<Requirente[]>([]);
+    const [openRequirente, setOpenRequirente] = useState(false);
+    const [loadingData, setLoadingData] = useState(true);
+    const isEditing = !!compra;
+
+    // Determine available estados based on user role and current estado
+    const availableEstados = currentUser
+        ? getAvailableEstados(currentUser.role, compra?.estado as EstadoCompra | undefined)
+        : [];
+
+    // Create dynamic schema based on user role and context
+    const formSchema = useMemo(
+        () => createCompraFormSchema(currentUser?.role || "Observador", { isCreating: !isEditing }),
+        [currentUser?.role, isEditing]
+    );
+
+    // Get editable fields for current user
+    const editableFields = useMemo(
+        () => getEditableFields(currentUser?.role || "Observador"),
+        [currentUser?.role]
+    );
+
+    const form = useForm<CompraFormValues>({
+        resolver: zodResolver(formSchema),
+        defaultValues: {
+            numero_ordinario: compra?.numero_ordinario || 0,
+            unidad_requirente: compra?.unidad_requirente || "",
+            comprador: compra?.comprador || "",
+            descripcion: compra?.descripcion || "",
+            odd: compra?.odd || "",
+            fecha_odd: compra?.fecha_odd ? new Date(compra.fecha_odd).toISOString().split('T')[0] : "",
+            plazo_de_entrega: compra?.plazo_de_entrega || 1,
+            valor: compra?.valor || 0,
+            subvencion: compra?.subvencion || "",
+            estado: compra?.estado || "Asignado",
+        },
+    });
+
+    // Helper to check if field is required
+    const isRequired = (fieldName: string) => {
+        // En creación, solo los campos básicos son requeridos visualmente
+        if (!isEditing) {
+            return ["numero_ordinario", "unidad_requirente", "descripcion", "estado", "comprador"].includes(fieldName);
+        }
+        return editableFields.includes(fieldName as any);
+    };
+
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                const [subvencionesData, usuariosData, requirentesData] = await Promise.all([
+                    getSubvenciones({ perPage: 100 }),
+                    getUsers({ perPage: 100 }),
+                    getRequirentes({ perPage: 100, sort: "+nombre" }),
+                ]);
+                setSubvenciones(subvencionesData.items);
+                setUsuarios(usuariosData.items);
+                setRequirentes(requirentesData.items);
+            } catch (error) {
+                console.error("Error loading data:", error);
+                toast.error("Error al cargar datos");
+            } finally {
+                setLoadingData(false);
+            }
+        };
+
+        if (open) {
+            loadData();
+        }
+    }, [open]);
+
+    const onSubmit = async (data: CompraFormValues) => {
+        setIsSubmitting(true);
+
+        try {
+            if (isEditing) {
+                await updateCompra(compra.id, {
+                    numero_ordinario: data.numero_ordinario,
+                    unidad_requirente: data.unidad_requirente,
+                    comprador: data.comprador,
+                    descripcion: data.descripcion,
+                    odd: data.odd,
+                    fecha_odd: data.fecha_odd,
+                    plazo_de_entrega: data.plazo_de_entrega,
+                    valor: data.valor,
+                    subvencion: data.subvencion,
+                    estado: data.estado,
+                    adjunta_ordinario: data.adjunta_ordinario,
+                    adjunta_odd: data.adjunta_odd,
+                    usuario_modificador: currentUser?.name || currentUser?.email || "Usuario desconocido",
+                });
+                toast.success("Compra actualizada exitosamente");
+            } else {
+                await createCompra({
+                    numero_ordinario: data.numero_ordinario,
+                    unidad_requirente: data.unidad_requirente,
+                    comprador: data.comprador,
+                    descripcion: data.descripcion,
+                    odd: data.odd,
+                    fecha_odd: data.fecha_odd,
+                    plazo_de_entrega: data.plazo_de_entrega,
+                    valor: data.valor,
+                    subvencion: data.subvencion,
+                    estado: data.estado,
+                    adjunta_ordinario: data.adjunta_ordinario,
+                    adjunta_odd: data.adjunta_odd,
+                    usuario_modificador: currentUser?.name || currentUser?.email || "Usuario desconocido",
+                });
+                toast.success("Compra creada exitosamente");
+            }
+
+            form.reset();
+            onSuccess();
+        } catch (error: any) {
+            console.error("Error saving compra:", error);
+            toast.error(error?.message || "Error al guardar compra");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (loadingData) {
+        return (
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent className="sm:max-w-[700px]">
+                    <DialogHeader>
+                        <DialogTitle>{isEditing ? "Editar Compra" : "Crear Nueva Compra"}</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex items-center justify-center p-8">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                </DialogContent>
+            </Dialog>
+        );
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                    <DialogTitle>{isEditing ? "Editar Compra" : "Crear Nueva Compra"}</DialogTitle>
+                    <DialogDescription>
+                        {isEditing
+                            ? "Modifica los datos de la compra."
+                            : "Complete los datos básicos para iniciar una solicitud de compra."}
+                    </DialogDescription>
+                </DialogHeader>
+
+                {currentUser && editableFields.length < 5 && (
+                    <Alert>
+                        <AlertDescription>
+                            Solo necesitas completar los campos marcados con <span className="text-red-500">*</span> según tus permisos.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        {/* SECCIÓN: DATOS DE SOLICITUD */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-medium">Datos de Solicitud</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="numero_ordinario"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                Número Ordinario
+                                                {isRequired("numero_ordinario") && <span className="text-red-500 ml-1">*</span>}
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    placeholder="123"
+                                                    disabled={!isFieldEditable("numero_ordinario", currentUser?.role || "Observador")}
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="estado"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                Estado
+                                                {isRequired("estado") && <span className="text-red-500 ml-1">*</span>}
+                                            </FormLabel>
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                defaultValue={field.value}
+                                                disabled={!currentUser || !isFieldEditable("estado", currentUser.role, compra?.estado as EstadoCompra | undefined)}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecciona un estado" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {availableEstados.map((estado) => (
+                                                        <SelectItem key={estado} value={estado}>
+                                                            {estado}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            {!isEditing && (
+                                                <FormDescription>
+                                                    La compra inicia con estado "Asignado".
+                                                </FormDescription>
+                                            )}
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            <FormField
+                                control={form.control}
+                                name="descripcion"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>
+                                            Descripción
+                                            {isRequired("descripcion") && <span className="text-red-500 ml-1">*</span>}
+                                        </FormLabel>
+                                        <FormControl>
+                                            <Textarea
+                                                placeholder="Descripción detallada de la compra"
+                                                className="resize-none"
+                                                disabled={!isFieldEditable("descripcion", currentUser?.role || "Observador")}
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="unidad_requirente"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                Unidad Requirente
+                                                {isRequired("unidad_requirente") && <span className="text-red-500 ml-1">*</span>}
+                                            </FormLabel>
+                                            <Popover open={openRequirente} onOpenChange={setOpenRequirente}>
+                                                <PopoverTrigger asChild>
+                                                    <FormControl>
+                                                        <Button
+                                                            variant="outline"
+                                                            role="combobox"
+                                                            aria-expanded={openRequirente}
+                                                            className={cn(
+                                                                "w-full justify-between",
+                                                                !field.value && "text-muted-foreground"
+                                                            )}
+                                                            disabled={!isFieldEditable("unidad_requirente", currentUser?.role || "Observador")}
+                                                        >
+                                                            {field.value
+                                                                ? requirentes.find((requirente) => requirente.id === field.value)?.nombre
+                                                                : "Selecciona unidad"}
+                                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                        </Button>
+                                                    </FormControl>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                    <Command>
+                                                        <CommandInput placeholder="Buscar unidad..." />
+                                                        <CommandList>
+                                                            <CommandEmpty>No se encontró unidad.</CommandEmpty>
+                                                            <CommandGroup>
+                                                                {requirentes.map((requirente) => (
+                                                                    <CommandItem
+                                                                        value={requirente.nombre}
+                                                                        key={requirente.id}
+                                                                        onSelect={() => {
+                                                                            form.setValue("unidad_requirente", requirente.id);
+                                                                            setOpenRequirente(false);
+                                                                        }}
+                                                                    >
+                                                                        <Check
+                                                                            className={cn(
+                                                                                "mr-2 h-4 w-4",
+                                                                                requirente.id === field.value ? "opacity-100" : "opacity-0"
+                                                                            )}
+                                                                        />
+                                                                        {requirente.nombre}
+                                                                    </CommandItem>
+                                                                ))}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="adjunta_ordinario"
+                                    render={({ field: { value, onChange, ...field } }) => (
+                                        <FormItem>
+                                            <FormLabel>Adjunto Ordinario</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="file"
+                                                    accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        onChange(file);
+                                                    }}
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormDescription>PDF o imagen (máx. 10MB)</FormDescription>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        </div>
+
+                        <Separator />
+
+                        {/* SECCIÓN: DATOS DE GESTIÓN */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-medium">Datos de Gestión</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="comprador"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                Comprador
+                                                {isRequired("comprador") && <span className="text-red-500 ml-1">*</span>}
+                                            </FormLabel>
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                defaultValue={field.value}
+                                                disabled={!isFieldEditable("comprador", currentUser?.role || "Observador")}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecciona comprador" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {usuarios
+                                                        .filter((u) => u.role === "Comprador")
+                                                        .map((usuario) => (
+                                                            <SelectItem key={usuario.id} value={usuario.id}>
+                                                                {usuario.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="subvencion"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                Subvención
+                                                {isRequired("subvencion") && <span className="text-red-500 ml-1">*</span>}
+                                            </FormLabel>
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                defaultValue={field.value}
+                                                disabled={!isFieldEditable("subvencion", currentUser?.role || "Observador")}
+                                            >
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecciona subvención" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {subvenciones.map((subvencion) => (
+                                                        <SelectItem key={subvencion.id} value={subvencion.id}>
+                                                            {subvencion.nombre}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            {/* Campos detallados solo en edición (o si se requiere expandir futuros permisos) */}
+                            {isEditing && (
+                                <>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="odd"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        ODD
+                                                        {isRequired("odd") && <span className="text-red-500 ml-1">*</span>}
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            placeholder="ODD-2024-001"
+                                                            disabled={!isFieldEditable("odd", currentUser?.role || "Observador")}
+                                                            {...field}
+                                                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="fecha_odd"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Fecha ODD
+                                                        {isRequired("fecha_odd") && <span className="text-red-500 ml-1">*</span>}
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="date"
+                                                            disabled={!isFieldEditable("fecha_odd", currentUser?.role || "Observador")}
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="plazo_de_entrega"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Plazo de Entrega (días)
+                                                        {isRequired("plazo_de_entrega") && <span className="text-red-500 ml-1">*</span>}
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="number"
+                                                            placeholder="30"
+                                                            disabled={!isFieldEditable("plazo_de_entrega", currentUser?.role || "Observador")}
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <FormField
+                                            control={form.control}
+                                            name="valor"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>
+                                                        Valor (CLP)
+                                                        {isRequired("valor") && <span className="text-red-500 ml-1">*</span>}
+                                                    </FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="number"
+                                                            step="0.01"
+                                                            placeholder="150000"
+                                                            disabled={!isFieldEditable("valor", currentUser?.role || "Observador")}
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="adjunta_odd"
+                                            render={({ field: { value, onChange, ...field } }) => (
+                                                <FormItem>
+                                                    <FormLabel>Adjunto ODD</FormLabel>
+                                                    <FormControl>
+                                                        <Input
+                                                            type="file"
+                                                            accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                                            onChange={(e) => {
+                                                                const file = e.target.files?.[0];
+                                                                onChange(file);
+                                                            }}
+                                                            {...field}
+                                                        />
+                                                    </FormControl>
+                                                    <FormDescription>PDF o imagen (máx. 10MB)</FormDescription>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => onOpenChange(false)}
+                                disabled={isSubmitting}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Guardando...
+                                    </>
+                                ) : isEditing ? (
+                                    "Guardar Cambios"
+                                ) : (
+                                    "Crear Compra"
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
+            </DialogContent>
+        </Dialog >
+    );
+}

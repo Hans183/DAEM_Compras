@@ -1,17 +1,5 @@
-# Next.js Admin Template with TypeScript & Shadcn UI
+# Next.js Admin Template con TypeScript & Shadcn UI
 
-**Studio Admin** - Includes multiple dashboards, authentication layouts, customizable theme presets, and more.
-
-<img src="https://github.com/arhamkhnz/next-shadcn-admin-dashboard/blob/main/media/dashboard.png?version=5" alt="Dashboard Screenshot">
-
-Most admin templates I found, free or paid, felt cluttered, outdated, or too rigid. I built this as a cleaner alternative with features often missing in others, such as theme toggling and layout controls, while keeping the design modern, minimal, and flexible.
-
-I’ve taken design inspiration from various sources. If you’d like credit for something specific, feel free to open an issue or reach out.
-
-> **View demo:** [studio admin](https://next-shadcn-admin-dashboard.vercel.app)
-
-> [!TIP]
-> I’m also working on Nuxt.js, Svelte, and React (Vite + TanStack Router) versions of this dashboard. They’ll be live soon.
 
 ## Features
 
@@ -50,26 +38,6 @@ I’ve taken design inspiration from various sources. If you’d like credit for
 - **Tables & Data Handling**: TanStack Table  
 - **Tooling & DX**: Biome, Husky  
 
-## Screens
-
-### Available
-- Default Dashboard  
-- CRM Dashboard  
-- Finance Dashboard  
-- Authentication (4 screens)
-
-### Coming Soon
-- Analytics Dashboard  
-- eCommerce Dashboard  
-- Academy Dashboard  
-- Logistics Dashboard  
-- Email Page  
-- Chat Page  
-- Calendar Page  
-- Kanban Board  
-- Invoice Page  
-- Users Management  
-- Roles Management  
 
 ## Colocation File System Architecture
 
@@ -77,16 +45,6 @@ This project follows a **colocation-based architecture** each feature keeps its 
 Shared UI, hooks, and configuration live at the top level, making the codebase modular, scalable, and easier to maintain as the app grows.
 
 For a full breakdown of the structure with examples, see the [Next Colocation Template](https://github.com/arhamkhnz/next-colocation-template).
-
-## Getting Started
-
-You can run this project locally, or deploy it instantly with Vercel.
-
-### Deploy with Vercel
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Farhamkhnz%2Fnext-shadcn-admin-dashboard)
-
-_Deploy your own copy with one click._
 
 ### Run locally
 
@@ -111,23 +69,3 @@ _Deploy your own copy with one click._
    ```
 
 Your app will be running at [http://localhost:3000](http://localhost:3000)
-
-### Formatting and Linting
-
-Format, lint, and organize imports
-```bash
-npx @biomejs/biome check --write
-```
-> For more information on available rules, fixes, and CLI options, refer to the [Biome documentation](https://biomejs.dev/).
-
----
-
-> [!IMPORTANT]  
-> This project is updated frequently. If you’re working from a fork or an older clone, pull the latest changes before syncing. Some updates may include breaking changes.
-
----
-
-Contributions are welcome. Feel free to open issues, feature requests, or start a discussion.
-
-
-**Happy Vibe Coding!**

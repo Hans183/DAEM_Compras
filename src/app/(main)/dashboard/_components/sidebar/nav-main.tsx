@@ -29,6 +29,7 @@ import type { NavGroup, NavMainItem } from "@/navigation/sidebar/sidebar-items";
 
 interface NavMainProps {
   readonly items: readonly NavGroup[];
+  userRole?: string;
 }
 
 const IsComingSoon = () => (
@@ -141,7 +142,7 @@ const NavItemCollapsed = ({
   );
 };
 
-export function NavMain({ items }: NavMainProps) {
+export function NavMain({ items, userRole }: NavMainProps) {
   const path = usePathname();
   const { state, isMobile } = useSidebar();
 
@@ -156,37 +157,25 @@ export function NavMain({ items }: NavMainProps) {
     return subItems?.some((sub) => path.startsWith(sub.url)) ?? false;
   };
 
+  // Función para verificar si un item es accesible por el usuario
+  const isItemAccessible = (item: NavMainItem) => {
+    if (!item.allowedRoles || item.allowedRoles.length === 0) {
+      return true; // Si no tiene roles definidos, es accesible para todos
+    }
+    if (!userRole) {
+      return false; // Si se requieren roles pero no hay usuario, no es accesible
+    }
+    return item.allowedRoles.includes(userRole);
+  };
+
   return (
     <>
-      <SidebarGroup>
-        <SidebarGroupContent className="flex flex-col gap-2">
-          <SidebarMenu>
-            <SidebarMenuItem className="flex items-center gap-2">
-              <SidebarMenuButton
-                tooltip="Quick Create"
-                className="min-w-8 bg-primary text-primary-foreground duration-200 ease-linear hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground"
-              >
-                <PlusCircleIcon />
-                <span>Quick Create</span>
-              </SidebarMenuButton>
-              <Button
-                size="icon"
-                className="h-9 w-9 shrink-0 group-data-[collapsible=icon]:opacity-0"
-                variant="outline"
-              >
-                <MailIcon />
-                <span className="sr-only">Inbox</span>
-              </Button>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
       {items.map((group) => (
         <SidebarGroup key={group.id}>
           {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
           <SidebarGroupContent className="flex flex-col gap-2">
             <SidebarMenu>
-              {group.items.map((item) => {
+              {group.items.filter(isItemAccessible).map((item) => {
                 if (state === "collapsed" && !isMobile) {
                   // If no subItems, just render the button as a link
                   if (!item.subItems) {
