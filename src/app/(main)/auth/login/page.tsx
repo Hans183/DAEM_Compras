@@ -17,6 +17,7 @@ export default function LoginV1() {
               height={300}
               className="mx-auto brightness-0 invert"
               priority
+              unoptimized
             />
           </div>
         </div>
