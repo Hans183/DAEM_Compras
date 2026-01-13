@@ -10,6 +10,7 @@ export const requirenteFormSchema = z.object({
         message: "El nombre no puede exceder 100 caracteres.",
     }),
     active: z.boolean().default(true),
+    sep: z.boolean().default(false),
 });
 
 export type RequirenteFormValues = z.infer<typeof requirenteFormSchema>;

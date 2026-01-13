@@ -46,6 +46,7 @@ export function RequirenteDialog({ requirente, open, onOpenChange, onSuccess }: 
         defaultValues: {
             nombre: requirente?.nombre || "",
             active: requirente?.active ?? true,
+            sep: requirente?.sep ?? false,
         },
     });
 
@@ -110,6 +111,24 @@ export function RequirenteDialog({ requirente, open, onOpenChange, onSuccess }: 
                                         <FormLabel>Estado</FormLabel>
                                         <FormDescription>
                                             Activar o desactivar esta unidad requirente
+                                        </FormDescription>
+                                    </div>
+                                    <FormControl>
+                                        <Switch checked={field.value} onCheckedChange={field.onChange} />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="sep"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                                    <div className="space-y-0.5">
+                                        <FormLabel>SEP</FormLabel>
+                                        <FormDescription>
+                                            Marcar si es una unidad SEP
                                         </FormDescription>
                                     </div>
                                     <FormControl>
