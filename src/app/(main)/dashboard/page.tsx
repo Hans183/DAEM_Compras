@@ -1,13 +1,5 @@
-import { ChartAreaInteractive } from "./_components/default-dashboard/chart-area-interactive";
-import { DataTable } from "./_components/default-dashboard/data-table";
-import { SectionCards } from "./_components/default-dashboard/section-cards";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return (
-    <div className="@container/main flex flex-col gap-4 md:gap-6">
-      <SectionCards />
-      <ChartAreaInteractive />
-      <DataTable data={[]} />
-    </div>
-  );
+export default function DashboardPage() {
+  redirect("/dashboard/default");
 }
