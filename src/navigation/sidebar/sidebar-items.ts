@@ -69,7 +69,7 @@ export const sidebarItems: NavGroup[] = [
         allowedRoles: ["Admin", "Comprador", "Encargado compras"],
       },
       {
-        title: "Acciones",
+        title: "Acciones SEP",
         url: "/dashboard/acciones",
         icon: Building2,
         allowedRoles: ["Admin", "SEP"],
