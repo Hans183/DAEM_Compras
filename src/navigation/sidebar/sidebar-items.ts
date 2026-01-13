@@ -48,7 +48,7 @@ export const sidebarItems: NavGroup[] = [
         title: "Usuarios",
         url: "/dashboard/users",
         icon: Users,
-        allowedRoles: ["Admin"],
+        allowedRoles: ["Admin", "Encargado compras"],
       },
       {
         title: "Compras",
@@ -76,7 +76,7 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         title: "RRHH SEP",
-        url: "/dashboard/rrhh",
+        url: "/dashboard/rrhh-sep",
         icon: Users,
         allowedRoles: ["Admin", "SEP"],
       },

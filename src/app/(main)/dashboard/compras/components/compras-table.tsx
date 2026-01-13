@@ -13,6 +13,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CompraSheet } from "./compra-sheet";
 import {
     Table,
@@ -35,6 +37,7 @@ import type { Compra, GetComprasParams } from "@/types/compra";
 import { ESTADOS_COMPRA } from "@/types/compra";
 import type { User } from "@/types/user";
 import { getCompraFileUrl } from "@/services/compras.service";
+import { getUserAvatarUrl } from "@/services/users.service";
 import { canEditCompra, canDeleteCompra, canCancelCompra } from "@/utils/permissions";
 
 import { DeleteCompraDialog } from "./delete-compra-dialog";
@@ -160,11 +163,12 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-[140px]">Fecha</TableHead>
-                                <TableHead>N° Ordinario</TableHead>
+                                <TableHead>N° Ord.</TableHead>
                                 <TableHead>Requirente</TableHead>
                                 <TableHead>Descripción</TableHead>
                                 <TableHead>Estado</TableHead>
                                 <TableHead>OC</TableHead>
+                                <TableHead className="w-[50px]">Comp.</TableHead>
                                 <TableHead>Plazo Entrega</TableHead>
                                 <TableHead className="w-12"></TableHead>
                             </TableRow>
@@ -244,6 +248,8 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                     </TableHead>
                                     <TableHead className="py-2"></TableHead>
                                     <TableHead className="py-2"></TableHead>
+                                    <TableHead className="py-2"></TableHead>
+                                    <TableHead className="py-2"></TableHead>
                                 </TableRow>
                             )}
                         </TableHeader>
@@ -307,6 +313,35 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                                 >
                                                     <FileText className="h-3 w-3 text-blue-500" />
                                                 </Button>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {compra.expand?.comprador ? (
+                                                <TooltipProvider>
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Avatar className="h-8 w-8 cursor-help">
+                                                                <AvatarImage
+                                                                    src={getUserAvatarUrl(compra.expand.comprador)}
+                                                                    alt={compra.expand.comprador.name}
+                                                                />
+                                                                <AvatarFallback>
+                                                                    {compra.expand.comprador.name
+                                                                        .split(" ")
+                                                                        .map((n) => n[0])
+                                                                        .join("")
+                                                                        .substring(0, 2)
+                                                                        .toUpperCase()}
+                                                                </AvatarFallback>
+                                                            </Avatar>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>{compra.expand.comprador.name}</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                </TooltipProvider>
+                                            ) : (
+                                                <span className="text-muted-foreground">-</span>
                                             )}
                                         </TableCell>
                                         <TableCell>

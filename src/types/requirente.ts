@@ -6,6 +6,7 @@ import type { RecordModel } from "pocketbase";
 export interface Requirente extends RecordModel {
     nombre: string;
     active: boolean;
+    sep: boolean;
 }
 
 /**
@@ -14,6 +15,7 @@ export interface Requirente extends RecordModel {
 export interface RequirenteFormData {
     nombre: string;
     active: boolean;
+    sep: boolean;
 }
 
 /**
@@ -24,4 +26,5 @@ export interface GetRequirentesParams {
     perPage?: number;
     search?: string;
     sort?: string;
+    sep_filter?: boolean;
 }
