@@ -120,6 +120,7 @@ export async function createCompra(data: CompraFormData): Promise<Compra> {
         formData.append("unidad_requirente", data.unidad_requirente ?? "");
         formData.append("comprador", data.comprador ?? "");
         formData.append("descripcion", data.descripcion ?? "");
+        formData.append("fecha_solicitud", data.fecha_solicitud ?? "");
         formData.append("odd", data.odd ?? "");
         formData.append("fecha_odd", data.fecha_odd ?? "");
         formData.append("plazo_de_entrega", String(data.plazo_de_entrega ?? 1));
@@ -163,6 +164,7 @@ export async function updateCompra(id: string, data: Partial<CompraFormData>): P
         if (data.unidad_requirente) formData.append("unidad_requirente", data.unidad_requirente);
         if (data.comprador) formData.append("comprador", data.comprador);
         if (data.descripcion) formData.append("descripcion", data.descripcion);
+        if (data.fecha_solicitud) formData.append("fecha_solicitud", data.fecha_solicitud);
         if (data.odd) formData.append("odd", data.odd);
         if (data.fecha_odd) formData.append("fecha_odd", data.fecha_odd);
         if (data.plazo_de_entrega !== undefined) {

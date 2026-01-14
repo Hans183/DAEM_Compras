@@ -12,6 +12,7 @@ export interface Compra extends RecordModel {
     unidad_requirente: string; // Relation ID
     comprador: string; // Relation ID
     descripcion: string;
+    fecha_solicitud?: string;
     odd: string;
     fecha_odd: string;
     adjunta_odd?: string;
@@ -40,6 +41,7 @@ export interface CompraFormData {
     unidad_requirente?: string;
     comprador?: string;
     descripcion?: string;
+    fecha_solicitud?: string;
     odd?: string;
     fecha_odd?: string;
     adjunta_odd?: File;

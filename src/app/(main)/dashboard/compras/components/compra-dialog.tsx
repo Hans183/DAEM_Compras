@@ -91,13 +91,13 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
 
     // Create dynamic schema based on user role and context
     const formSchema = useMemo(
-        () => createCompraFormSchema(currentUser?.role || "Observador", { isCreating: !isEditing }),
+        () => createCompraFormSchema(currentUser?.role || ["Observador"], { isCreating: !isEditing }),
         [currentUser?.role, isEditing]
     );
 
     // Get editable fields for current user
     const editableFields = useMemo(
-        () => getEditableFields(currentUser?.role || "Observador"),
+        () => getEditableFields(currentUser?.role || ["Observador"]),
         [currentUser?.role]
     );
 
@@ -108,6 +108,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
             unidad_requirente: compra?.unidad_requirente || "",
             comprador: compra?.comprador || "",
             descripcion: compra?.descripcion || "",
+            fecha_solicitud: compra?.fecha_solicitud ? new Date(compra.fecha_solicitud).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             odd: compra?.odd || "",
             fecha_odd: compra?.fecha_odd ? new Date(compra.fecha_odd).toISOString().split('T')[0] : "",
             plazo_de_entrega: compra?.plazo_de_entrega || 1,
@@ -121,13 +122,16 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
     const isRequired = (fieldName: string) => {
         // En creación, solo los campos básicos son requeridos visualmente
         if (!isEditing) {
-            return ["numero_ordinario", "unidad_requirente", "descripcion", "estado", "comprador"].includes(fieldName);
+            return ["numero_ordinario", "unidad_requirente", "descripcion", "estado", "comprador", "fecha_solicitud"].includes(fieldName);
         }
         return editableFields.includes(fieldName as any);
     };
 
+    // ... useEffect loadData ...
+
     useEffect(() => {
         const loadData = async () => {
+            // ... existing loadData logic ...
             try {
                 const [subvencionesData, usuariosData, requirentesData] = await Promise.all([
                     getSubvenciones({ perPage: 100 }),
@@ -152,6 +156,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                 unidad_requirente: compra?.unidad_requirente || initialData?.unidad_requirente || "",
                 comprador: compra?.comprador || "",
                 descripcion: compra?.descripcion || "",
+                fecha_solicitud: compra?.fecha_solicitud ? new Date(compra.fecha_solicitud).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                 odd: compra?.odd || "",
                 fecha_odd: compra?.fecha_odd ? new Date(compra.fecha_odd).toISOString().split('T')[0] : "",
                 plazo_de_entrega: compra?.plazo_de_entrega || 1,
@@ -169,13 +174,14 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
         setIsSubmitting(true);
 
         try {
-            let result: any; // Using any temporarily to access expand safely without strict type checks if Compra type isn't fully updated in all contexts, but ideally Compra
+            let result: any;
             if (isEditing) {
                 result = await updateCompra(compra.id, {
                     numero_ordinario: data.numero_ordinario,
                     unidad_requirente: data.unidad_requirente,
                     comprador: data.comprador,
                     descripcion: data.descripcion,
+                    fecha_solicitud: data.fecha_solicitud,
                     odd: data.odd,
                     fecha_odd: data.fecha_odd,
                     plazo_de_entrega: data.plazo_de_entrega,
@@ -190,7 +196,6 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                 toast.success("Compra actualizada exitosamente");
 
                 if (data.comprador && data.comprador !== compra.comprador) {
-                    // Use expanded buyer from result
                     const buyerEmail = result?.expand?.comprador?.email;
                     const buyerName = result?.expand?.comprador?.name || "Usuario";
                     const unitName = result?.expand?.unidad_requirente?.nombre || "Unidad Desconocida";
@@ -211,6 +216,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                     unidad_requirente: data.unidad_requirente,
                     comprador: data.comprador,
                     descripcion: data.descripcion,
+                    fecha_solicitud: data.fecha_solicitud,
                     odd: data.odd,
                     fecha_odd: data.fecha_odd,
                     plazo_de_entrega: data.plazo_de_entrega,
@@ -225,10 +231,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                 });
                 toast.success("Compra creada exitosamente");
 
-                // Always notify on creation if buyer is assigned
-                // Always notify on creation if buyer is assigned
                 if (data.comprador) {
-                    // Get buyer from local state instead of rely on expand result which might hide email
                     const selectedBuyer = usuarios.find(u => u.id === data.comprador);
                     const buyerEmail = selectedBuyer?.email;
                     const buyerName = selectedBuyer?.name || result?.expand?.comprador?.name || "Usuario";
@@ -256,26 +259,12 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
         }
     };
 
-    if (loadingData) {
-        return (
-            <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="sm:max-w-[700px]">
-                    <DialogHeader>
-                        <DialogTitle>{isEditing ? "Editar Compra" : "Crear Nueva Compra"}</DialogTitle>
-                        <DialogDescription>Cargando datos del formulario...</DialogDescription>
-                    </DialogHeader>
-                    <div className="flex items-center justify-center p-8">
-                        <Loader2 className="h-8 w-8 animate-spin" />
-                    </div>
-                </DialogContent>
-            </Dialog>
-        );
-    }
-
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
+            {/* ... Content ... */}
             <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
+                    {/* ... Header ... */}
                     <DialogTitle>{isEditing ? "Editar Compra" : "Crear Nueva Compra"}</DialogTitle>
                     <DialogDescription>
                         {isEditing
@@ -311,7 +300,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                                 <Input
                                                     type="number"
                                                     placeholder="123"
-                                                    disabled={!isFieldEditable("numero_ordinario", currentUser?.role || "Observador")}
+                                                    disabled={!isFieldEditable("numero_ordinario", currentUser?.role || ["Observador"])}
                                                     {...field}
                                                 />
                                             </FormControl>
@@ -320,6 +309,29 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                     )}
                                 />
 
+                                <FormField
+                                    control={form.control}
+                                    name="fecha_solicitud"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                Fecha de Ingreso
+                                                {isRequired("fecha_solicitud") && <span className="text-red-500 ml-1">*</span>}
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="date"
+                                                    disabled={!isFieldEditable("fecha_solicitud", currentUser?.role || ["Observador"])}
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4">
                                 <FormField
                                     control={form.control}
                                     name="estado"
@@ -347,11 +359,6 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                            {!isEditing && (
-                                                <FormDescription>
-                                                    La compra inicia con estado "Asignado".
-                                                </FormDescription>
-                                            )}
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -371,7 +378,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                             <Textarea
                                                 placeholder="Descripción detallada de la compra"
                                                 className="resize-none"
-                                                disabled={!isFieldEditable("descripcion", currentUser?.role || "Observador")}
+                                                disabled={!isFieldEditable("descripcion", currentUser?.role || ["Observador"])}
                                                 {...field}
                                             />
                                         </FormControl>
@@ -401,7 +408,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                                                 "w-full justify-between",
                                                                 !field.value && "text-muted-foreground"
                                                             )}
-                                                            disabled={!isFieldEditable("unidad_requirente", currentUser?.role || "Observador")}
+                                                            disabled={!isFieldEditable("unidad_requirente", currentUser?.role || ["Observador"])}
                                                         >
                                                             {field.value
                                                                 ? requirentes.find((requirente) => requirente.id === field.value)?.nombre
@@ -487,7 +494,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                             <Select
                                                 onValueChange={field.onChange}
                                                 defaultValue={field.value}
-                                                disabled={!isFieldEditable("comprador", currentUser?.role || "Observador")}
+                                                disabled={!isFieldEditable("comprador", currentUser?.role || ["Observador"])}
                                             >
                                                 <FormControl>
                                                     <SelectTrigger>
@@ -496,7 +503,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                                 </FormControl>
                                                 <SelectContent>
                                                     {usuarios
-                                                        .filter((u) => u.role === "Comprador")
+                                                        .filter((u) => u.role.includes("Comprador"))
                                                         .map((usuario) => (
                                                             <SelectItem key={usuario.id} value={usuario.id}>
                                                                 {usuario.name}
@@ -521,7 +528,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                             <Select
                                                 onValueChange={field.onChange}
                                                 defaultValue={field.value}
-                                                disabled={!isFieldEditable("subvencion", currentUser?.role || "Observador")}
+                                                disabled={!isFieldEditable("subvencion", currentUser?.role || ["Observador"])}
                                             >
                                                 <FormControl>
                                                     <SelectTrigger>
@@ -554,7 +561,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                                 <Input
                                                     type="text"
                                                     placeholder="0"
-                                                    disabled={!isFieldEditable("presupuesto", currentUser?.role || "Observador")}
+                                                    disabled={!isFieldEditable("presupuesto", currentUser?.role || ["Observador"])}
                                                     value={field.value ? new Intl.NumberFormat("es-CL").format(field.value) : ""}
                                                     onChange={(e) => {
                                                         const rawValue = e.target.value.replace(/\./g, "");
@@ -587,7 +594,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                 <>
                                     <OrdenesCompraList
                                         compraId={compra!.id}
-                                        canEdit={currentUser?.role === "Encargado compras" || currentUser?.role === "Comprador"}
+                                        canEdit={currentUser?.role.includes("Encargado compras") || currentUser?.role.includes("Comprador") || false}
                                         onUpdate={async () => {
                                             // Recalcular valor total
                                             try {
@@ -616,7 +623,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                                         <Input
                                                             type="number"
                                                             placeholder="30"
-                                                            disabled={!isFieldEditable("plazo_de_entrega", currentUser?.role || "Observador")}
+                                                            disabled={!isFieldEditable("plazo_de_entrega", currentUser?.role || ["Observador"])}
                                                             {...field}
                                                         />
                                                     </FormControl>

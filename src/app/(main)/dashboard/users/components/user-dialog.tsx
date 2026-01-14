@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Dialog,
     DialogContent,
@@ -23,16 +24,9 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { createUser, updateUser } from "@/services/users.service";
-import type { User } from "@/types/user";
+import type { User, UserRole } from "@/types/user";
 
 import { createUserSchema, type UserFormValues, userFormSchema } from "../schemas/user-form.schema";
 
@@ -43,7 +37,7 @@ interface UserDialogProps {
     onSuccess: () => void;
 }
 
-const ROLES = ["Comprador", "Observador", "SEP", "Bodega", "Encargado compras", "Admin"];
+const ROLES = ["Comprador", "Observador", "SEP", "Bodega", "Encargado compras", "Admin"] as const;
 
 export function UserDialog({ user, open, onOpenChange, onSuccess }: UserDialogProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,7 +48,7 @@ export function UserDialog({ user, open, onOpenChange, onSuccess }: UserDialogPr
         defaultValues: {
             name: user?.name || "",
             email: user?.email || "",
-            role: user?.role || "" as any,
+            role: user?.role || [],
             dependencia: user?.dependencia || "",
             emailVisibility: user?.emailVisibility ?? true,
             password: "",
@@ -168,23 +162,49 @@ export function UserDialog({ user, open, onOpenChange, onSuccess }: UserDialogPr
                         <FormField
                             control={form.control}
                             name="role"
-                            render={({ field }) => (
+                            render={() => (
                                 <FormItem>
-                                    <FormLabel>Rol</FormLabel>
-                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                        <FormControl>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Selecciona un rol" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            {ROLES.map((role) => (
-                                                <SelectItem key={role} value={role}>
-                                                    {role}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="mb-4">
+                                        <FormLabel className="text-base">Roles</FormLabel>
+                                        <DialogDescription className="text-sm">
+                                            Selecciona los roles para este usuario.
+                                        </DialogDescription>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {ROLES.map((role) => (
+                                            <FormField
+                                                key={role}
+                                                control={form.control}
+                                                name="role"
+                                                render={({ field }) => {
+                                                    return (
+                                                        <FormItem
+                                                            key={role}
+                                                            className="flex flex-row items-start space-x-3 space-y-0"
+                                                        >
+                                                            <FormControl>
+                                                                <Checkbox
+                                                                    checked={field.value?.includes(role as UserRole)}
+                                                                    onCheckedChange={(checked) => {
+                                                                        return checked
+                                                                            ? field.onChange([...(field.value || []), role])
+                                                                            : field.onChange(
+                                                                                (field.value || []).filter(
+                                                                                    (value) => value !== role
+                                                                                )
+                                                                            )
+                                                                    }}
+                                                                />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal">
+                                                                {role}
+                                                            </FormLabel>
+                                                        </FormItem>
+                                                    )
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
                                     <FormMessage />
                                 </FormItem>
                             )}

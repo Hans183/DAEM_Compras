@@ -9,15 +9,15 @@ const ACCEPTED_FILE_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "imag
 /**
  * Crea un schema de validación dinámico basado en el rol del usuario y el contexto (creación/edición)
  */
-export function createCompraFormSchema(role: UserRole, context: { isCreating: boolean } = { isCreating: false }) {
-    const editableFields = getEditableFields(role);
+export function createCompraFormSchema(roles: UserRole[], context: { isCreating: boolean } = { isCreating: false }) {
+    const editableFields = getEditableFields(roles);
     // Si estamos editando, usamos los permisos normales. Si estamos creando, restringimos los campos requeridos.
     const isRequired = (field: string) => {
         if (!editableFields.includes(field as any)) return false;
 
         // En creación, solo estos campos son obligatorios independientemente del rol
         if (context.isCreating) {
-            return ["numero_ordinario", "unidad_requirente", "descripcion", "estado", "comprador"].includes(field);
+            return ["numero_ordinario", "unidad_requirente", "descripcion", "estado", "comprador", "fecha_solicitud"].includes(field);
         }
 
         return true;
@@ -60,6 +60,10 @@ export function createCompraFormSchema(role: UserRole, context: { isCreating: bo
             }).max(500, {
                 message: "La descripción no puede exceder 500 caracteres.",
             })
+            : z.string().optional(),
+
+        fecha_solicitud: isRequired("fecha_solicitud")
+            ? z.string().min(1, { message: "Debes seleccionar una fecha de solicitud" })
             : z.string().optional(),
 
         odd: z.string().optional(),

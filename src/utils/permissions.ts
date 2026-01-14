@@ -4,56 +4,58 @@ import type { Compra, EstadoCompra } from "@/types/compra";
 /**
  * Verifica si un rol puede crear compras
  */
-export function canCreateCompra(role: UserRole): boolean {
-    return role === "Admin" || role === "Encargado compras";
+/**
+ * Verifica si un rol puede crear compras
+ */
+export function canCreateCompra(roles: UserRole[]): boolean {
+    return roles.includes("Admin") || roles.includes("Encargado compras");
 }
 
 /**
  * Verifica si un rol puede eliminar compras
  */
-export function canDeleteCompra(role: UserRole): boolean {
-    return role === "Admin" || role === "Encargado compras";
+export function canDeleteCompra(roles: UserRole[]): boolean {
+    return roles.includes("Admin") || roles.includes("Encargado compras");
 }
 
 /**
  * Verifica si un rol puede anular compras
  */
-export function canCancelCompra(role: UserRole): boolean {
-    return role === "Encargado compras";
+export function canCancelCompra(roles: UserRole[]): boolean {
+    return roles.includes("Encargado compras");
 }
 
 /**
  * Verifica si un rol puede editar una compra
  */
-export function canEditCompra(role: UserRole, compra?: Compra): boolean {
+export function canEditCompra(roles: UserRole[], compra?: Compra): boolean {
     // Si la compra está anulada, nadie puede editar
     if (compra?.estado === "Anulado") return false;
 
     // Admin puede editar cualquier compra
-    if (role === "Admin") return true;
+    if (roles.includes("Admin")) return true;
 
-    // Observador no puede editar nada
-    if (role === "Observador") return false;
+    // Observador no puede editar nada (explicit check not strictly needed if we check for allowing roles, but good for clarity)
+    // if (roles.includes("Observador")) ... (Observador logic is passive, so no action needed unless they have another role)
 
     // SEP no interactúa en este módulo
-    if (role === "SEP") return false;
 
-    // Comprador puede editar compras en estado Asignado
-    if (role === "Comprador") {
-        if (!compra) return false; // No puede crear, solo editar
-        return compra.estado === "Asignado";
+    // Comprador puede editar compras en estado Asignado o Comprado
+    if (roles.includes("Comprador")) {
+        if (!compra) return false;
+        if (compra.estado === "Asignado" || compra.estado === "Comprado") return true;
     }
 
     // Encargado compras puede editar compras en estado Asignado
-    if (role === "Encargado compras") {
-        if (!compra) return false; // No puede crear, solo editar
-        return compra.estado === "Asignado";
+    if (roles.includes("Encargado compras")) {
+        if (!compra) return false;
+        if (compra.estado === "Asignado") return true;
     }
 
     // Bodega puede editar compras en estado Comprado o En Bodega
-    if (role === "Bodega") {
+    if (roles.includes("Bodega")) {
         if (!compra) return false;
-        return compra.estado === "Comprado" || compra.estado === "En Bodega";
+        if (compra.estado === "Comprado" || compra.estado === "En Bodega") return true;
     }
 
     return false;
@@ -67,6 +69,7 @@ type CompraField =
     | "descripcion"
     | "unidad_requirente"
     | "comprador"
+    | "fecha_solicitud"
     | "odd"
     | "fecha_odd"
     | "plazo_de_entrega"
@@ -80,19 +83,22 @@ type CompraField =
 /**
  * Obtiene los campos que un rol puede editar
  */
-export function getEditableFields(role: UserRole, estadoCompra?: EstadoCompra): CompraField[] {
+export function getEditableFields(roles: UserRole[], estadoCompra?: EstadoCompra): CompraField[] {
     // Si el estado es Anulado, no se puede editar ningún campo
     if (estadoCompra === "Anulado") {
         return [];
     }
 
+    const fields = new Set<CompraField>();
+
     // Admin y Encargado compras pueden editar todos los campos
-    if (role === "Admin" || role === "Encargado compras") {
+    if (roles.includes("Admin") || roles.includes("Encargado compras")) {
         return [
             "numero_ordinario",
             "descripcion",
             "unidad_requirente",
             "comprador",
+            "fecha_solicitud",
             "odd",
             "fecha_odd",
             "plazo_de_entrega",
@@ -105,23 +111,16 @@ export function getEditableFields(role: UserRole, estadoCompra?: EstadoCompra): 
         ];
     }
 
-    // Observador no puede editar nada
-    if (role === "Observador") {
-        return [];
-    }
-
-    // SEP no interactúa en este módulo
-    if (role === "SEP") {
-        return [];
-    }
-
-    // Comprador puede editar todo
-    if (role === "Comprador") {
-        return [
+    // Comprador puede editar todo excepto el presupuesto (que no estaba explicito en el anterior para Comprador, asumiendo igual)
+    // Revisando código anterior: Comprador retorna todo excepto presupuesto? 
+    // Wait, previous code for Comprador returned everything *except* presupuesto.
+    if (roles.includes("Comprador")) {
+        ([
             "numero_ordinario",
             "descripcion",
             "unidad_requirente",
             "comprador",
+            "fecha_solicitud",
             "odd",
             "fecha_odd",
             "plazo_de_entrega",
@@ -130,15 +129,15 @@ export function getEditableFields(role: UserRole, estadoCompra?: EstadoCompra): 
             "estado",
             "adjunta_ordinario",
             "adjunta_odd",
-        ];
+        ] as CompraField[]).forEach(f => fields.add(f));
     }
 
     // Bodega solo puede editar estado
-    if (role === "Bodega") {
-        return ["estado"];
+    if (roles.includes("Bodega")) {
+        fields.add("estado");
     }
 
-    return [];
+    return Array.from(fields);
 }
 
 /**
@@ -146,41 +145,47 @@ export function getEditableFields(role: UserRole, estadoCompra?: EstadoCompra): 
  */
 export function isFieldEditable(
     field: CompraField,
-    role: UserRole,
+    roles: UserRole[],
     estadoCompra?: EstadoCompra
 ): boolean {
-    const editableFields = getEditableFields(role, estadoCompra);
+    const editableFields = getEditableFields(roles, estadoCompra);
     return editableFields.includes(field);
 }
 
 /**
  * Obtiene los estados a los que se puede cambiar según el rol
  */
-export function getAvailableEstados(role: UserRole, currentEstado?: EstadoCompra): EstadoCompra[] {
+export function getAvailableEstados(roles: UserRole[], currentEstado?: EstadoCompra): EstadoCompra[] {
+    const states = new Set<EstadoCompra>();
+
+    // Always include current state if it exists
+    if (currentEstado) {
+        states.add(currentEstado);
+    }
+
     // Admin puede cambiar a cualquier estado
-    if (role === "Admin" || role === "Encargado compras") {
+    if (roles.includes("Admin") || roles.includes("Encargado compras")) {
         return ["Asignado", "Comprado", "En Bodega", "Entregado"];
     }
 
-    // SEP no interactúa en este módulo
-    if (role === "SEP") {
-        return currentEstado ? [currentEstado] : [];
-    }
-
     // Bodega puede cambiar de Comprado a En Bodega o Entregado
-    if (role === "Bodega") {
+    if (roles.includes("Bodega")) {
         if (currentEstado === "Comprado") {
-            return ["Comprado", "En Bodega", "Entregado"];
+            states.add("Comprado");
+            states.add("En Bodega");
+            states.add("Entregado");
         }
         if (currentEstado === "En Bodega") {
-            return ["En Bodega", "Entregado"];
+            states.add("En Bodega");
+            states.add("Entregado");
         }
     }
 
     // Comprador puede cambiar a Comprado
-    if (role === "Comprador") {
-        return ["Asignado", "Comprado"];
+    if (roles.includes("Comprador")) {
+        states.add("Asignado");
+        states.add("Comprado");
     }
 
-    return currentEstado ? [currentEstado] : [];
+    return Array.from(states);
 }

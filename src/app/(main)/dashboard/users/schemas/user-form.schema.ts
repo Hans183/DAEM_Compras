@@ -6,9 +6,7 @@ import { USER_ROLES } from "@/types/user";
 const baseUserSchema = z.object({
     name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
     email: z.string().email("Email inválido"),
-    role: z.enum(USER_ROLES, {
-        errorMap: () => ({ message: "El rol es requerido" }),
-    }) as z.ZodType<UserRole>,
+    role: z.array(z.enum(USER_ROLES)).min(1, "Debes seleccionar al menos un rol"),
     dependencia: z.string().optional(),
     emailVisibility: z.boolean().default(true),
     avatar: z.instanceof(File).optional(),

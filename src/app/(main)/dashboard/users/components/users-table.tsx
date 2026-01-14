@@ -72,7 +72,18 @@ export function UsersTable({ users, onUserUpdated }: UsersTableProps) {
                                     <TableCell className="font-medium">{user.name}</TableCell>
                                     <TableCell>{user.email}</TableCell>
                                     <TableCell>
-                                        <Badge variant="secondary">{user.role}</Badge>
+                                        <div className="flex flex-wrap gap-1">
+                                            {Array.isArray(user.role) ? (
+                                                user.role.map((r) => (
+                                                    <Badge key={r} variant="secondary">
+                                                        {r}
+                                                    </Badge>
+                                                ))
+                                            ) : (
+                                                // Fallback for migration if some users still have string roles in runtime/cache
+                                                <Badge variant="secondary">{user.role}</Badge>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         <Badge variant={user.verified ? "default" : "outline"}>

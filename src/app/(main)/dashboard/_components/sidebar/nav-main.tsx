@@ -29,7 +29,7 @@ import type { NavGroup, NavMainItem } from "@/navigation/sidebar/sidebar-items";
 
 interface NavMainProps {
   readonly items: readonly NavGroup[];
-  userRole?: string;
+  userRole?: string[];
 }
 
 const IsComingSoon = () => (
@@ -162,10 +162,10 @@ export function NavMain({ items, userRole }: NavMainProps) {
     if (!item.allowedRoles || item.allowedRoles.length === 0) {
       return true; // Si no tiene roles definidos, es accesible para todos
     }
-    if (!userRole) {
+    if (!userRole || userRole.length === 0) {
       return false; // Si se requieren roles pero no hay usuario, no es accesible
     }
-    return item.allowedRoles.includes(userRole);
+    return item.allowedRoles.some(allowed => userRole.includes(allowed));
   };
 
   return (

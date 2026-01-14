@@ -16,7 +16,7 @@ export interface User extends RecordModel {
     name: string;
     avatar?: string;
     dependencia?: string; // Relation ID
-    role: UserRole;
+    role: UserRole[];
 }
 
 /**
@@ -27,7 +27,7 @@ export interface CreateUserData {
     password: string;
     passwordConfirm: string;
     name: string;
-    role: UserRole;
+    role: UserRole[];
     dependencia?: string;
     emailVisibility?: boolean;
     avatar?: File;
@@ -39,7 +39,7 @@ export interface CreateUserData {
 export interface UpdateUserData {
     name?: string;
     email?: string;
-    role?: UserRole;
+    role?: UserRole[];
     dependencia?: string;
     emailVisibility?: boolean;
     avatar?: File;
