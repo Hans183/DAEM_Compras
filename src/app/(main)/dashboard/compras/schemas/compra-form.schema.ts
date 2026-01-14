@@ -66,12 +66,6 @@ export function createCompraFormSchema(roles: UserRole[], context: { isCreating:
             ? z.string().min(1, { message: "Debes seleccionar una fecha de solicitud" })
             : z.string().optional(),
 
-        odd: z.string().optional(),
-
-        fecha_odd: z.string().optional(),
-
-        adjunta_odd: z.any().optional(),
-
         plazo_de_entrega: isRequired("plazo_de_entrega")
             ? z.coerce.number().int().min(1, {
                 message: "El plazo de entrega debe ser al menos 1 día.",
@@ -84,9 +78,6 @@ export function createCompraFormSchema(roles: UserRole[], context: { isCreating:
             })
             : z.coerce.number().optional(),
 
-        // Valor ahora es opcional/calculado, pero mantenemos validación si se envía
-        valor: z.coerce.number().optional(),
-
         subvencion: isRequired("subvencion")
             ? z.string().min(1, {
                 message: "Debes seleccionar una subvención.",
@@ -98,6 +89,10 @@ export function createCompraFormSchema(roles: UserRole[], context: { isCreating:
                 required_error: "Debes seleccionar un estado.",
             })
             : z.enum(ESTADOS_COMPRA).optional(),
+
+        observacion: isRequired("observacion")
+            ? z.string().min(1, { message: "La observación no puede estar vacía" })
+            : z.string().optional(),
     });
 }
 

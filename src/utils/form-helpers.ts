@@ -9,14 +9,13 @@ export type CompraField =
     | "descripcion"
     | "unidad_requirente"
     | "comprador"
-    | "odd"
-    | "fecha_odd"
+    | "fecha_solicitud"
     | "plazo_de_entrega"
-    | "valor"
     | "subvencion"
     | "estado"
     | "adjunta_ordinario"
-    | "adjunta_odd";
+    | "presupuesto"
+    | "observacion";
 
 /**
  * Determina si un campo es requerido para un rol específico

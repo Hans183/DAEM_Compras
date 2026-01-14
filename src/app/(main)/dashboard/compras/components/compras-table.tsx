@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MoreHorizontal, Pencil, Trash2, FileText, X, Printer, AlertTriangle, CheckCircle, Clock, Eye, Ban } from "lucide-react";
 import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
@@ -37,7 +37,8 @@ import type { Compra, GetComprasParams } from "@/types/compra";
 import { ESTADOS_COMPRA } from "@/types/compra";
 import type { User } from "@/types/user";
 import { getCompraFileUrl } from "@/services/compras.service";
-import { getUserAvatarUrl } from "@/services/users.service";
+import { getUserAvatarUrl, getUsers } from "@/services/users.service";
+import { getOrdenCompraFileUrl } from "@/services/ordenes-compra.service";
 import { canEditCompra, canDeleteCompra, canCancelCompra } from "@/utils/permissions";
 
 import { DeleteCompraDialog } from "./delete-compra-dialog";
@@ -59,6 +60,21 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
     const [duplicatingCompra, setDuplicatingCompra] = useState<Compra | null>(null);
     const [viewingCompra, setViewingCompra] = useState<Compra | null>(null);
     const [showFilters, setShowFilters] = useState<boolean>(false);
+    const [buyers, setBuyers] = useState<User[]>([]);
+
+    useEffect(() => {
+        const fetchBuyers = async () => {
+            try {
+                // Fetch all users to filter by role in UI or just fetch generic
+                // Assuming we want to show all possible buyers
+                const result = await getUsers({ perPage: 100 });
+                setBuyers(result.items.filter(u => u.role.includes("Comprador")));
+            } catch (error) {
+                console.error("Error fetching buyers:", error);
+            }
+        };
+        fetchBuyers();
+    }, []);
 
     const getEstadoBadgeVariant = (estado: string) => {
         switch (estado) {
@@ -75,44 +91,7 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
         }
     };
 
-    const RenderDeliveryStatus = ({ compra }: { compra: Compra }) => {
-        if (!compra.fecha_odd || !compra.plazo_de_entrega) return <span className="text-muted-foreground">-</span>;
 
-        // Si está anulado, mostrar estado explícito
-        if (compra.estado === "Anulado") {
-            return <Badge variant="outline" className="border-destructive/50 text-destructive bg-destructive/5">Anulado</Badge>;
-        }
-
-        // Si ya está entregado, no mostrar alerta de atraso
-        if (compra.estado === "Entregado" || compra.estado === "En Bodega") {
-            return <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100">Completado</Badge>;
-        }
-
-        const fechaOdd = parseISO(compra.fecha_odd);
-        const deadline = addDays(fechaOdd, compra.plazo_de_entrega);
-        const today = new Date();
-        const daysDiff = differenceInCalendarDays(today, deadline);
-
-        // daysDiff > 0 means today is AFTER deadline (Delayed)
-        // daysDiff <= 0 means today is BEFORE or ON deadline (On Time)
-
-        if (daysDiff > 0) {
-            return (
-                <Badge variant="destructive" className="flex items-center gap-1 w-fit">
-                    <AlertTriangle className="h-3 w-3" />
-                    <span>Atrasado ({daysDiff} {daysDiff === 1 ? 'día' : 'días'})</span>
-                </Badge>
-            );
-        } else {
-            const remainingDays = Math.abs(daysDiff);
-            return (
-                <Badge variant="outline" className="flex items-center gap-1 w-fit border-green-500 text-green-600 bg-green-50">
-                    <Clock className="h-3 w-3" />
-                    <span>A tiempo ({remainingDays} {remainingDays === 1 ? 'día' : 'días'} restantes)</span>
-                </Badge>
-            );
-        }
-    };
 
     const updateFilter = (key: string, value: any) => {
         onFiltersChange({
@@ -126,14 +105,10 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
             unidad_requirente_filter: "",
             numero_ordinario: undefined,
             descripcion_filter: "",
-            odd_filter: "",
+            comprador_filter: "",
             estado_filter: undefined,
-            fecha_odd_from: "",
-            fecha_odd_to: "",
             created_from: "",
             created_to: "",
-            valor_min: undefined,
-            valor_max: undefined,
         });
     };
 
@@ -238,16 +213,26 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                             </SelectContent>
                                         </Select>
                                     </TableHead>
+
+                                    <TableHead className="py-2"></TableHead>
                                     <TableHead className="py-2">
-                                        <Input
-                                            placeholder="Filtrar..."
-                                            value={filters.odd_filter || ""}
-                                            onChange={(e) => updateFilter("odd_filter", e.target.value)}
-                                            className="h-8 w-full"
-                                        />
+                                        <Select
+                                            value={filters.comprador_filter || undefined}
+                                            onValueChange={(value) => updateFilter("comprador_filter", value === "all" ? undefined : value)}
+                                        >
+                                            <SelectTrigger className="h-8 w-full p-1">
+                                                <SelectValue placeholder="" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">Todos</SelectItem>
+                                                {buyers.map((buyer) => (
+                                                    <SelectItem key={buyer.id} value={buyer.id}>
+                                                        {buyer.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </TableHead>
-                                    <TableHead className="py-2"></TableHead>
-                                    <TableHead className="py-2"></TableHead>
                                     <TableHead className="py-2"></TableHead>
                                     <TableHead className="py-2"></TableHead>
                                 </TableRow>
@@ -299,21 +284,30 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            {compra.odd}
-                                            {compra.adjunta_odd && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-6 w-6 ml-1"
-                                                    title="Ver Adjunto OC"
-                                                    onClick={() => {
-                                                        const url = getCompraFileUrl(compra, "adjunta_odd");
-                                                        if (url) window.open(url, "_blank");
-                                                    }}
-                                                >
-                                                    <FileText className="h-3 w-3 text-blue-500" />
-                                                </Button>
-                                            )}
+                                            <div className="flex flex-col gap-1">
+                                                {compra.expand?.["ordenes_compra(compra)"]?.map((oc) => (
+                                                    <div key={oc.id} className="flex items-center gap-1">
+                                                        <span className="text-xs">{oc.oc}</span>
+                                                        {oc.oc_adjunto && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-5 w-5"
+                                                                title={`Ver Adjunto OC ${oc.oc}`}
+                                                                onClick={() => {
+                                                                    const url = getOrdenCompraFileUrl(oc, oc.oc_adjunto!);
+                                                                    if (url) window.open(url, "_blank");
+                                                                }}
+                                                            >
+                                                                <FileText className="h-3 w-3 text-blue-500" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                {(!compra.expand?.["ordenes_compra(compra)"] || compra.expand["ordenes_compra(compra)"].length === 0) && (
+                                                    <span className="text-muted-foreground">-</span>
+                                                )}
+                                            </div>
                                         </TableCell>
                                         <TableCell>
                                             {compra.expand?.comprador ? (
@@ -345,7 +339,7 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            <RenderDeliveryStatus compra={compra} />
+                                            {compra.plazo_de_entrega ? `${compra.plazo_de_entrega} días` : "-"}
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-1">

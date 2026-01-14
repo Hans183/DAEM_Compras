@@ -80,34 +80,51 @@ export function CompraSheet({ compra }: CompraSheetProps) {
                         <span className="text-sm mt-1">{compra.expand?.subvencion?.nombre || "No definida"}</span>
                     </div>
 
-                    <div className="flex flex-col">
-                        <span className="text-xs text-muted-foreground font-semibold uppercase">Orden de Compra (OC)</span>
-                        <span className="text-sm mt-1 font-mono">{compra.odd || "Pendiente"}</span>
+                    <div className="col-span-2">
+                        <h4 className="text-xs text-muted-foreground font-semibold uppercase mb-2">Órdenes de Compra</h4>
+                        <div className="border rounded-md overflow-hidden">
+                            <table className="w-full text-sm">
+                                <thead className="bg-muted">
+                                    <tr>
+                                        <th className="px-3 py-2 text-left font-medium">N° OC</th>
+                                        <th className="px-3 py-2 text-left font-medium">Fecha</th>
+                                        <th className="px-3 py-2 text-right font-medium">Monto</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y">
+                                    {compra.expand?.["ordenes_compra(compra)"]?.length ? (
+                                        compra.expand["ordenes_compra(compra)"].map((oc) => (
+                                            <tr key={oc.id}>
+                                                <td className="px-3 py-2 font-mono">{oc.oc}</td>
+                                                <td className="px-3 py-2">{format(new Date(oc.fecha_oc), "dd/MM/yyyy")}</td>
+                                                <td className="px-3 py-2 text-right">$ {oc.oc_valor.toLocaleString("es-CL")}</td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={3} className="px-3 py-2 text-center text-muted-foreground">No hay órdenes de compra asociadas</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                                <tfoot className="bg-muted/50 font-medium">
+                                    <tr>
+                                        <td colSpan={2} className="px-3 py-2 text-right">Total</td>
+                                        <td className="px-3 py-2 text-right">
+                                            $ {(compra.expand?.["ordenes_compra(compra)"]?.reduce((acc, oc) => acc + oc.oc_valor, 0) || 0).toLocaleString("es-CL")}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     </div>
-                    <div className="flex flex-col">
-                        <span className="text-xs text-muted-foreground font-semibold uppercase">Fecha OC</span>
-                        <span className="text-sm mt-1">
-                            {compra.fecha_odd ? format(new Date(compra.fecha_odd), "dd/MM/yyyy") : "Pendiente"}
-                        </span>
-                    </div>
-
-                    <div className="flex flex-col">
-                        <span className="text-xs text-muted-foreground font-semibold uppercase">Plazo de Entrega</span>
-                        <span className="text-sm mt-1">{compra.plazo_de_entrega ? `${compra.plazo_de_entrega} días` : "No definido"}</span>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-xs text-muted-foreground font-semibold uppercase">Presupuesto Asignado</span>
-                        <span className="text-sm mt-1">
-                            {compra.presupuesto ? `$ ${compra.presupuesto.toLocaleString("es-CL")}` : "$ 0"}
-                        </span>
-                    </div>
-
-                    <div className="flex flex-col">
-                        <span className="text-xs text-muted-foreground font-semibold uppercase">Valor Total Estimado</span>
-                        <span className="text-lg font-semibold mt-1">
-                            {compra.valor ? `$ ${compra.valor.toLocaleString("es-CL")}` : "$ 0"}
-                        </span>
-                    </div>
+                    {compra.observacion && (
+                        <div className="col-span-2 flex flex-col mt-4 border-t pt-4">
+                            <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Observación Comprador</span>
+                            <div className="bg-muted p-4 rounded-md border text-sm whitespace-pre-wrap">
+                                {compra.observacion}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

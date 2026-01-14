@@ -109,12 +109,10 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
             comprador: compra?.comprador || "",
             descripcion: compra?.descripcion || "",
             fecha_solicitud: compra?.fecha_solicitud ? new Date(compra.fecha_solicitud).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            odd: compra?.odd || "",
-            fecha_odd: compra?.fecha_odd ? new Date(compra.fecha_odd).toISOString().split('T')[0] : "",
             plazo_de_entrega: compra?.plazo_de_entrega || 1,
-            valor: compra?.valor || 0,
             subvencion: compra?.subvencion || "",
             estado: compra?.estado || "Asignado",
+            observacion: compra?.observacion || "",
         },
     });
 
@@ -157,15 +155,12 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                 comprador: compra?.comprador || "",
                 descripcion: compra?.descripcion || "",
                 fecha_solicitud: compra?.fecha_solicitud ? new Date(compra.fecha_solicitud).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                odd: compra?.odd || "",
-                fecha_odd: compra?.fecha_odd ? new Date(compra.fecha_odd).toISOString().split('T')[0] : "",
                 plazo_de_entrega: compra?.plazo_de_entrega || 1,
-                valor: compra?.valor || 0,
                 presupuesto: compra?.presupuesto || 0,
                 subvencion: compra?.subvencion || initialData?.subvencion || "",
                 estado: compra?.estado || "Asignado",
                 adjunta_ordinario: undefined,
-                adjunta_odd: undefined,
+                observacion: compra?.observacion || "",
             });
         }
     }, [open, compra, form, initialData]);
@@ -182,15 +177,12 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                     comprador: data.comprador,
                     descripcion: data.descripcion,
                     fecha_solicitud: data.fecha_solicitud,
-                    odd: data.odd,
-                    fecha_odd: data.fecha_odd,
                     plazo_de_entrega: data.plazo_de_entrega,
-                    valor: data.valor,
                     presupuesto: data.presupuesto,
                     subvencion: data.subvencion,
                     estado: data.estado,
                     adjunta_ordinario: data.adjunta_ordinario,
-                    adjunta_odd: data.adjunta_odd,
+                    observacion: data.observacion,
                     usuario_modificador: currentUser?.name || currentUser?.email || "Usuario desconocido",
                 });
                 toast.success("Compra actualizada exitosamente");
@@ -217,16 +209,13 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                     comprador: data.comprador,
                     descripcion: data.descripcion,
                     fecha_solicitud: data.fecha_solicitud,
-                    odd: data.odd,
-                    fecha_odd: data.fecha_odd,
                     plazo_de_entrega: data.plazo_de_entrega,
-                    valor: data.valor,
                     presupuesto: data.presupuesto,
                     subvencion: data.subvencion,
                     es_duplicada: isDuplicate,
                     estado: data.estado,
                     adjunta_ordinario: data.adjunta_ordinario,
-                    adjunta_odd: data.adjunta_odd,
+                    observacion: data.observacion,
                     usuario_modificador: currentUser?.name || currentUser?.email || "Usuario desconocido",
                 });
                 toast.success("Compra creada exitosamente");
@@ -595,19 +584,27 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                     <OrdenesCompraList
                                         compraId={compra!.id}
                                         canEdit={currentUser?.role.includes("Encargado compras") || currentUser?.role.includes("Comprador") || false}
-                                        onUpdate={async () => {
-                                            // Recalcular valor total
-                                            try {
-                                                const ocs = await getOrdenesByCompra(compra!.id);
-                                                const total = ocs.items.reduce((sum, item) => sum + item.oc_valor, 0);
-                                                form.setValue("valor", total);
-                                            } catch (error) {
-                                                console.error("Error updating total value:", error);
-                                            }
-                                        }}
+                                        onUpdate={() => { }}
                                     />
-                                    {/* Hidden input to ensure valor is submitted */}
-                                    <input type="hidden" {...form.register("valor")} />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="observacion"
+                                        render={({ field }) => (
+                                            <FormItem className="col-span-2">
+                                                <FormLabel>Observación Comprador</FormLabel>
+                                                <FormControl>
+                                                    <Textarea
+                                                        placeholder="Observaciones adicionales del proceso de compra..."
+                                                        className="resize-none"
+                                                        {...field}
+                                                        disabled={!isFieldEditable("observacion", currentUser?.role || ["Observador"])}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
 
                                     <div className="grid grid-cols-2 gap-4 mt-4">
                                         <FormField

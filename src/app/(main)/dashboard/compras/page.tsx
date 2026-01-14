@@ -36,12 +36,10 @@ export default function ComprasPage() {
         unidad_requirente_filter: undefined,
         numero_ordinario: undefined,
         descripcion_filter: "",
-        odd_filter: "",
+        comprador_filter: undefined,
         estado_filter: undefined,
-        fecha_odd_from: "",
-        fecha_odd_to: "",
-        valor_min: undefined,
-        valor_max: undefined,
+        created_from: "",
+        created_to: "",
     });
 
     // Debounce search

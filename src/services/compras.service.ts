@@ -17,14 +17,10 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
         unidad_requirente_filter,
         numero_ordinario,
         descripcion_filter,
-        odd_filter,
+        comprador_filter,
         estado_filter,
-        fecha_odd_from,
-        fecha_odd_to,
         created_from,
-        created_to,
-        valor_min,
-        valor_max
+        created_to
     } = params;
 
     try {
@@ -48,20 +44,12 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
             filters.push(`descripcion ~ "${descripcion_filter}"`);
         }
 
-        if (odd_filter) {
-            filters.push(`odd ~ "${odd_filter}"`);
+        if (comprador_filter) {
+            filters.push(`comprador = "${comprador_filter}"`);
         }
 
         if (estado_filter) {
             filters.push(`estado = "${estado_filter}"`);
-        }
-
-        if (fecha_odd_from) {
-            filters.push(`fecha_odd >= "${fecha_odd_from}"`);
-        }
-
-        if (fecha_odd_to) {
-            filters.push(`fecha_odd <= "${fecha_odd_to}"`);
         }
 
         if (created_from) {
@@ -72,21 +60,13 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
             filters.push(`created <= "${created_to}"`);
         }
 
-        if (valor_min !== undefined) {
-            filters.push(`valor >= ${valor_min}`);
-        }
-
-        if (valor_max !== undefined) {
-            filters.push(`valor <= ${valor_max}`);
-        }
-
         // Combinar todos los filtros con AND
         const filter = filters.length > 0 ? filters.join(" && ") : "";
 
         return await pb.collection(COMPRAS_COLLECTION).getList<Compra>(page, perPage, {
             filter,
             sort,
-            expand: "unidad_requirente,comprador,subvencion",
+            expand: "unidad_requirente,comprador,subvencion,ordenes_compra(compra)",
         });
     } catch (error) {
         console.error("Error fetching compras:", error);
@@ -100,7 +80,7 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
 export async function getCompraById(id: string): Promise<Compra> {
     try {
         return await pb.collection(COMPRAS_COLLECTION).getOne<Compra>(id, {
-            expand: "unidad_requirente,comprador,subvencion",
+            expand: "unidad_requirente,comprador,subvencion,ordenes_compra(compra)",
         });
     } catch (error) {
         console.error(`Error fetching compra ${id}:`, error);
@@ -120,11 +100,9 @@ export async function createCompra(data: CompraFormData): Promise<Compra> {
         formData.append("unidad_requirente", data.unidad_requirente ?? "");
         formData.append("comprador", data.comprador ?? "");
         formData.append("descripcion", data.descripcion ?? "");
+        formData.append("observacion", data.observacion ?? "");
         formData.append("fecha_solicitud", data.fecha_solicitud ?? "");
-        formData.append("odd", data.odd ?? "");
-        formData.append("fecha_odd", data.fecha_odd ?? "");
         formData.append("plazo_de_entrega", String(data.plazo_de_entrega ?? 1));
-        formData.append("valor", String(data.valor ?? 0));
         formData.append("subvencion", data.subvencion ?? "");
         formData.append("presupuesto", String(data.presupuesto ?? 0));
         formData.append("estado", data.estado ?? "Asignado");
@@ -132,10 +110,6 @@ export async function createCompra(data: CompraFormData): Promise<Compra> {
 
         if (data.adjunta_ordinario) {
             formData.append("adjunta_ordinario", data.adjunta_ordinario);
-        }
-
-        if (data.adjunta_odd) {
-            formData.append("adjunta_odd", data.adjunta_odd);
         }
 
         if (data.es_duplicada) {
@@ -164,14 +138,10 @@ export async function updateCompra(id: string, data: Partial<CompraFormData>): P
         if (data.unidad_requirente) formData.append("unidad_requirente", data.unidad_requirente);
         if (data.comprador) formData.append("comprador", data.comprador);
         if (data.descripcion) formData.append("descripcion", data.descripcion);
+        if (data.observacion) formData.append("observacion", data.observacion);
         if (data.fecha_solicitud) formData.append("fecha_solicitud", data.fecha_solicitud);
-        if (data.odd) formData.append("odd", data.odd);
-        if (data.fecha_odd) formData.append("fecha_odd", data.fecha_odd);
         if (data.plazo_de_entrega !== undefined) {
             formData.append("plazo_de_entrega", String(data.plazo_de_entrega));
-        }
-        if (data.valor !== undefined) {
-            formData.append("valor", String(data.valor));
         }
         if (data.presupuesto !== undefined) {
             formData.append("presupuesto", String(data.presupuesto));
@@ -183,10 +153,6 @@ export async function updateCompra(id: string, data: Partial<CompraFormData>): P
 
         if (data.adjunta_ordinario) {
             formData.append("adjunta_ordinario", data.adjunta_ordinario);
-        }
-
-        if (data.adjunta_odd) {
-            formData.append("adjunta_odd", data.adjunta_odd);
         }
 
         return await pb.collection(COMPRAS_COLLECTION).update<Compra>(id, formData, {

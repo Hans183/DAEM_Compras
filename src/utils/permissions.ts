@@ -70,15 +70,12 @@ type CompraField =
     | "unidad_requirente"
     | "comprador"
     | "fecha_solicitud"
-    | "odd"
-    | "fecha_odd"
     | "plazo_de_entrega"
-    | "valor"
     | "subvencion"
     | "estado"
     | "adjunta_ordinario"
-    | "adjunta_odd"
-    | "presupuesto";
+    | "presupuesto"
+    | "observacion";
 
 /**
  * Obtiene los campos que un rol puede editar
@@ -99,15 +96,12 @@ export function getEditableFields(roles: UserRole[], estadoCompra?: EstadoCompra
             "unidad_requirente",
             "comprador",
             "fecha_solicitud",
-            "odd",
-            "fecha_odd",
             "plazo_de_entrega",
-            "valor",
             "subvencion",
             "estado",
             "adjunta_ordinario",
-            "adjunta_odd",
             "presupuesto",
+            "observacion",
         ];
     }
 
@@ -121,14 +115,11 @@ export function getEditableFields(roles: UserRole[], estadoCompra?: EstadoCompra
             "unidad_requirente",
             "comprador",
             "fecha_solicitud",
-            "odd",
-            "fecha_odd",
             "plazo_de_entrega",
-            "valor",
             "subvencion",
             "estado",
             "adjunta_ordinario",
-            "adjunta_odd",
+            "observacion",
         ] as CompraField[]).forEach(f => fields.add(f));
     }
 
