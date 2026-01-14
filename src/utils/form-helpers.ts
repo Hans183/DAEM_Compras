@@ -23,8 +23,9 @@ export type CompraField =
  */
 export function isFieldRequired(
     fieldName: CompraField,
-    role: UserRole
+    role: UserRole | UserRole[]
 ): boolean {
-    const editableFields = getEditableFields(role);
+    const roles = Array.isArray(role) ? role : [role];
+    const editableFields = getEditableFields(roles);
     return editableFields.includes(fieldName);
 }
