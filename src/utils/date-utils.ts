@@ -1,4 +1,4 @@
-import { addDays, isWeekend, isSameDay, parseISO } from "date-fns";
+import { addDays, isWeekend, isSameDay, parseISO, format } from "date-fns";
 import type { Holiday } from "@/services/holidays.service";
 
 /**
@@ -35,8 +35,8 @@ export function calculateBusinessDate(startDate: Date, daysToAdd: number, holida
         }
 
         // Check if it's a holiday
-        // Formatting to YYYY-MM-DD for comparison with API format
-        const dateString = currentDate.toISOString().split('T')[0];
+        // Formatting to YYYY-MM-DD using local time to ensure consistency with isWeekend
+        const dateString = format(currentDate, "yyyy-MM-dd");
         const isHoliday = holidays.some(h => h.date === dateString);
 
         if (isHoliday) {

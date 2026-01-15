@@ -365,8 +365,7 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                                     compra.expand["ordenes_compra(compra)"].map((oc) => {
                                                         let statusElement = null;
                                                         if (oc.oc_fecha && oc.plazo_entrega) {
-                                                            const fechaStr = oc.oc_fecha.substring(0, 10);
-                                                            const fechaBase = parseISO(fechaStr);
+                                                            const fechaBase = parseISO(oc.oc_fecha);
                                                             const fechaEntrega = calculateBusinessDate(fechaBase, oc.plazo_entrega, holidays);
                                                             const isDelayed = isPast(fechaEntrega) && !isToday(fechaEntrega);
 

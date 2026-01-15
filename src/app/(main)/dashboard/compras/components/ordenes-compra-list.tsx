@@ -111,7 +111,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
         if (!dateStr || !daysStr) return null;
         try {
             // Handle ISO string or simple date string
-            const startDate = new Date(dateStr);
+            const startDate = parseISO(dateStr);
             // Verify date is valid
             if (isNaN(startDate.getTime())) return null;
 
@@ -162,11 +162,13 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
         let formattedDate = "";
         try {
             // Handle both ISO string with T or space
-            const dateObj = new Date(oc.oc_fecha);
-            if (!isNaN(dateObj.getTime())) {
-                formattedDate = dateObj.toISOString().split("T")[0];
-            } else {
-                formattedDate = oc.oc_fecha.split(" ")[0]; // Fallback
+            if (oc.oc_fecha) {
+                const dateObj = parseISO(oc.oc_fecha);
+                if (!isNaN(dateObj.getTime())) {
+                    formattedDate = format(dateObj, "yyyy-MM-dd");
+                } else {
+                    formattedDate = new Date().toISOString().split("T")[0];;
+                }
             }
         } catch (e) {
             formattedDate = new Date().toISOString().split("T")[0];
