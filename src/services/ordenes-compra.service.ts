@@ -28,6 +28,23 @@ export async function createOrdenCompra(data: OrdenCompraFormData) {
     return await pb.collection(ORDENES_COMPRA_COLLECTION).create<OrdenCompra>(formData);
 }
 
+export async function updateOrdenCompra(id: string, data: Partial<OrdenCompraFormData>) {
+    const formData = new FormData();
+    if (data.compra) formData.append("compra", data.compra);
+    if (data.oc) formData.append("oc", data.oc);
+    if (data.oc_fecha) formData.append("oc_fecha", data.oc_fecha);
+    if (data.oc_valor !== undefined) formData.append("oc_valor", data.oc_valor.toString());
+    if (data.plazo_entrega !== undefined) {
+        formData.append("plazo_entrega", data.plazo_entrega.toString());
+    }
+
+    if (data.oc_adjunto) {
+        formData.append("oc_adjunto", data.oc_adjunto);
+    }
+
+    return await pb.collection(ORDENES_COMPRA_COLLECTION).update<OrdenCompra>(id, formData);
+}
+
 export async function deleteOrdenCompra(id: string) {
     return await pb.collection(ORDENES_COMPRA_COLLECTION).delete(id);
 }

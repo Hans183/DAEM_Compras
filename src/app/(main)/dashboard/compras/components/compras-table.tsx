@@ -45,6 +45,9 @@ import { getUserAvatarUrl, getUsers } from "@/services/users.service";
 import { getOrdenCompraFileUrl } from "@/services/ordenes-compra.service";
 import { canEditCompra, canDeleteCompra, canCancelCompra } from "@/utils/permissions";
 
+import { getHolidays, type Holiday } from "@/services/holidays.service";
+import { calculateBusinessDate } from "@/utils/date-utils";
+
 import { DeleteCompraDialog } from "./delete-compra-dialog";
 import { CompraDialog } from "./compra-dialog";
 import { CancelCompraDialog } from "./cancel-compra-dialog";
@@ -98,6 +101,7 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
     const [duplicatingCompra, setDuplicatingCompra] = useState<Compra | null>(null);
     const [viewingCompra, setViewingCompra] = useState<Compra | null>(null);
     const [buyers, setBuyers] = useState<User[]>([]);
+    const [holidays, setHolidays] = useState<Holiday[]>([]);
 
     useEffect(() => {
         const fetchBuyers = async () => {
@@ -111,6 +115,13 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
             }
         };
         fetchBuyers();
+
+        const fetchHolidays = async () => {
+            const currentYear = new Date().getFullYear();
+            const data = await getHolidays(currentYear);
+            setHolidays(data);
+        };
+        fetchHolidays();
     }, []);
 
     const getEstadoColor = (estado: string) => {
@@ -356,7 +367,7 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                                         if (oc.oc_fecha && oc.plazo_entrega) {
                                                             const fechaStr = oc.oc_fecha.substring(0, 10);
                                                             const fechaBase = parseISO(fechaStr);
-                                                            const fechaEntrega = addDays(fechaBase, oc.plazo_entrega);
+                                                            const fechaEntrega = calculateBusinessDate(fechaBase, oc.plazo_entrega, holidays);
                                                             const isDelayed = isPast(fechaEntrega) && !isToday(fechaEntrega);
 
                                                             statusElement = (

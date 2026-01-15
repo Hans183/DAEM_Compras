@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Trash2, Plus, ExternalLink } from "lucide-react";
+import { Loader2, Trash2, Plus, ExternalLink, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 
@@ -19,6 +19,13 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import {
     Table,
     TableBody,
     TableCell,
@@ -29,7 +36,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 import type { OrdenCompra } from "@/types/orden-compra";
-import { createOrdenCompra, deleteOrdenCompra, getOrdenesByCompra, getOrdenCompraFileUrl } from "@/services/ordenes-compra.service";
+import { createOrdenCompra, deleteOrdenCompra, getOrdenesByCompra, getOrdenCompraFileUrl, updateOrdenCompra } from "@/services/ordenes-compra.service";
+import { getHolidays, type Holiday } from "@/services/holidays.service";
+import { calculateBusinessDate } from "@/utils/date-utils";
 
 const ordenCompraSchema = z.object({
     oc: z.string().min(1, "El número de OC es requerido"),
@@ -52,8 +61,12 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
     const [isLoading, setIsLoading] = useState(true);
     const [isCreating, setIsCreating] = useState(false);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [holidays, setHolidays] = useState<Holiday[]>([]);
+
+    const [editingOc, setEditingOc] = useState<OrdenCompra | null>(null);
 
     const form = useForm<OrdenCompraFormValues>({
+        // ... existing config
         resolver: zodResolver(ordenCompraSchema),
         defaultValues: {
             oc: "",
@@ -62,6 +75,10 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
             plazo_entrega: 30,
         },
     });
+
+    // Watch values for live calculation in form
+    const watchFecha = form.watch("oc_fecha");
+    const watchPlazo = form.watch("plazo_entrega");
 
     const loadOrdenes = async () => {
         try {
@@ -76,19 +93,54 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
     };
 
     useEffect(() => {
+        const fetchHolidays = async () => {
+            const currentYear = new Date().getFullYear();
+            const data = await getHolidays(currentYear);
+            setHolidays(data);
+        };
+        fetchHolidays();
+    }, []);
+
+    useEffect(() => {
         if (compraId) {
             loadOrdenes();
         }
     }, [compraId]);
 
+    const getEstimatedDeliveryDate = (dateStr: string, daysStr: number | undefined) => {
+        if (!dateStr || !daysStr) return null;
+        try {
+            // Handle ISO string or simple date string
+            const startDate = new Date(dateStr);
+            // Verify date is valid
+            if (isNaN(startDate.getTime())) return null;
+
+            const deliveryDate = calculateBusinessDate(startDate, daysStr, holidays);
+            return format(deliveryDate, "dd/MM/yyyy");
+        } catch (e) {
+            return null;
+        }
+    };
+
+    // ... existing functions (onSubmit, handleEditClick, handleCancelEdit, handleDelete) ...
+
     const onSubmit = async (data: OrdenCompraFormValues) => {
         setIsCreating(true);
         try {
-            await createOrdenCompra({
-                compra: compraId,
-                ...data,
-            });
-            toast.success("Orden de compra agregada");
+            if (editingOc) {
+                await updateOrdenCompra(editingOc.id, {
+                    ...data,
+                });
+                toast.success("Orden de compra actualizada");
+                setEditingOc(null);
+            } else {
+                await createOrdenCompra({
+                    compra: compraId,
+                    ...data,
+                });
+                toast.success("Orden de compra agregada");
+            }
+
             form.reset({
                 oc: "",
                 oc_fecha: new Date().toISOString().split("T")[0],
@@ -96,13 +148,46 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                 plazo_entrega: 30,
             });
             await loadOrdenes();
-            onUpdate(); // Notify parent to refresh totals/status if needed
+            onUpdate();
         } catch (error) {
-            console.error("Error creating OC:", error);
-            toast.error("Error al crear orden de compra");
+            console.error(editingOc ? "Error updating OC:" : "Error creating OC:", error);
+            toast.error(editingOc ? "Error al actualizar orden de compra" : "Error al crear orden de compra");
         } finally {
             setIsCreating(false);
         }
+    };
+
+    const handleEditClick = (oc: OrdenCompra) => {
+        setEditingOc(oc);
+        let formattedDate = "";
+        try {
+            // Handle both ISO string with T or space
+            const dateObj = new Date(oc.oc_fecha);
+            if (!isNaN(dateObj.getTime())) {
+                formattedDate = dateObj.toISOString().split("T")[0];
+            } else {
+                formattedDate = oc.oc_fecha.split(" ")[0]; // Fallback
+            }
+        } catch (e) {
+            formattedDate = new Date().toISOString().split("T")[0];
+        }
+
+        form.reset({
+            oc: oc.oc,
+            oc_fecha: formattedDate,
+            oc_valor: oc.oc_valor,
+            plazo_entrega: oc.plazo_entrega,
+        });
+    };
+
+    const handleCancelEdit = () => {
+        setEditingOc(null);
+        form.reset({
+            oc: "",
+            oc_fecha: new Date().toISOString().split("T")[0],
+            oc_valor: 0,
+            plazo_entrega: 30,
+        });
     };
 
     const handleDelete = async (id: string) => {
@@ -141,10 +226,10 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                         <TableRow>
                             <TableHead>N° OC</TableHead>
                             <TableHead>Fecha</TableHead>
-                            <TableHead>Plazo (días)</TableHead>
+                            <TableHead>Plazo / Entrega</TableHead>
                             <TableHead>Valor</TableHead>
                             <TableHead className="w-[80px]">Adjunto</TableHead>
-                            {canEdit && <TableHead className="w-[50px]"></TableHead>}
+                            {canEdit && <TableHead className="w-[100px]"></TableHead>}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -156,14 +241,24 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                             </TableRow>
                         ) : (
                             ordenes.map((oc) => (
-                                <TableRow key={oc.id}>
+                                <TableRow key={oc.id} className={editingOc?.id === oc.id ? "bg-muted/50" : ""}>
                                     <TableCell className="font-medium">{oc.oc}</TableCell>
                                     <TableCell>{format(parseISO(oc.oc_fecha), "dd/MM/yyyy")}</TableCell>
-                                    <TableCell>{oc.plazo_entrega ? `${oc.plazo_entrega} días` : "-"}</TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col">
+                                            <span>{oc.plazo_entrega ? `${oc.plazo_entrega} días` : "-"}</span>
+                                            {oc.plazo_entrega && (
+                                                <span className="text-[10px] text-muted-foreground">
+                                                    Est: {getEstimatedDeliveryDate(oc.oc_fecha, oc.plazo_entrega)}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </TableCell>
                                     <TableCell>$ {new Intl.NumberFormat("es-CL").format(oc.oc_valor)}</TableCell>
                                     <TableCell>
                                         {oc.oc_adjunto ? (
                                             <Button
+                                                type="button"
                                                 variant="ghost"
                                                 size="icon"
                                                 onClick={() => window.open(getOrdenCompraFileUrl(oc, oc.oc_adjunto!)!, "_blank")}
@@ -176,13 +271,25 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                                         )}
                                     </TableCell>
                                     {canEdit && (
-                                        <TableCell>
+                                        <TableCell className="text-right">
                                             <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => handleEditClick(oc)}
+                                                className="mr-1"
+                                                title="Editar"
+                                            >
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                type="button"
                                                 variant="ghost"
                                                 size="icon"
                                                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                                 disabled={isDeleting === oc.id}
                                                 onClick={() => handleDelete(oc.id)}
+                                                title="Eliminar"
                                             >
                                                 {isDeleting === oc.id ? (
                                                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -201,7 +308,16 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
 
             {canEdit && (
                 <div className="bg-muted/30 p-4 rounded-md border">
-                    <h5 className="text-xs font-semibold mb-3 uppercase text-muted-foreground">Agregar Nueva OC</h5>
+                    <div className="flex justify-between items-center mb-3">
+                        <h5 className="text-xs font-semibold uppercase text-muted-foreground">
+                            {editingOc ? "Editar Orden de Compra" : "Agregar Nueva OC"}
+                        </h5>
+                        {editingOc && (
+                            <Button type="button" variant="ghost" size="sm" onClick={handleCancelEdit} className="h-6 text-xs text-muted-foreground hover:text-foreground">
+                                Cancelar Edición
+                            </Button>
+                        )}
+                    </div>
                     <Form {...form}>
                         <div className="flex gap-4 items-end">
                             <div className="grid grid-cols-12 gap-2 w-full">
@@ -246,16 +362,24 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                                         name="plazo_entrega"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel className="text-xs">Plazo</FormLabel>
+                                                <div className="flex flex-col">
+                                                    <FormLabel className="text-xs">Plazo</FormLabel>
+                                                </div>
                                                 <FormControl>
                                                     <Input
                                                         type="number"
                                                         className="h-8 text-xs"
                                                         placeholder="30"
+                                                        {...field}
                                                         value={field.value || ""}
                                                         onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                                                     />
                                                 </FormControl>
+                                                {watchPlazo && watchFecha && (
+                                                    <div className="text-[10px] text-muted-foreground mt-1 whitespace-nowrap">
+                                                        Entrega: {getEstimatedDeliveryDate(watchFecha, watchPlazo)}
+                                                    </div>
+                                                )}
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -273,6 +397,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                                                         type="text"
                                                         className="h-8 text-xs"
                                                         placeholder="0"
+                                                        {...field}
                                                         value={field.value ? new Intl.NumberFormat("es-CL").format(field.value) : ""}
                                                         onChange={(e) => {
                                                             const rawValue = e.target.value.replace(/\./g, "");
@@ -293,7 +418,9 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                                         name="oc_adjunto"
                                         render={({ field: { value, onChange, ...field } }) => (
                                             <FormItem>
-                                                <FormLabel className="text-xs">Adjunto</FormLabel>
+                                                <FormLabel className="text-xs">
+                                                    {editingOc && editingOc.oc_adjunto ? "Cambiar Adjunto" : "Adjunto"}
+                                                </FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         {...field}
@@ -314,9 +441,19 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                                 size="sm"
                                 disabled={isCreating}
                                 className="h-8 mb-0.5"
-                                onClick={form.handleSubmit(onSubmit)}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    form.handleSubmit(onSubmit)(e);
+                                }}
                             >
-                                {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                                {isCreating ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : editingOc ? (
+                                    <Pencil className="h-4 w-4" />
+                                ) : (
+                                    <Plus className="h-4 w-4" />
+                                )}
                             </Button>
                         </div>
                     </Form>
