@@ -17,6 +17,9 @@ export async function createOrdenCompra(data: OrdenCompraFormData) {
     formData.append("oc", data.oc);
     formData.append("oc_fecha", data.oc_fecha);
     formData.append("oc_valor", data.oc_valor.toString());
+    if (data.plazo_entrega) {
+        formData.append("plazo_entrega", data.plazo_entrega.toString());
+    }
 
     if (data.oc_adjunto) {
         formData.append("oc_adjunto", data.oc_adjunto);

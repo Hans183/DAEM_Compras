@@ -14,7 +14,8 @@ export interface Compra extends RecordModel {
     comprador: string; // Relation ID
     descripcion: string;
     fecha_solicitud?: string;
-    plazo_de_entrega: number;
+    fecha_inicio?: string;
+
     subvencion: string; // Relation ID
     estado: EstadoCompra;
     usuario_modificador?: string;
@@ -41,7 +42,8 @@ export interface CompraFormData {
     comprador?: string;
     descripcion?: string;
     fecha_solicitud?: string;
-    plazo_de_entrega?: number;
+    fecha_inicio?: string;
+
     subvencion?: string;
     estado?: EstadoCompra;
     usuario_modificador?: string;
@@ -64,7 +66,9 @@ export interface GetComprasParams {
     numero_ordinario?: number;
     descripcion_filter?: string;
     comprador_filter?: string;
-    estado_filter?: EstadoCompra;
+    estado_filter?: string;
+    fecha_inicio_from?: string;
+    fecha_inicio_to?: string;
     created_from?: string;
     created_to?: string;
 }
@@ -74,7 +78,9 @@ export interface GetComprasParams {
  */
 export const ESTADOS_COMPRA = [
     "Asignado",
+    "En Proceso",
     "Comprado",
+    "Devuelto",
     "En Bodega",
     "Entregado",
     "Anulado",

@@ -2,6 +2,8 @@ import type { ListResult } from "pocketbase";
 
 import pb from "@/lib/pocketbase";
 import type { Compra, CompraFormData, GetComprasParams } from "@/types/compra";
+import { createHistorialLog } from "./historial.service";
+import { detectarCambios, generarResumenCambios } from "@/utils/change-logger";
 
 const COMPRAS_COLLECTION = "compras";
 
@@ -20,7 +22,9 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
         comprador_filter,
         estado_filter,
         created_from,
-        created_to
+        created_to,
+        fecha_inicio_from,
+        fecha_inicio_to
     } = params;
 
     try {
@@ -28,7 +32,12 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
 
         // Búsqueda general (busca en múltiples campos)
         if (search) {
-            filters.push(`(descripcion ~ "${search}" || odd ~ "${search}" || numero_ordinario ~ "${search}")`);
+            const searchFilters = [`descripcion ~ "${search}"`];
+            // Si el término de búsqueda es un número, buscamos también por número ordinario
+            if (!isNaN(Number(search))) {
+                searchFilters.push(`numero_ordinario = ${search}`);
+            }
+            filters.push(`(${searchFilters.join(" || ")})`);
         }
 
         // Filtros específicos por columna
@@ -52,12 +61,21 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
             filters.push(`estado = "${estado_filter}"`);
         }
 
+        // Legacy created filters (optional, kept if needed but UI will use fecha_inicio)
         if (created_from) {
             filters.push(`created >= "${created_from}"`);
         }
 
         if (created_to) {
             filters.push(`created <= "${created_to}"`);
+        }
+
+        if (fecha_inicio_from) {
+            filters.push(`fecha_inicio >= "${fecha_inicio_from}"`);
+        }
+
+        if (fecha_inicio_to) {
+            filters.push(`fecha_inicio <= "${fecha_inicio_to}"`);
         }
 
         // Combinar todos los filtros con AND
@@ -102,7 +120,8 @@ export async function createCompra(data: CompraFormData): Promise<Compra> {
         formData.append("descripcion", data.descripcion ?? "");
         formData.append("observacion", data.observacion ?? "");
         formData.append("fecha_solicitud", data.fecha_solicitud ?? "");
-        formData.append("plazo_de_entrega", String(data.plazo_de_entrega ?? 1));
+        formData.append("fecha_inicio", data.fecha_inicio ?? "");
+
         formData.append("subvencion", data.subvencion ?? "");
         formData.append("presupuesto", String(data.presupuesto ?? 0));
         formData.append("estado", data.estado ?? "Asignado");
@@ -116,9 +135,19 @@ export async function createCompra(data: CompraFormData): Promise<Compra> {
             formData.append("es_duplicada", String(data.es_duplicada));
         }
 
-        return await pb.collection(COMPRAS_COLLECTION).create<Compra>(formData, {
+        const record = await pb.collection(COMPRAS_COLLECTION).create<Compra>(formData, {
             expand: "comprador,unidad_requirente",
         });
+
+        // Registrar en historial
+        await createHistorialLog(
+            record.id,
+            "creacion",
+            {},
+            generarResumenCambios({}, "creacion")
+        );
+
+        return record;
     } catch (error) {
         console.error("Error creating compra:", error);
         throw error;
@@ -130,7 +159,11 @@ export async function createCompra(data: CompraFormData): Promise<Compra> {
  */
 export async function updateCompra(id: string, data: Partial<CompraFormData>): Promise<Compra> {
     try {
+        // 1. Obtener datos actuales para comparar
+        const oldData = await getCompraById(id);
+
         const formData = new FormData();
+
 
         if (data.numero_ordinario !== undefined) {
             formData.append("numero_ordinario", String(data.numero_ordinario));
@@ -140,9 +173,8 @@ export async function updateCompra(id: string, data: Partial<CompraFormData>): P
         if (data.descripcion) formData.append("descripcion", data.descripcion);
         if (data.observacion) formData.append("observacion", data.observacion);
         if (data.fecha_solicitud) formData.append("fecha_solicitud", data.fecha_solicitud);
-        if (data.plazo_de_entrega !== undefined) {
-            formData.append("plazo_de_entrega", String(data.plazo_de_entrega));
-        }
+        if (data.fecha_inicio) formData.append("fecha_inicio", data.fecha_inicio);
+
         if (data.presupuesto !== undefined) {
             formData.append("presupuesto", String(data.presupuesto));
         }
@@ -155,9 +187,24 @@ export async function updateCompra(id: string, data: Partial<CompraFormData>): P
             formData.append("adjunta_ordinario", data.adjunta_ordinario);
         }
 
-        return await pb.collection(COMPRAS_COLLECTION).update<Compra>(id, formData, {
+        const record = await pb.collection(COMPRAS_COLLECTION).update<Compra>(id, formData, {
             expand: "comprador,unidad_requirente",
         });
+
+        // 2. Detectar cambios y registrar
+        const cambios = detectarCambios(oldData, data);
+        const resumen = generarResumenCambios(cambios, "modificacion");
+
+        if (Object.keys(cambios).length > 0) {
+            await createHistorialLog(
+                id,
+                "modificacion",
+                cambios,
+                resumen
+            );
+        }
+
+        return record;
     } catch (error) {
         console.error(`Error updating compra ${id}:`, error);
         throw error;

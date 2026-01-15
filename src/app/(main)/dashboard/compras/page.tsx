@@ -97,7 +97,7 @@ export default function ComprasPage() {
                 <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                        placeholder="Buscar compras..."
+                        placeholder="Buscar por numero de Ordinario..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="pl-9"
@@ -105,22 +105,29 @@ export default function ComprasPage() {
                 </div>
             </div>
 
-            {loading ? (
+            {loading && !comprasData ? (
                 <div className="flex items-center justify-center p-8">
                     <div className="text-muted-foreground">Cargando compras...</div>
                 </div>
             ) : (
                 <>
-                    <ComprasTable
-                        compras={comprasData?.items || []}
-                        onCompraUpdated={loadCompras}
-                        filters={filters}
-                        onFiltersChange={(newFilters) => {
-                            setFilters(newFilters);
-                            setPage(1); // Reset to first page when filters change
-                        }}
-                        currentUser={user}
-                    />
+                    <div className="relative">
+                        {loading && (
+                            <div className="absolute inset-0 bg-background/50 z-10 flex items-center justify-center backdrop-blur-[1px]">
+                                <div className="text-muted-foreground text-sm bg-background px-3 py-1 rounded-full border shadow-sm">Actualizando...</div>
+                            </div>
+                        )}
+                        <ComprasTable
+                            compras={comprasData?.items || []}
+                            onCompraUpdated={loadCompras}
+                            filters={filters}
+                            onFiltersChange={(newFilters) => {
+                                setFilters(newFilters);
+                                setPage(1); // Reset to first page when filters change
+                            }}
+                            currentUser={user}
+                        />
+                    </div>
 
                     {comprasData && comprasData.totalPages > 1 && (
                         <Pagination>

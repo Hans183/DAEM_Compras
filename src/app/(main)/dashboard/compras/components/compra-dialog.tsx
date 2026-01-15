@@ -108,8 +108,9 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
             unidad_requirente: compra?.unidad_requirente || "",
             comprador: compra?.comprador || "",
             descripcion: compra?.descripcion || "",
-            fecha_solicitud: compra?.fecha_solicitud ? new Date(compra.fecha_solicitud).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-            plazo_de_entrega: compra?.plazo_de_entrega || 1,
+            //fecha_solicitud: compra?.fecha_solicitud ? new Date(compra.fecha_solicitud).toISOString().split('T')[0] : new Date().toLocaleDateString('en-CA'),
+            fecha_inicio: compra?.fecha_inicio ? new Date(compra.fecha_inicio).toISOString().split('T')[0] : new Date().toLocaleDateString('en-CA'),
+
             subvencion: compra?.subvencion || "",
             estado: compra?.estado || "Asignado",
             observacion: compra?.observacion || "",
@@ -120,7 +121,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
     const isRequired = (fieldName: string) => {
         // En creación, solo los campos básicos son requeridos visualmente
         if (!isEditing) {
-            return ["numero_ordinario", "unidad_requirente", "descripcion", "estado", "comprador", "fecha_solicitud"].includes(fieldName);
+            return ["numero_ordinario", "unidad_requirente", "descripcion", "estado", "comprador", "fecha_solicitud", "fecha_inicio"].includes(fieldName);
         }
         return editableFields.includes(fieldName as any);
     };
@@ -154,8 +155,8 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                 unidad_requirente: compra?.unidad_requirente || initialData?.unidad_requirente || "",
                 comprador: compra?.comprador || "",
                 descripcion: compra?.descripcion || "",
-                fecha_solicitud: compra?.fecha_solicitud ? new Date(compra.fecha_solicitud).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                plazo_de_entrega: compra?.plazo_de_entrega || 1,
+                fecha_inicio: compra?.fecha_inicio ? new Date(compra.fecha_inicio).toISOString().split('T')[0] : new Date().toLocaleDateString('en-CA'),
+
                 presupuesto: compra?.presupuesto || 0,
                 subvencion: compra?.subvencion || initialData?.subvencion || "",
                 estado: compra?.estado || "Asignado",
@@ -176,8 +177,8 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                     unidad_requirente: data.unidad_requirente,
                     comprador: data.comprador,
                     descripcion: data.descripcion,
-                    fecha_solicitud: data.fecha_solicitud,
-                    plazo_de_entrega: data.plazo_de_entrega,
+                    fecha_inicio: data.fecha_inicio,
+
                     presupuesto: data.presupuesto,
                     subvencion: data.subvencion,
                     estado: data.estado,
@@ -208,8 +209,8 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                     unidad_requirente: data.unidad_requirente,
                     comprador: data.comprador,
                     descripcion: data.descripcion,
-                    fecha_solicitud: data.fecha_solicitud,
-                    plazo_de_entrega: data.plazo_de_entrega,
+                    fecha_inicio: data.fecha_inicio,
+
                     presupuesto: data.presupuesto,
                     subvencion: data.subvencion,
                     es_duplicada: isDuplicate,
@@ -300,18 +301,41 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
 
                                 <FormField
                                     control={form.control}
-                                    name="fecha_solicitud"
+                                    name="fecha_inicio"
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>
                                                 Fecha de Ingreso
-                                                {isRequired("fecha_solicitud") && <span className="text-red-500 ml-1">*</span>}
+                                                {isRequired("fecha_inicio") && <span className="text-red-500 ml-1">*</span>}
                                             </FormLabel>
                                             <FormControl>
                                                 <Input
                                                     type="date"
-                                                    disabled={!isFieldEditable("fecha_solicitud", currentUser?.role || ["Observador"])}
+                                                    disabled={!isFieldEditable("fecha_inicio", currentUser?.role || ["Observador"])}
                                                     {...field}
+                                                    value={field.value ? new Date(field.value as string).toISOString().split('T')[0] : ''}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="fecha_inicio"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                Fecha de Inicio
+                                                {isRequired("fecha_inicio") && <span className="text-red-500 ml-1">*</span>}
+                                            </FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="date"
+                                                    disabled={!isFieldEditable("fecha_inicio", currentUser?.role || ["Observador"])}
+                                                    {...field}
+                                                    value={field.value ? new Date(field.value as string).toISOString().split('T')[0] : ''}
                                                 />
                                             </FormControl>
                                             <FormMessage />
@@ -606,29 +630,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                                         )}
                                     />
 
-                                    <div className="grid grid-cols-2 gap-4 mt-4">
-                                        <FormField
-                                            control={form.control}
-                                            name="plazo_de_entrega"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>
-                                                        Plazo de Entrega (días)
-                                                        {isRequired("plazo_de_entrega") && <span className="text-red-500 ml-1">*</span>}
-                                                    </FormLabel>
-                                                    <FormControl>
-                                                        <Input
-                                                            type="number"
-                                                            placeholder="30"
-                                                            disabled={!isFieldEditable("plazo_de_entrega", currentUser?.role || ["Observador"])}
-                                                            {...field}
-                                                        />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                    </div>
+
                                 </>
                             )}
                         </div>
@@ -657,7 +659,7 @@ export function CompraDialog({ compra, open, onOpenChange, onSuccess, currentUse
                         </DialogFooter>
                     </form>
                 </Form>
-            </DialogContent>
+            </DialogContent >
         </Dialog >
     );
 }

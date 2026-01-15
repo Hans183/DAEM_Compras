@@ -10,7 +10,8 @@ export type CompraField =
     | "unidad_requirente"
     | "comprador"
     | "fecha_solicitud"
-    | "plazo_de_entrega"
+    | "fecha_inicio"
+
     | "subvencion"
     | "estado"
     | "adjunta_ordinario"

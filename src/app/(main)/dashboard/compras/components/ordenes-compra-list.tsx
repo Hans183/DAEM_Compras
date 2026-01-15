@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Trash2, Plus, FileText, ExternalLink } from "lucide-react";
+import { Loader2, Trash2, Plus, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 
@@ -35,6 +35,7 @@ const ordenCompraSchema = z.object({
     oc: z.string().min(1, "El número de OC es requerido"),
     oc_fecha: z.string().min(1, "La fecha es requerida"),
     oc_valor: z.number().min(0, "El valor debe ser positivo"),
+    plazo_entrega: z.number().int().min(1, "El plazo debe ser al menos 1 día").optional(),
     oc_adjunto: z.instanceof(File).optional(),
 });
 
@@ -58,6 +59,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
             oc: "",
             oc_fecha: new Date().toISOString().split("T")[0],
             oc_valor: 0,
+            plazo_entrega: 30,
         },
     });
 
@@ -91,6 +93,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                 oc: "",
                 oc_fecha: new Date().toISOString().split("T")[0],
                 oc_valor: 0,
+                plazo_entrega: 30,
             });
             await loadOrdenes();
             onUpdate(); // Notify parent to refresh totals/status if needed
@@ -138,6 +141,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                         <TableRow>
                             <TableHead>N° OC</TableHead>
                             <TableHead>Fecha</TableHead>
+                            <TableHead>Plazo (días)</TableHead>
                             <TableHead>Valor</TableHead>
                             <TableHead className="w-[80px]">Adjunto</TableHead>
                             {canEdit && <TableHead className="w-[50px]"></TableHead>}
@@ -146,7 +150,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                     <TableBody>
                         {ordenes.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={canEdit ? 5 : 4} className="text-center text-muted-foreground text-sm h-20">
+                                <TableCell colSpan={canEdit ? 6 : 5} className="text-center text-muted-foreground text-sm h-20">
                                     No hay órdenes de compra registradas.
                                 </TableCell>
                             </TableRow>
@@ -155,6 +159,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                                 <TableRow key={oc.id}>
                                     <TableCell className="font-medium">{oc.oc}</TableCell>
                                     <TableCell>{format(parseISO(oc.oc_fecha), "dd/MM/yyyy")}</TableCell>
+                                    <TableCell>{oc.plazo_entrega ? `${oc.plazo_entrega} días` : "-"}</TableCell>
                                     <TableCell>$ {new Intl.NumberFormat("es-CL").format(oc.oc_valor)}</TableCell>
                                     <TableCell>
                                         {oc.oc_adjunto ? (
@@ -235,7 +240,28 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                                         )}
                                     />
                                 </div>
-                                <div className="col-span-3">
+                                <div className="col-span-2">
+                                    <FormField
+                                        control={form.control}
+                                        name="plazo_entrega"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="text-xs">Plazo</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="number"
+                                                        className="h-8 text-xs"
+                                                        placeholder="30"
+                                                        value={field.value || ""}
+                                                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="col-span-2">
                                     <FormField
                                         control={form.control}
                                         name="oc_valor"
@@ -261,7 +287,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                                         )}
                                     />
                                 </div>
-                                <div className="col-span-3">
+                                <div className="col-span-2">
                                     <FormField
                                         control={form.control}
                                         name="oc_adjunto"

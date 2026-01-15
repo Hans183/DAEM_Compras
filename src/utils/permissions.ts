@@ -40,10 +40,10 @@ export function canEditCompra(roles: UserRole[], compra?: Compra): boolean {
 
     // SEP no interactúa en este módulo
 
-    // Comprador puede editar compras en estado Asignado o Comprado
+    // Comprador puede editar compras en estado Asignado, En Proceso, Devuelto o Comprado
     if (roles.includes("Comprador")) {
         if (!compra) return false;
-        if (compra.estado === "Asignado" || compra.estado === "Comprado") return true;
+        if (["Asignado", "En Proceso", "Devuelto", "Comprado"].includes(compra.estado)) return true;
     }
 
     // Encargado compras puede editar compras en estado Asignado
@@ -70,7 +70,8 @@ type CompraField =
     | "unidad_requirente"
     | "comprador"
     | "fecha_solicitud"
-    | "plazo_de_entrega"
+    | "fecha_inicio"
+
     | "subvencion"
     | "estado"
     | "adjunta_ordinario"
@@ -96,18 +97,17 @@ export function getEditableFields(roles: UserRole[], estadoCompra?: EstadoCompra
             "unidad_requirente",
             "comprador",
             "fecha_solicitud",
-            "plazo_de_entrega",
+
             "subvencion",
             "estado",
             "adjunta_ordinario",
             "presupuesto",
+            "fecha_inicio",
             "observacion",
         ];
     }
 
-    // Comprador puede editar todo excepto el presupuesto (que no estaba explicito en el anterior para Comprador, asumiendo igual)
-    // Revisando código anterior: Comprador retorna todo excepto presupuesto? 
-    // Wait, previous code for Comprador returned everything *except* presupuesto.
+    // Comprador puede editar todo excepto el presupuesto
     if (roles.includes("Comprador")) {
         ([
             "numero_ordinario",
@@ -115,7 +115,8 @@ export function getEditableFields(roles: UserRole[], estadoCompra?: EstadoCompra
             "unidad_requirente",
             "comprador",
             "fecha_solicitud",
-            "plazo_de_entrega",
+
+
             "subvencion",
             "estado",
             "adjunta_ordinario",
@@ -172,10 +173,12 @@ export function getAvailableEstados(roles: UserRole[], currentEstado?: EstadoCom
         }
     }
 
-    // Comprador puede cambiar a Comprado
+    // Comprador puede cambiar a: Asignado, En Proceso, Comprado, Devuelto
     if (roles.includes("Comprador")) {
         states.add("Asignado");
+        states.add("En Proceso");
         states.add("Comprado");
+        states.add("Devuelto");
     }
 
     return Array.from(states);

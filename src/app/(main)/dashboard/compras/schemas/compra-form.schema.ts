@@ -17,7 +17,7 @@ export function createCompraFormSchema(roles: UserRole[], context: { isCreating:
 
         // En creación, solo estos campos son obligatorios independientemente del rol
         if (context.isCreating) {
-            return ["numero_ordinario", "unidad_requirente", "descripcion", "estado", "comprador", "fecha_solicitud"].includes(field);
+            return ["numero_ordinario", "unidad_requirente", "descripcion", "estado", "comprador", "fecha_inicio"].includes(field);
         }
 
         return true;
@@ -62,15 +62,11 @@ export function createCompraFormSchema(roles: UserRole[], context: { isCreating:
             })
             : z.string().optional(),
 
-        fecha_solicitud: isRequired("fecha_solicitud")
-            ? z.string().min(1, { message: "Debes seleccionar una fecha de solicitud" })
+        fecha_inicio: isRequired("fecha_inicio")
+            ? z.string().min(1, { message: "Debes seleccionar una fecha de inicio" })
             : z.string().optional(),
 
-        plazo_de_entrega: isRequired("plazo_de_entrega")
-            ? z.coerce.number().int().min(1, {
-                message: "El plazo de entrega debe ser al menos 1 día.",
-            })
-            : z.coerce.number().optional(),
+
 
         presupuesto: isRequired("presupuesto")
             ? z.coerce.number().min(0, {
@@ -90,9 +86,7 @@ export function createCompraFormSchema(roles: UserRole[], context: { isCreating:
             })
             : z.enum(ESTADOS_COMPRA).optional(),
 
-        observacion: isRequired("observacion")
-            ? z.string().min(1, { message: "La observación no puede estar vacía" })
-            : z.string().optional(),
+        observacion: z.string().optional(),
     });
 }
 

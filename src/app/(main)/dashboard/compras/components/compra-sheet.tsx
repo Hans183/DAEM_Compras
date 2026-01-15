@@ -3,17 +3,30 @@ import { Compra } from "@/types/compra";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { FileText, AlertCircle } from "lucide-react";
+import { HistorialTimeline } from "./historial-timeline";
 
 interface CompraSheetProps {
     compra: Compra;
 }
 
+// Helper to safely format dates
+const safeFormat = (date: string | Date | undefined, formatStr: string, options?: any) => {
+    if (!date) return "";
+    try {
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return "";
+        return format(d, formatStr, options);
+    } catch {
+        return "";
+    }
+};
+
 export function CompraSheet({ compra }: CompraSheetProps) {
     return (
-        <div className="bg-background text-foreground p-8 max-w-4xl mx-auto print:p-0 print:max-w-none print:bg-white print:text-black" id="printable-sheet">
+        <div className="bg-background text-foreground p-8 w-full mx-auto print:p-0 print:max-w-none print:bg-white print:text-black" id="printable-sheet">
             {/* Header */}
-            <div className="mb-8 text-center border-b pb-4">
-                <h1 className="text-2xl font-bold uppercase tracking-tight">Ficha de Requerimiento de Compra</h1>
+            <div className="mb-6 text-center border-b pb-4">
+                <h1 className="text-2xl font-bold uppercase tracking-tight">Ficha de Compra</h1>
                 <p className="text-sm text-muted-foreground mt-1">Departamento de Administración de Educación Municipal</p>
                 <div className="mt-4 flex justify-between items-end px-4">
                     <div className="text-left">
@@ -22,7 +35,7 @@ export function CompraSheet({ compra }: CompraSheetProps) {
                     </div>
                     <div className="text-right">
                         <span className="block text-xs font-semibold text-muted-foreground uppercase">Fecha de Solicitud</span>
-                        <span className="text-lg">{format(new Date(compra.created), "dd 'de' MMMM, yyyy", { locale: es })}</span>
+                        <span className="text-lg">{safeFormat(compra.created, "dd 'de' MMMM, yyyy", { locale: es })}</span>
                     </div>
                 </div>
             </div>
@@ -88,6 +101,7 @@ export function CompraSheet({ compra }: CompraSheetProps) {
                                     <tr>
                                         <th className="px-3 py-2 text-left font-medium">N° OC</th>
                                         <th className="px-3 py-2 text-left font-medium">Fecha</th>
+                                        <th className="px-3 py-2 text-center font-medium">Plazo Entrega</th>
                                         <th className="px-3 py-2 text-right font-medium">Monto</th>
                                     </tr>
                                 </thead>
@@ -96,19 +110,24 @@ export function CompraSheet({ compra }: CompraSheetProps) {
                                         compra.expand["ordenes_compra(compra)"].map((oc) => (
                                             <tr key={oc.id}>
                                                 <td className="px-3 py-2 font-mono">{oc.oc}</td>
-                                                <td className="px-3 py-2">{format(new Date(oc.fecha_oc), "dd/MM/yyyy")}</td>
+                                                <td className="px-3 py-2">{oc.oc_fecha ? oc.oc_fecha.substring(0, 10).split('-').reverse().join('/') : "-"}</td>
+                                                <td className="px-3 py-2 text-center">
+                                                    {oc.plazo_entrega !== undefined && oc.plazo_entrega !== null
+                                                        ? `${oc.plazo_entrega} días`
+                                                        : "-"}
+                                                </td>
                                                 <td className="px-3 py-2 text-right">$ {oc.oc_valor.toLocaleString("es-CL")}</td>
                                             </tr>
                                         ))
                                     ) : (
                                         <tr>
-                                            <td colSpan={3} className="px-3 py-2 text-center text-muted-foreground">No hay órdenes de compra asociadas</td>
+                                            <td colSpan={4} className="px-3 py-2 text-center text-muted-foreground">No hay órdenes de compra asociadas</td>
                                         </tr>
                                     )}
                                 </tbody>
                                 <tfoot className="bg-muted/50 font-medium">
                                     <tr>
-                                        <td colSpan={2} className="px-3 py-2 text-right">Total</td>
+                                        <td colSpan={3} className="px-3 py-2 text-right">Total</td>
                                         <td className="px-3 py-2 text-right">
                                             $ {(compra.expand?.["ordenes_compra(compra)"]?.reduce((acc, oc) => acc + oc.oc_valor, 0) || 0).toLocaleString("es-CL")}
                                         </td>
@@ -128,12 +147,20 @@ export function CompraSheet({ compra }: CompraSheetProps) {
                 </div>
             </div>
 
+            {/* Historial de Cambios */}
+            <div className="mb-8">
+                <h3 className="text-sm font-bold uppercase text-muted-foreground border-b mb-4 pb-1">Historial de Cambios</h3>
+                <div className="bg-muted/10 rounded-md border p-4">
+                    <HistorialTimeline compraId={compra.id} />
+                </div>
+            </div>
+
             {/* Firmas removed as per user request */}
 
 
             <div className="mt-8 pt-4 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
                 <div className="flex flex-col">
-                    <span>Última actualización: {format(new Date(compra.updated), "dd 'de' MMMM, yyyy HH:mm", { locale: es })}</span>
+                    <span>Última actualización: {safeFormat(compra.updated, "dd 'de' MMMM, yyyy HH:mm", { locale: es })}</span>
                     {compra.usuario_modificador && (
                         <span className="font-medium mt-1">Por: {compra.usuario_modificador}</span>
                     )}
