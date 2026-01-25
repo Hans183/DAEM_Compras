@@ -49,3 +49,19 @@ export function calculateBusinessDate(startDate: Date, daysToAdd: number, holida
 
     return currentDate;
 }
+
+/**
+ * Parses a date string (YYYY-MM-DD or ISO) to a local Date object (00:00:00).
+ * Prevents UTC timezone shifts when displaying dates.
+ */
+export function parseToLocalDate(dateStr: string | null | undefined): Date | undefined {
+    if (!dateStr) return undefined;
+    try {
+        // Extract YYYY-MM-DD part and force local midnight
+        const ymd = dateStr.substring(0, 10);
+        return new Date(`${ymd}T00:00:00`);
+    } catch (e) {
+        console.error("Error parsing date:", dateStr, e);
+        return undefined;
+    }
+}

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MoreHorizontal, Pencil, Trash2, FileText, X, Printer, AlertTriangle, CheckCircle, Clock, Eye, Ban } from "lucide-react";
-import { addDays, differenceInCalendarDays, format, parseISO, isPast, isToday } from "date-fns";
+import { MoreHorizontal, Pencil, Trash2, FileText, X, Printer, AlertTriangle, CheckCircle, Clock, Eye, Ban, User as UserIcon } from "lucide-react";
+import { addDays, differenceInCalendarDays, format, parseISO, isPast, isToday, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,8 +45,10 @@ import { getUserAvatarUrl, getUsers } from "@/services/users.service";
 import { getOrdenCompraFileUrl } from "@/services/ordenes-compra.service";
 import { canEditCompra, canDeleteCompra, canCancelCompra } from "@/utils/permissions";
 
+
 import { getHolidays, type Holiday } from "@/services/holidays.service";
-import { calculateBusinessDate } from "@/utils/date-utils";
+import { calculateBusinessDate, parseToLocalDate } from "@/utils/date-utils";
+
 
 import { DeleteCompraDialog } from "./delete-compra-dialog";
 import { CompraDialog } from "./compra-dialog";
@@ -286,14 +288,15 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                         <span className="font-bold text-foreground text-base">Órdenes de Compra</span>
                                     </div>
                                 </TableHead>
-                                <TableHead className="w-[120px] align-middle">
-                                    <div className="flex items-center gap-2">
+                                <TableHead className="w-[60px] align-middle px-1">
+                                    <div className="flex items-center justify-center">
                                         <Select
                                             value={filters.comprador_filter || undefined}
                                             onValueChange={(value) => updateFilter("comprador_filter", value === "all" ? undefined : value)}
                                         >
-                                            <SelectTrigger className="h-8 w-full p-1 font-bold text-foreground text-base">
-                                                <SelectValue placeholder="Comprador" />
+                                            <SelectTrigger className={cn("h-8 w-8 p-0 border-transparent hover:bg-muted/50 focus:ring-0 flex justify-center items-center shadow-none", filters.comprador_filter && "text-primary bg-primary/10")}>
+                                                <UserIcon className="h-4 w-4" />
+                                                <span className="sr-only">Filtrar Comprador</span>
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="all">Todos</SelectItem>
@@ -364,21 +367,24 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                                 ) : (
                                                     compra.expand["ordenes_compra(compra)"].map((oc) => {
                                                         let statusElement = null;
-                                                        if (oc.oc_fecha && oc.plazo_entrega) {
-                                                            const fechaBase = parseISO(oc.oc_fecha);
-                                                            const fechaEntrega = calculateBusinessDate(fechaBase, oc.plazo_entrega, holidays);
-                                                            const isDelayed = isPast(fechaEntrega) && !isToday(fechaEntrega);
+                                                        if (oc.plazo_entrega) {
+                                                            const fechaEntrega = parseToLocalDate(oc.plazo_entrega);
+                                                            if (fechaEntrega) {
+                                                                // Use local time for "today" comparison
+                                                                const now = new Date();
+                                                                const isDelayed = isPast(fechaEntrega) && !isSameDay(fechaEntrega, now);
 
-                                                            statusElement = (
-                                                                <div className="flex flex-col items-end leading-tight min-w-[80px]">
-                                                                    <span className={cn("text-[10px] font-bold uppercase", isDelayed ? "text-red-500" : "text-green-600")}>
-                                                                        {isDelayed ? "Retrasado" : "A tiempo"}
-                                                                    </span>
-                                                                    <span className="text-[10px] text-muted-foreground">
-                                                                        {format(fechaEntrega, "dd/MM")}
-                                                                    </span>
-                                                                </div>
-                                                            );
+                                                                statusElement = (
+                                                                    <div className="flex flex-col items-end leading-tight min-w-[80px]">
+                                                                        <span className={cn("text-[10px] font-bold uppercase", isDelayed ? "text-red-500" : "text-green-600")}>
+                                                                            {isDelayed ? "Retrasado" : "A tiempo"}
+                                                                        </span>
+                                                                        <span className="text-[10px] text-muted-foreground">
+                                                                            {format(fechaEntrega, "dd/MM")}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            }
                                                         }
 
                                                         return (
@@ -574,7 +580,8 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                 Detalles completos de la solicitud de compra
                             </DialogDescription>
 
-                            <CompraSheet compra={viewingCompra} />
+                            <CompraSheet compra={viewingCompra} currentUser={currentUser} />
+
                         </DialogContent>
                     </Dialog>
                 )

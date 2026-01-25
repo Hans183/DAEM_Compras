@@ -4,9 +4,13 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Trash2, Plus, ExternalLink, Pencil } from "lucide-react";
+import { Loader2, Trash2, Plus, ExternalLink, Pencil, CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,11 +23,7 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter,
+    // Dialog imports removed as they were unused
 } from "@/components/ui/dialog";
 import {
     Table,
@@ -38,13 +38,18 @@ import { Badge } from "@/components/ui/badge";
 import type { OrdenCompra } from "@/types/orden-compra";
 import { createOrdenCompra, deleteOrdenCompra, getOrdenesByCompra, getOrdenCompraFileUrl, updateOrdenCompra } from "@/services/ordenes-compra.service";
 import { getHolidays, type Holiday } from "@/services/holidays.service";
-import { calculateBusinessDate } from "@/utils/date-utils";
+import { parseToLocalDate } from "@/utils/date-utils";
+
+
 
 const ordenCompraSchema = z.object({
     oc: z.string().min(1, "El número de OC es requerido"),
     oc_fecha: z.string().min(1, "La fecha es requerida"),
     oc_valor: z.number().min(0, "El valor debe ser positivo"),
-    plazo_entrega: z.number().int().min(1, "El plazo debe ser al menos 1 día").optional(),
+    plazo_entrega: z.date({
+        required_error: "La fecha de entrega es requerida",
+    }),
+
     oc_adjunto: z.instanceof(File).optional(),
 });
 
@@ -72,13 +77,13 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
             oc: "",
             oc_fecha: new Date().toISOString().split("T")[0],
             oc_valor: 0,
-            plazo_entrega: 30,
+            plazo_entrega: undefined,
         },
     });
 
     // Watch values for live calculation in form
     const watchFecha = form.watch("oc_fecha");
-    const watchPlazo = form.watch("plazo_entrega");
+
 
     const loadOrdenes = async () => {
         try {
@@ -107,20 +112,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
         }
     }, [compraId]);
 
-    const getEstimatedDeliveryDate = (dateStr: string, daysStr: number | undefined) => {
-        if (!dateStr || !daysStr) return null;
-        try {
-            // Handle ISO string or simple date string
-            const startDate = parseISO(dateStr);
-            // Verify date is valid
-            if (isNaN(startDate.getTime())) return null;
 
-            const deliveryDate = calculateBusinessDate(startDate, daysStr, holidays);
-            return format(deliveryDate, "dd/MM/yyyy");
-        } catch (e) {
-            return null;
-        }
-    };
 
     // ... existing functions (onSubmit, handleEditClick, handleCancelEdit, handleDelete) ...
 
@@ -130,6 +122,8 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
             if (editingOc) {
                 await updateOrdenCompra(editingOc.id, {
                     ...data,
+                    oc_fecha: data.oc_fecha,
+                    plazo_entrega: format(data.plazo_entrega, "yyyy-MM-dd"),
                 });
                 toast.success("Orden de compra actualizada");
                 setEditingOc(null);
@@ -137,7 +131,10 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                 await createOrdenCompra({
                     compra: compraId,
                     ...data,
+                    oc_fecha: data.oc_fecha,
+                    plazo_entrega: format(data.plazo_entrega, "yyyy-MM-dd"),
                 });
+
                 toast.success("Orden de compra agregada");
             }
 
@@ -145,7 +142,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                 oc: "",
                 oc_fecha: new Date().toISOString().split("T")[0],
                 oc_valor: 0,
-                plazo_entrega: 30,
+                plazo_entrega: undefined,
             });
             await loadOrdenes();
             onUpdate();
@@ -163,9 +160,10 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
         try {
             // Handle both ISO string with T or space
             if (oc.oc_fecha) {
-                const dateObj = parseISO(oc.oc_fecha);
-                if (!isNaN(dateObj.getTime())) {
+                const dateObj = parseToLocalDate(oc.oc_fecha);
+                if (dateObj && !isNaN(dateObj.getTime())) {
                     formattedDate = format(dateObj, "yyyy-MM-dd");
+
                 } else {
                     formattedDate = new Date().toISOString().split("T")[0];;
                 }
@@ -178,9 +176,11 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
             oc: oc.oc,
             oc_fecha: formattedDate,
             oc_valor: oc.oc_valor,
-            plazo_entrega: oc.plazo_entrega,
+            plazo_entrega: parseToLocalDate(oc.plazo_entrega),
+
         });
     };
+
 
     const handleCancelEdit = () => {
         setEditingOc(null);
@@ -188,7 +188,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
             oc: "",
             oc_fecha: new Date().toISOString().split("T")[0],
             oc_valor: 0,
-            plazo_entrega: 30,
+            plazo_entrega: undefined,
         });
     };
 
@@ -228,7 +228,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                         <TableRow>
                             <TableHead>N° OC</TableHead>
                             <TableHead>Fecha</TableHead>
-                            <TableHead>Plazo / Entrega</TableHead>
+                            <TableHead>Fecha Entrega</TableHead>
                             <TableHead>Valor</TableHead>
                             <TableHead className="w-[80px]">Adjunto</TableHead>
                             {canEdit && <TableHead className="w-[100px]"></TableHead>}
@@ -245,17 +245,11 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                             ordenes.map((oc) => (
                                 <TableRow key={oc.id} className={editingOc?.id === oc.id ? "bg-muted/50" : ""}>
                                     <TableCell className="font-medium">{oc.oc}</TableCell>
-                                    <TableCell>{format(parseISO(oc.oc_fecha), "dd/MM/yyyy")}</TableCell>
+                                    <TableCell>{oc.oc_fecha ? format(parseToLocalDate(oc.oc_fecha) || new Date(), "dd/MM/yyyy") : "-"}</TableCell>
                                     <TableCell>
-                                        <div className="flex flex-col">
-                                            <span>{oc.plazo_entrega ? `${oc.plazo_entrega} días` : "-"}</span>
-                                            {oc.plazo_entrega && (
-                                                <span className="text-[10px] text-muted-foreground">
-                                                    Est: {getEstimatedDeliveryDate(oc.oc_fecha, oc.plazo_entrega)}
-                                                </span>
-                                            )}
-                                        </div>
+                                        {oc.plazo_entrega ? format(parseToLocalDate(oc.plazo_entrega) || new Date(), "dd/MM/yyyy") : "-"}
                                     </TableCell>
+
                                     <TableCell>$ {new Intl.NumberFormat("es-CL").format(oc.oc_valor)}</TableCell>
                                     <TableCell>
                                         {oc.oc_adjunto ? (
@@ -363,25 +357,43 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                                         control={form.control}
                                         name="plazo_entrega"
                                         render={({ field }) => (
-                                            <FormItem>
-                                                <div className="flex flex-col">
-                                                    <FormLabel className="text-xs">Plazo</FormLabel>
-                                                </div>
-                                                <FormControl>
-                                                    <Input
-                                                        type="number"
-                                                        className="h-8 text-xs"
-                                                        placeholder="30"
-                                                        {...field}
-                                                        value={field.value || ""}
-                                                        onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-                                                    />
-                                                </FormControl>
-                                                {watchPlazo && watchFecha && (
-                                                    <div className="text-[10px] text-muted-foreground mt-1 whitespace-nowrap">
-                                                        Entrega: {getEstimatedDeliveryDate(watchFecha, watchPlazo)}
-                                                    </div>
-                                                )}
+                                            <FormItem className="flex flex-col">
+                                                <FormLabel className="text-xs">Fecha Entrega (Días Hábiles)</FormLabel>
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <FormControl>
+                                                            <Button
+                                                                variant={"outline"}
+                                                                className={cn(
+                                                                    "h-8 text-xs w-full pl-3 text-left font-normal",
+                                                                    !field.value && "text-muted-foreground"
+                                                                )}
+                                                            >
+                                                                {field.value ? (
+                                                                    format(field.value, "dd/MM/yyyy")
+                                                                ) : (
+                                                                    <span>Seleccionar fecha</span>
+                                                                )}
+                                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                            </Button>
+                                                        </FormControl>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <Calendar
+                                                            mode="single"
+                                                            selected={field.value}
+                                                            onSelect={field.onChange}
+                                                            disabled={(date) => {
+                                                                // Disable weekends (Sunday=0, Saturday=6)
+                                                                if (date.getDay() === 0 || date.getDay() === 6) return true;
+                                                                // Disable holidays
+                                                                const dateStr = format(date, "yyyy-MM-dd");
+                                                                return holidays.some(h => h.date === dateStr);
+                                                            }}
+                                                            initialFocus
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
                                                 <FormMessage />
                                             </FormItem>
                                         )}

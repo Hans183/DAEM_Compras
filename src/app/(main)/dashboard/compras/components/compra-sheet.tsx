@@ -1,13 +1,26 @@
 
 import { Compra } from "@/types/compra";
+import { useState } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { FileText, AlertCircle } from "lucide-react";
+import { FileText, AlertCircle, Plus } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { RecepcionesList } from "./recepciones-list";
+import { RecepcionDialog } from "./recepcion-dialog";
+import { canCreateRecepcion } from "@/utils/permissions";
 import { HistorialTimeline } from "./historial-timeline";
+import { parseToLocalDate } from "@/utils/date-utils";
+import type { User } from "@/types/user";
+
+
 
 interface CompraSheetProps {
     compra: Compra;
+    currentUser: User | null;
+    linkedOcId?: string;
 }
+
 
 // Helper to safely format dates
 const safeFormat = (date: string | Date | undefined, formatStr: string, options?: any) => {
@@ -21,8 +34,12 @@ const safeFormat = (date: string | Date | undefined, formatStr: string, options?
     }
 };
 
-export function CompraSheet({ compra }: CompraSheetProps) {
+export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProps) {
+    const [isRecepcionDialogOpen, setIsRecepcionDialogOpen] = useState(false);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
     return (
+
         <div className="bg-background text-foreground p-8 w-full mx-auto print:p-0 print:max-w-none print:bg-white print:text-black" id="printable-sheet">
             {/* Header */}
             <div className="mb-6 text-center border-b pb-4">
@@ -108,13 +125,21 @@ export function CompraSheet({ compra }: CompraSheetProps) {
                                 <tbody className="divide-y">
                                     {compra.expand?.["ordenes_compra(compra)"]?.length ? (
                                         compra.expand["ordenes_compra(compra)"].map((oc) => (
-                                            <tr key={oc.id}>
-                                                <td className="px-3 py-2 font-mono">{oc.oc}</td>
+                                            <tr key={oc.id} className={linkedOcId === oc.id ? "bg-yellow-50" : ""}>
+                                                <td className="px-3 py-2 font-mono">
+                                                    {oc.oc}
+                                                    {linkedOcId === oc.id && (
+                                                        <span className="ml-2 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80">
+                                                            Vinculada
+                                                        </span>
+                                                    )}
+                                                </td>
                                                 <td className="px-3 py-2">{oc.oc_fecha ? oc.oc_fecha.substring(0, 10).split('-').reverse().join('/') : "-"}</td>
                                                 <td className="px-3 py-2 text-center">
-                                                    {oc.plazo_entrega !== undefined && oc.plazo_entrega !== null
-                                                        ? `${oc.plazo_entrega} días`
+                                                    {oc.plazo_entrega
+                                                        ? format(parseToLocalDate(oc.plazo_entrega) || new Date(), "dd/MM/yyyy")
                                                         : "-"}
+
                                                 </td>
                                                 <td className="px-3 py-2 text-right">$ {oc.oc_valor.toLocaleString("es-CL")}</td>
                                             </tr>
@@ -147,7 +172,29 @@ export function CompraSheet({ compra }: CompraSheetProps) {
                 </div>
             </div>
 
+            {/* Recepciones Bodega */}
+            <div className="mb-8">
+                <div className="flex justify-between items-center border-b mb-4 pb-1">
+                    <h3 className="text-sm font-bold uppercase text-muted-foreground">Recepciones de Bodega</h3>
+                    {currentUser && canCreateRecepcion(currentUser.role) && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => setIsRecepcionDialogOpen(true)}
+                        >
+                            <Plus className="mr-2 h-3 w-3" />
+                            Nueva Recepción
+                        </Button>
+                    )}
+                </div>
+                <div className="bg-background rounded-md">
+                    <RecepcionesList compraId={compra.id} refreshTrigger={refreshTrigger} />
+                </div>
+            </div>
+
             {/* Historial de Cambios */}
+
             <div className="mb-8">
                 <h3 className="text-sm font-bold uppercase text-muted-foreground border-b mb-4 pb-1">Historial de Cambios</h3>
                 <div className="bg-muted/10 rounded-md border p-4">
@@ -166,6 +213,16 @@ export function CompraSheet({ compra }: CompraSheetProps) {
                     )}
                 </div>
             </div>
+            {currentUser && (
+                <RecepcionDialog
+                    compra={compra}
+                    open={isRecepcionDialogOpen}
+                    onOpenChange={setIsRecepcionDialogOpen}
+                    currentUser={currentUser}
+                    onSuccess={() => setRefreshTrigger(prev => prev + 1)}
+                />
+            )}
         </div>
     );
 }
+

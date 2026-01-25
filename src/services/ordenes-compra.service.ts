@@ -18,7 +18,7 @@ export async function createOrdenCompra(data: OrdenCompraFormData) {
     formData.append("oc_fecha", data.oc_fecha);
     formData.append("oc_valor", data.oc_valor.toString());
     if (data.plazo_entrega) {
-        formData.append("plazo_entrega", data.plazo_entrega.toString());
+        formData.append("plazo_entrega", data.plazo_entrega);
     }
 
     if (data.oc_adjunto) {
@@ -35,7 +35,7 @@ export async function updateOrdenCompra(id: string, data: Partial<OrdenCompraFor
     if (data.oc_fecha) formData.append("oc_fecha", data.oc_fecha);
     if (data.oc_valor !== undefined) formData.append("oc_valor", data.oc_valor.toString());
     if (data.plazo_entrega !== undefined) {
-        formData.append("plazo_entrega", data.plazo_entrega.toString());
+        formData.append("plazo_entrega", data.plazo_entrega);
     }
 
     if (data.oc_adjunto) {

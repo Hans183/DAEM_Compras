@@ -5,7 +5,9 @@ import {
   type LucideIcon,
   ShoppingCart,
   Users,
+  Package,
 } from "lucide-react";
+
 
 export interface NavSubItem {
   title: string;
@@ -56,6 +58,13 @@ export const sidebarItems: NavGroup[] = [
         icon: ShoppingCart,
         allowedRoles: ["Admin", "Comprador", "Observador", "SEP", "Bodega", "Encargado compras"],
       },
+      {
+        title: "Recepciones",
+        url: "/dashboard/recepciones",
+        icon: Package,
+        allowedRoles: ["Admin", "Bodega"],
+      },
+
       {
         title: "Unidades Requirentes",
         url: "/dashboard/requirentes",

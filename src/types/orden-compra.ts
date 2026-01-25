@@ -5,7 +5,7 @@ export interface OrdenCompra extends RecordModel {
     oc: string; // Número/Identificador de la OC
     oc_fecha: string;
     oc_valor: number;
-    plazo_entrega?: number;
+    plazo_entrega?: string;
     oc_adjunto?: string;
 }
 
@@ -14,6 +14,6 @@ export interface OrdenCompraFormData {
     oc: string;
     oc_fecha: string;
     oc_valor: number;
-    plazo_entrega?: number;
+    plazo_entrega?: string;
     oc_adjunto?: File;
 }

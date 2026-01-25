@@ -26,6 +26,14 @@ export function canCancelCompra(roles: UserRole[]): boolean {
 }
 
 /**
+ * Verifica si un rol puede crear recepciones (Bodega)
+ */
+export function canCreateRecepcion(roles: UserRole[]): boolean {
+    return roles.includes("Bodega") || roles.includes("Admin");
+}
+
+
+/**
  * Verifica si un rol puede editar una compra
  */
 export function canEditCompra(roles: UserRole[], compra?: Compra): boolean {
