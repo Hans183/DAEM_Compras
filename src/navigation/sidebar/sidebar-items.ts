@@ -91,7 +91,7 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         title: "Reportes SEP",
-        url: "/dashboard/reportes-sep",
+        url: "/dashboard/reportes/sep",
         icon: Building2,
         allowedRoles: ["Admin", "SEP", "Observador"],
       },
