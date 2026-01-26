@@ -153,13 +153,13 @@ export async function getAllRecepciones(page = 1, perPage = 50, filters = "") {
     return await pb.collection(RECEPCIONES_COLLECTION).getList<Recepcion>(page, perPage, {
         sort: "-created",
         filter: filters,
-        expand: "recepcionado_por,recepcion_detalles(recepcion),compra,compra.unidad_requirente,compra.comprador,orden_compra,compra.ordenes_compra(compra)",
+        expand: "recepcionado_por,recepcion_detalles(recepcion),compra,compra.unidad_requirente,compra.comprador,orden_compra,compra.ordenes_compra(compra),compra.subvencion,compra.numero_ordinario(ordinario)",
     });
 }
 
 export async function getRecepcionById(id: string) {
     return await pb.collection(RECEPCIONES_COLLECTION).getOne<Recepcion>(id, {
-        expand: "recepcionado_por,recepcion_detalles(recepcion),compra,compra.unidad_requirente,compra.proveedor,compra.comprador,orden_compra,compra.ordenes_compra(compra)",
+        expand: "recepcionado_por,recepcion_detalles(recepcion),compra,compra.unidad_requirente,compra.proveedor,compra.comprador,orden_compra,compra.ordenes_compra(compra),compra.subvencion,compra.numero_ordinario(ordinario)",
     });
 }
 

@@ -11,7 +11,7 @@ export default function LoginV1() {
         <div className="flex h-full flex-col items-center justify-center p-12 text-center">
           <div className="space-y-6">
             <Image
-              src="/images/logo-daem_cuadrado.svg"
+              src="/images/logo_daem.svg"
               alt="Logo DAEM"
               width={300}
               height={300}

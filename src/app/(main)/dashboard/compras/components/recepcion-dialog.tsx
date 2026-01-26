@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Plus, Trash2, Upload, FileText, X } from "lucide-react";
+import { Loader2, Plus, Trash2, Upload, FileText, X, ClipboardPaste } from "lucide-react";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 
@@ -117,10 +117,122 @@ export function RecepcionDialog({ compra, open, onOpenChange, onSuccess, current
     }, [initialData, open, form]);
 
 
-    const { fields, append, remove } = useFieldArray({
+    const { fields, append, remove, replace } = useFieldArray({
         control: form.control,
         name: "detalles",
     });
+
+    const handlePasteFromClipboard = async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (!text) {
+                toast.error("El portapapeles está vacío");
+                return;
+            }
+
+            const rows = text.split(/\r?\n/).filter(row => row.trim() !== "");
+            const limitedRows = rows.slice(0, 15);
+
+            if (limitedRows.length === 0) {
+                toast.error("No hay datos válidos para pegar");
+                return;
+            }
+
+            const newDetalles = limitedRows.map(row => {
+                // Try to split by tab
+                let cols = row.split("\t");
+                // If only 1 column, try splitting by comma, semicolon
+                if (cols.length < 2) {
+                    // Simple heuristic: if tab didn't work, maybe it's just one line or csv? 
+                    // stick to tab as it's standard from Excel
+                }
+
+                let cantidad = 1;
+                let detalle = "";
+
+                if (cols.length >= 2) {
+                    // Start with simple cleanup for number check
+                    // Allow 1,5 or 1.5 or 1000
+                    const isNumber = (str: string) => /^\d+([.,]\d+)?$/.test(str.trim());
+
+                    const col0 = cols[0].trim();
+                    const col1 = cols[1].trim();
+
+                    const col0IsNum = isNumber(col0);
+                    const col1IsNum = isNumber(col1);
+
+                    if (col0IsNum && !col1IsNum) {
+                        // Standard: Qty | Desc
+                        cantidad = parseFloat(col0.replace(",", "."));
+                        detalle = cols.slice(1).join(" ").trim();
+                    } else if (!col0IsNum && col1IsNum) {
+                        // Swapped: Desc | Qty
+                        cantidad = parseFloat(col1.replace(",", "."));
+                        detalle = cols[0].trim() + (cols.length > 2 ? " " + cols.slice(2).join(" ") : "");
+                    } else if (col0IsNum && col1IsNum) {
+                        // Both are numbers? Assume Qty | Price? or Qty | Code?
+                        // Default to first is Qty.
+                        cantidad = parseFloat(col0.replace(",", "."));
+                        detalle = cols.slice(1).join(" ").trim();
+                    } else {
+                        // neither is number
+                        detalle = row.trim();
+                    }
+                } else {
+                    // Single column
+                    const isNumber = (str: string) => /^\d+([.,]\d+)?$/.test(str.trim());
+                    if (isNumber(cols[0])) {
+                        // Just a number? maybe just pasting qty? 
+                        // Unlikely. Treat as detail.
+                        detalle = cols[0].trim();
+                    } else {
+                        detalle = cols[0].trim();
+                    }
+                }
+
+                return { cantidad, detalle };
+            });
+
+            // Replace current details or Append? User asked "pegar datos", usually implies filling.
+            // I'll replace if the only row is empty, otherwise append? 
+            // "quiero que al pegar los datos del excel se generen la cantidad de lineas necesarias"
+            // Let's verify if the form is "clean"
+            const currentValues = form.getValues().detalles;
+            if (currentValues.length === 1 && currentValues[0].detalle === "" && currentValues[0].cantidad === 1) {
+                replace(newDetalles);
+            } else {
+                // Append, but check limit. 
+                // The user said "un maximo de 15". Does he mean total or per paste?
+                // "generen la cantidad de lineas necesarias con un maximo de 15"
+                // I will append them.
+                // Actually, useFieldArray replace might be better if they want to 'paste from excel' usually means bulk entry.
+                // But replacing might lose existing work. 
+                // Let's ask? No, act consistently. If I am pasting a list, I probably want that list.
+                // However, appending is safer.
+                // Let's replace ONLY IF the first item is empty (new form).
+                // Otherwise append.
+
+                // LIMIT CHECK: if total > 15?
+                // "con un maximo de 15". I will limit the PASTED items to 15.
+                newDetalles.forEach(d => append(d));
+                // Wait, if I use forEach append it might be slow for many items in React Hook Form?
+                // replace is faster but destructive.
+                // Let's use append with the array if supported? FieldArray append supports array.
+            }
+            // Actually, if it's a fresh form, replace is better UX.
+            if (currentValues.length === 1 && !currentValues[0].detalle) {
+                replace(newDetalles);
+            } else {
+                append(newDetalles);
+            }
+
+            toast.success(`${newDetalles.length} filas pegadas desde Excel`);
+
+        } catch (error) {
+            console.error("Paste error:", error);
+            toast.error("Error al leer del portapapeles. Asegúrate de dar permisos.");
+        }
+    };
 
     const onSubmit = async (data: RecepcionFormValues) => {
         if (!currentUser) {
@@ -294,15 +406,27 @@ export function RecepcionDialog({ compra, open, onOpenChange, onSuccess, current
                             <div className="border rounded-md p-4">
                                 <div className="flex justify-between items-center mb-4">
                                     <h4 className="text-sm font-semibold uppercase">Detalle de lo Recibido</h4>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => append({ cantidad: 1, detalle: "" })}
-                                    >
-                                        <Plus className="h-4 w-4 mr-2" />
-                                        Agregar Ítem
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handlePasteFromClipboard}
+                                            className="text-green-600 border-green-200 hover:bg-green-50"
+                                        >
+                                            <ClipboardPaste className="h-4 w-4 mr-2" />
+                                            Pegar Excel
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => append({ cantidad: 1, detalle: "" })}
+                                        >
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Agregar Ítem
+                                        </Button>
+                                    </div>
                                 </div>
 
                                 <Table>
