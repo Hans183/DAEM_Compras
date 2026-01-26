@@ -298,7 +298,7 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                                 <UserIcon className="h-4 w-4" />
                                                 <span className="sr-only">Filtrar Comprador</span>
                                             </SelectTrigger>
-                                            <SelectContent>
+                                            <SelectContent position="popper" align="end">
                                                 <SelectItem value="all">Todos</SelectItem>
                                                 {buyers.map((buyer) => (
                                                     <SelectItem key={buyer.id} value={buyer.id}>

@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DollarSign, ShoppingCart, TrendingUp, Users } from "lucide-react";
+import { DollarSign, ShoppingCart, TrendingUp, Users, Clock, AlertTriangle } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getDashboardStats, type DashboardStats } from "@/services/dashboard.service";
-import { TopBuyersChart } from "../_components/charts/top-buyers-chart";
+import { ProcessingTimeChart } from "../_components/charts/processing-time-chart";
+import { OperationalFunnelChart } from "../_components/charts/operational-funnel-chart";
 import { TopUnitsChart } from "../_components/charts/top-units-chart";
 import { SpendingBySubventionChart } from "../_components/charts/spending-by-subvention-chart";
 
@@ -93,30 +95,46 @@ export default function DashboardPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
-                            Compradores Activos
+                            Tiempo Promedio Gestión
                         </CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <Clock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.rankingCompradores.length}</div>
+                        <div className="text-2xl font-bold">{stats.avgCycleTime} días</div>
                         <p className="text-xs text-muted-foreground">
-                            Realizando gestiones
+                            Desde solicitud hasta OC
                         </p>
                     </CardContent>
                 </Card>
             </div>
 
+            {/* Stagnation Alert */}
+            {stats.stagnationCount > 0 && (
+                <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-900">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Atención Operativa</AlertTitle>
+                    <AlertDescription>
+                        Hay <strong>{stats.stagnationCount} solicitudes estancadas</strong> sin movimiento por más de 10 días.
+                        Se recomienda revisar el listado de pendientes.
+                    </AlertDescription>
+                </Alert>
+            )}
+
             {/* Charts Grid */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <div className="col-span-4">
-                    <TopBuyersChart data={stats.rankingCompradores} />
+                    <ProcessingTimeChart data={stats.cycleTimeTrend} />
                 </div>
                 <div className="col-span-3">
                     <SpendingBySubventionChart data={stats.rankingSubvenciones} />
                 </div>
             </div>
+
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <div className="col-span-7">
+                <div className="col-span-4">
+                    <OperationalFunnelChart data={stats.funnelData} />
+                </div>
+                <div className="col-span-3">
                     <TopUnitsChart data={stats.rankingUnidades} />
                 </div>
             </div>
