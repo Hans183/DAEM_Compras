@@ -24,7 +24,8 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
         created_from,
         created_to,
         fecha_inicio_from,
-        fecha_inicio_to
+        fecha_inicio_to,
+        subvencion_filter
     } = params;
 
     try {
@@ -61,6 +62,10 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
             filters.push(`estado = "${estado_filter}"`);
         }
 
+        if (subvencion_filter) {
+            filters.push(`subvencion = "${subvencion_filter}"`);
+        }
+
         // Legacy created filters (optional, kept if needed but UI will use fecha_inicio)
         if (created_from) {
             filters.push(`created >= "${created_from}"`);
@@ -84,7 +89,7 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
         return await pb.collection(COMPRAS_COLLECTION).getList<Compra>(page, perPage, {
             filter,
             sort,
-            expand: "unidad_requirente,comprador,subvencion,ordenes_compra(compra)",
+            expand: "unidad_requirente,comprador,subvencion,ordenes_compra(compra),accion",
         });
     } catch (error) {
         console.error("Error fetching compras:", error);
@@ -98,7 +103,7 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
 export async function getCompraById(id: string): Promise<Compra> {
     try {
         return await pb.collection(COMPRAS_COLLECTION).getOne<Compra>(id, {
-            expand: "unidad_requirente,comprador,subvencion,ordenes_compra(compra)",
+            expand: "unidad_requirente,comprador,subvencion,ordenes_compra(compra),accion",
         });
     } catch (error) {
         console.error(`Error fetching compra ${id}:`, error);
@@ -135,8 +140,12 @@ export async function createCompra(data: CompraFormData): Promise<Compra> {
             formData.append("es_duplicada", String(data.es_duplicada));
         }
 
+        if (data.accion) {
+            formData.append("accion", data.accion);
+        }
+
         const record = await pb.collection(COMPRAS_COLLECTION).create<Compra>(formData, {
-            expand: "comprador,unidad_requirente",
+            expand: "comprador,unidad_requirente,accion",
         });
 
         // Registrar en historial
@@ -187,8 +196,10 @@ export async function updateCompra(id: string, data: Partial<CompraFormData>): P
             formData.append("adjunta_ordinario", data.adjunta_ordinario);
         }
 
+        if (data.accion) formData.append("accion", data.accion);
+
         const record = await pb.collection(COMPRAS_COLLECTION).update<Compra>(id, formData, {
-            expand: "comprador,unidad_requirente",
+            expand: "comprador,unidad_requirente,accion",
         });
 
         // 2. Detectar cambios y registrar

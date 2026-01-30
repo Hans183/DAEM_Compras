@@ -23,6 +23,7 @@ export interface Compra extends RecordModel {
     presupuesto?: number;
     es_duplicada?: boolean;
     observacion?: string;
+    accion?: string; // Relation ID to acciones
     expand?: {
         unidad_requirente?: Requirente;
         comprador?: User;
@@ -51,6 +52,7 @@ export interface CompraFormData {
     presupuesto?: number;
     es_duplicada?: boolean;
     observacion?: string;
+    accion?: string;
 }
 
 /**
@@ -71,6 +73,8 @@ export interface GetComprasParams {
     fecha_inicio_to?: string;
     created_from?: string;
     created_to?: string;
+    accion_filter?: string;
+    subvencion_filter?: string;
 }
 
 /**

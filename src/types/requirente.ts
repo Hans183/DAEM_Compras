@@ -27,4 +27,5 @@ export interface GetRequirentesParams {
     search?: string;
     sort?: string;
     sep_filter?: boolean;
+    active_filter?: boolean;
 }

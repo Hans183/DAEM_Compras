@@ -18,10 +18,11 @@ import { DeleteAccionDialog } from "./delete-accion-dialog";
 
 interface AccionesTableProps {
     data: Accion[];
+    usageMap: Record<string, number>;
     onDataChanged: () => void;
 }
 
-export function AccionesTable({ data, onDataChanged }: AccionesTableProps) {
+export function AccionesTable({ data, usageMap, onDataChanged }: AccionesTableProps) {
     const [editingAccion, setEditingAccion] = useState<Accion | null>(null);
     const [deletingAccion, setDeletingAccion] = useState<Accion | null>(null);
 
@@ -34,9 +35,10 @@ export function AccionesTable({ data, onDataChanged }: AccionesTableProps) {
                             <TableHead>Nombre</TableHead>
                             <TableHead>Establecimiento</TableHead>
                             <TableHead>Dimensión</TableHead>
-                            <TableHead>Monto Gral.</TableHead>
                             <TableHead>Monto SEP</TableHead>
-                            <TableHead>Responsable</TableHead>
+                            {/* <TableHead>Responsable</TableHead> */}
+                            <TableHead>Valor Acción</TableHead>
+                            <TableHead className="w-[150px]">% Uso</TableHead>
                             <TableHead className="w-[100px]">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -48,35 +50,62 @@ export function AccionesTable({ data, onDataChanged }: AccionesTableProps) {
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            data.map((item) => (
-                                <TableRow key={item.id}>
-                                    <TableCell className="font-medium">{item.nombre}</TableCell>
-                                    <TableCell>{item.expand?.establecimiento?.nombre || "N/A"}</TableCell>
-                                    <TableCell>{item.dimension}</TableCell>
-                                    <TableCell>${item.monto_subvencion_general?.toLocaleString("es-CL")}</TableCell>
-                                    <TableCell>${item.monto_sep?.toLocaleString("es-CL")}</TableCell>
-                                    <TableCell>{item.responsable}</TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => setEditingAccion(item)}
-                                            >
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="text-destructive"
-                                                onClick={() => setDeletingAccion(item)}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))
+                            data.map((item) => {
+                                const valorAccion = item.valor_accion || 0;
+                                const used = usageMap[item.id] || 0;
+                                const percentage = valorAccion > 0 ? (used / valorAccion) * 100 : 0;
+
+                                // Color logic
+                                let progressColor = "bg-green-500";
+                                if (percentage >= 100) progressColor = "bg-red-500";
+                                else if (percentage >= 80) progressColor = "bg-yellow-500";
+                                else if (percentage >= 50) progressColor = "bg-blue-500";
+
+                                return (
+                                    <TableRow key={item.id}>
+                                        <TableCell className="font-medium max-w-[200px] truncate" title={item.nombre}>
+                                            {item.nombre}
+                                        </TableCell>
+                                        <TableCell>{item.expand?.establecimiento?.nombre || "N/A"}</TableCell>
+                                        <TableCell>{item.expand?.dimension?.nombre || item.dimension || "N/A"}</TableCell>
+                                        <TableCell>${item.monto_sep?.toLocaleString("es-CL")}</TableCell>
+                                        {/* <TableCell>{item.responsable}</TableCell> */}
+                                        <TableCell>${valorAccion.toLocaleString("es-CL")}</TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col gap-1 w-full">
+                                                <span className="text-xs text-muted-foreground text-right">
+                                                    {percentage.toFixed(1)}%
+                                                </span>
+                                                <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full ${progressColor} transition-all duration-300`}
+                                                        style={{ width: `${Math.min(percentage, 100)}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => setEditingAccion(item)}
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="text-destructive"
+                                                    onClick={() => setDeletingAccion(item)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })
                         )}
                     </TableBody>
                 </Table>

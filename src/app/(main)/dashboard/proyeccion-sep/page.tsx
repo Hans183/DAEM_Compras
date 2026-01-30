@@ -18,6 +18,7 @@ export default function ProyeccionSepPage() {
 
     // Auxiliary data
     const [rrhhSums, setRrhhSums] = useState<Record<string, number>>({});
+    const [rrhhProjectedSums, setRrhhProjectedSums] = useState<Record<string, number>>({});
 
     const [loading, setLoading] = useState(true);
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -29,6 +30,7 @@ export default function ProyeccionSepPage() {
             const schoolsResult = await getRequirentes({
                 perPage: 500,
                 sep_filter: true,
+                active_filter: true,
                 sort: "nombre"
             });
             setSchools(schoolsResult.items);
@@ -44,12 +46,48 @@ export default function ProyeccionSepPage() {
             });
 
             const sums: Record<string, number> = {};
+
+            // Logic for RRHH Projected: Fill forward 0 values
+            const schoolMonthlyData: Record<string, Record<string, number>> = {};
+            const projectedSums: Record<string, number> = {};
+
+            // First pass: Organize real data by school and month
             rrhhResult.items.forEach(item => {
                 const schoolId = item.escuelas;
                 if (!sums[schoolId]) sums[schoolId] = 0;
                 sums[schoolId] += item.total;
+
+                if (!schoolMonthlyData[schoolId]) schoolMonthlyData[schoolId] = {};
+                schoolMonthlyData[schoolId][item.mes] = item.total;
             });
             setRrhhSums(sums);
+
+            // Second pass: Calculate projected sums
+            const MONTHS = [
+                "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+                "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+            ];
+
+            schoolsResult.items.forEach(school => {
+                const schoolId = school.id;
+                const monthlyData = schoolMonthlyData[schoolId] || {};
+
+                let projectedSum = 0;
+                let lastNonZero = 0;
+
+                MONTHS.forEach(month => {
+                    const val = monthlyData[month] || 0;
+                    if (val > 0) {
+                        lastNonZero = val;
+                    }
+                    // If current is 0, use lastNonZero (projected), otherwise use actual
+                    const effectiveVal = val > 0 ? val : lastNonZero;
+                    projectedSum += effectiveVal;
+                });
+
+                projectedSums[schoolId] = projectedSum;
+            });
+            setRrhhProjectedSums(projectedSums);
 
         } catch (error) {
             console.error("Error loading Proyeccion SEP data:", error);
@@ -147,6 +185,7 @@ export default function ProyeccionSepPage() {
                     schools={schools}
                     projections={projections}
                     rrhhSums={rrhhSums}
+                    rrhhProjectedSums={rrhhProjectedSums}
                     year={selectedYear}
                     onUpdate={handleUpdate}
                 />

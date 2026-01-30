@@ -26,14 +26,15 @@ interface ProyeccionSepTableProps {
     schools: Requirente[];
     projections: ProyeccionSep[];
     rrhhSums: Record<string, number>;
+    rrhhProjectedSums: Record<string, number>;
     year: number;
     onUpdate: (schoolId: string, field: keyof ProyeccionSep, value: number) => void;
 }
 
-type SortKey = "nombre" | "presupuesto" | "total_utilizado" | "compras_facturadas" | "compras_obligadas" | "rrhh" | "suma_facturado_rrhh" | "por_gastar" | "porcentaje_utilizado" | "porcentaje_pagado";
+type SortKey = "nombre" | "presupuesto" | "total_utilizado" | "compras_facturadas" | "compras_obligadas" | "rrhh" | "suma_facturado_rrhh" | "por_gastar" | "porcentaje_utilizado" | "porcentaje_pagado" | "rrhh_proyectado";
 type SortDirection = "asc" | "desc";
 
-export function ProyeccionSepTable({ schools, projections, rrhhSums, year, onUpdate }: ProyeccionSepTableProps) {
+export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProjectedSums, year, onUpdate }: ProyeccionSepTableProps) {
     const [sortKey, setSortKey] = useState<SortKey>("nombre");
     const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
@@ -48,6 +49,7 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, year, onUpd
         compras_facturadas: 100,
         compras_obligadas: 100,
         rrhh: 100,
+        rrhh_proyectado: 110,
         suma_facturado_rrhh: 100
     });
 
@@ -61,6 +63,7 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, year, onUpd
         compras_facturadas: true,
         compras_obligadas: true,
         rrhh: true,
+        rrhh_proyectado: true,
         suma_facturado_rrhh: true,
     });
 
@@ -100,6 +103,7 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, year, onUpd
         return schools.map((school) => {
             const projection = projections.find((p) => p.establecimiento === school.id);
             const rrhhSum = rrhhSums[school.id] || 0;
+            const rrhhProjected = rrhhProjectedSums[school.id] || 0;
 
             const presupuesto = projection?.presupuesto || 0;
             const comprasFacturadas = projection?.compras_facturadas || 0;
@@ -134,10 +138,11 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, year, onUpd
                 compras_facturadas: comprasFacturadas,
                 compras_obligadas: comprasObligadas,
                 rrhh: rrhhSum,
+                rrhh_proyectado: rrhhProjected,
                 suma_facturado_rrhh: sumaFacturadoRrhh,
             };
         });
-    }, [schools, projections, rrhhSums]);
+    }, [schools, projections, rrhhSums, rrhhProjectedSums]);
 
     const sortedData = useMemo(() => {
         return [...mergedData].sort((a, b) => {
@@ -199,6 +204,7 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, year, onUpd
         compras_facturadas: "Compras Facturadas",
         compras_obligadas: "Compras Obligadas",
         rrhh: "RRHH",
+        rrhh_proyectado: "RRHH Proyectado",
         suma_facturado_rrhh: "Facturado + RRHH"
     };
 
@@ -262,7 +268,8 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, year, onUpd
                             {renderHeader("% Pagado", "porcentaje_pagado")}
                             {renderHeader("Compras Facturadas", "compras_facturadas")}
                             {renderHeader("Compras Obligadas", "compras_obligadas")}
-                            {renderHeader(`RRHH (Suma ${year})`, "rrhh")}
+                            {renderHeader(`RRHH Total`, "rrhh")}
+                            {renderHeader("RRHH Proyectado", "rrhh_proyectado")}
                             {renderHeader("Facturado + RRHH", "suma_facturado_rrhh")}
                         </TableRow>
                     </TableHeader>
@@ -326,6 +333,11 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, year, onUpd
                                     {visibleColumns.rrhh && (
                                         <TableCell className="text-muted-foreground bg-muted/20 text-xs py-1 px-0 text-right border-r truncate" style={{ width: columnWidths["rrhh"] }}>
                                             {formatCurrency(row.rrhh, { locale: "es-CL", currency: "CLP", minimumFractionDigits: 0 })}
+                                        </TableCell>
+                                    )}
+                                    {visibleColumns.rrhh_proyectado && (
+                                        <TableCell className="text-muted-foreground bg-amber-500/10 text-xs py-1 px-0 text-right border-r truncate" style={{ width: columnWidths["rrhh_proyectado"] }}>
+                                            {formatCurrency(row.rrhh_proyectado, { locale: "es-CL", currency: "CLP", minimumFractionDigits: 0 })}
                                         </TableCell>
                                     )}
                                     {visibleColumns.suma_facturado_rrhh && (

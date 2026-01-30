@@ -5,11 +5,20 @@ import type { Accion, AccionFormData, GetAccionesParams } from "@/types/accion";
 const COLLECTION_NAME = "acciones";
 
 export async function getAcciones(params: GetAccionesParams = {}): Promise<ListResult<Accion>> {
-    const { page = 1, perPage = 30, search = "", sort = "-created" } = params;
+    const { page = 1, perPage = 30, search = "", sort = "-created", establecimiento_filter, dimension_filter, subdimencion_filter } = params;
 
     const filterParts = [];
     if (search) {
         filterParts.push(`nombre ~ "${search}"`);
+    }
+    if (establecimiento_filter) {
+        filterParts.push(`establecimiento = "${establecimiento_filter}"`);
+    }
+    if (dimension_filter) {
+        filterParts.push(`dimension = "${dimension_filter}"`);
+    }
+    if (subdimencion_filter) {
+        filterParts.push(`subdimencion = "${subdimencion_filter}"`);
     }
 
     const filter = filterParts.join(" && ");
@@ -17,7 +26,7 @@ export async function getAcciones(params: GetAccionesParams = {}): Promise<ListR
     return await pb.collection(COLLECTION_NAME).getList<Accion>(page, perPage, {
         filter,
         sort,
-        expand: "establecimiento",
+        expand: "establecimiento,dimension",
     });
 }
 

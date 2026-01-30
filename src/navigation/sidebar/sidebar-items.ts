@@ -101,6 +101,12 @@ export const sidebarItems: NavGroup[] = [
         icon: DollarSign,
         allowedRoles: ["Admin", "SEP", "Encargado compras"],
       },
+      {
+        title: "Compras SEP",
+        url: "/dashboard/compras-sep",
+        icon: ShoppingCart,
+        allowedRoles: ["Admin", "SEP"],
+      },
     ],
   },
 ];

@@ -9,12 +9,13 @@ const REQUIRENTES_COLLECTION = "requirente";
  * Get paginated list of requirentes
  */
 export async function getRequirentes(params: GetRequirentesParams = {}): Promise<ListResult<Requirente>> {
-    const { page = 1, perPage = 30, search = "", sort = "-created", sep_filter } = params;
+    const { page = 1, perPage = 30, search = "", sort = "-created", sep_filter, active_filter } = params;
 
     try {
         const filterParts = [];
         if (search) filterParts.push(`nombre ~ "${search}"`);
         if (sep_filter !== undefined) filterParts.push(`sep = ${sep_filter}`);
+        if (active_filter !== undefined) filterParts.push(`active = ${active_filter}`);
 
         const filter = filterParts.join(" && ");
 

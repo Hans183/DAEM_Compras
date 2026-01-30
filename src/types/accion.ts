@@ -6,6 +6,7 @@ export interface Accion extends RecordModel {
     subdimencion: string; // RELATION_RECORD_ID
     monto_subvencion_general: number;
     monto_sep: number;
+    valor_accion: number;
     objetivo_estrategico: string;
     estrategia: string;
     metodo_verificacion: string;
@@ -19,6 +20,7 @@ export interface Accion extends RecordModel {
     planes: string;
     expand?: {
         establecimiento?: import("./requirente").Requirente;
+        dimension?: import("./dimension").Dimension;
     };
 }
 
@@ -28,6 +30,7 @@ export interface AccionFormData {
     subdimencion?: string;
     monto_subvencion_general?: number;
     monto_sep?: number;
+    valor_accion?: number;
     objetivo_estrategico?: string;
     estrategia?: string;
     metodo_verificacion?: string;
@@ -46,4 +49,7 @@ export interface GetAccionesParams {
     perPage?: number;
     search?: string;
     sort?: string;
+    establecimiento_filter?: string;
+    dimension_filter?: string;
+    subdimencion_filter?: string;
 }

@@ -62,6 +62,7 @@ const formSchema = z.object({
     subdimencion: z.string().optional(),
     monto_subvencion_general: z.coerce.number().min(0),
     monto_sep: z.coerce.number().min(0),
+    valor_accion: z.coerce.number().min(0).optional(),
     objetivo_estrategico: z.string().optional(),
     estrategia: z.string().optional(),
     metodo_verificacion: z.string().optional(),
@@ -115,6 +116,7 @@ export function AccionDialog({
             subdimencion: "",
             monto_subvencion_general: 0,
             monto_sep: 0,
+            valor_accion: 0,
             objetivo_estrategico: "",
             estrategia: "",
             metodo_verificacion: "",
@@ -180,6 +182,7 @@ export function AccionDialog({
                     subdimencion: accionToEdit.subdimencion,
                     monto_subvencion_general: accionToEdit.monto_subvencion_general,
                     monto_sep: accionToEdit.monto_sep,
+                    valor_accion: accionToEdit.valor_accion || 0,
                     objetivo_estrategico: accionToEdit.objetivo_estrategico,
                     estrategia: accionToEdit.estrategia,
                     metodo_verificacion: accionToEdit.metodo_verificacion,
@@ -199,6 +202,7 @@ export function AccionDialog({
                     subdimencion: "",
                     monto_subvencion_general: 0,
                     monto_sep: 0,
+                    valor_accion: 0,
                     objetivo_estrategico: "",
                     estrategia: "",
                     metodo_verificacion: "",
@@ -413,6 +417,28 @@ export function AccionDialog({
                                                 type="text"
                                                 placeholder="0"
                                                 value={formatCurrency(field.value)}
+                                                onChange={(e) => {
+                                                    const rawValue = parseCurrency(e.target.value);
+                                                    field.onChange(rawValue);
+                                                }}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="valor_accion"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Valor Acción (Presupuesto)</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="text"
+                                                placeholder="0"
+                                                value={formatCurrency(field.value || 0)}
                                                 onChange={(e) => {
                                                     const rawValue = parseCurrency(e.target.value);
                                                     field.onChange(rawValue);
