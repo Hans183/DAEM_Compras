@@ -32,14 +32,32 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 import { createAccion, updateAccion } from "@/services/acciones.service";
 import { getDimensiones, getSubdimenciones } from "@/services/dimensiones.service";
 import type { Accion } from "@/types/accion";
 import type { Dimension, Subdimencion } from "@/types/dimension";
+import { getRequirentes } from "@/services/requirentes.service";
+import type { Requirente } from "@/types/requirente";
 
 const formSchema = z.object({
     nombre: z.string().min(1, "El nombre es requerido"),
+    establecimiento: z.string().min(1, "El establecimiento es requerido"),
     dimension: z.string().optional(),
     subdimencion: z.string().optional(),
     monto_subvencion_general: z.coerce.number().min(0),
@@ -83,13 +101,16 @@ export function AccionDialog({
 }: AccionDialogProps) {
     const [isSaving, setIsSaving] = useState(false);
     const [dimensiones, setDimensiones] = useState<Dimension[]>([]);
+    const [requirentes, setRequirentes] = useState<Requirente[]>([]);
     const [subdimenciones, setSubdimenciones] = useState<Subdimencion[]>([]);
     const [loadingDimensions, setLoadingDimensions] = useState(false);
+    const [openCombobox, setOpenCombobox] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             nombre: "",
+            establecimiento: "",
             dimension: "",
             subdimencion: "",
             monto_subvencion_general: 0,
@@ -115,8 +136,12 @@ export function AccionDialog({
         const loadDocs = async () => {
             setLoadingDimensions(true);
             try {
-                const dims = await getDimensiones();
+                const [dims, reqs] = await Promise.all([
+                    getDimensiones(),
+                    getRequirentes({ perPage: 500, sort: "nombre", sep_filter: true }),
+                ]);
                 setDimensiones(dims);
+                setRequirentes(reqs.items);
             } catch (error) {
                 console.error("Error loading dimensions:", error);
             } finally {
@@ -150,6 +175,7 @@ export function AccionDialog({
             if (accionToEdit) {
                 form.reset({
                     nombre: accionToEdit.nombre,
+                    establecimiento: accionToEdit.establecimiento || "",
                     dimension: accionToEdit.dimension,
                     subdimencion: accionToEdit.subdimencion,
                     monto_subvencion_general: accionToEdit.monto_subvencion_general,
@@ -168,6 +194,7 @@ export function AccionDialog({
             } else {
                 form.reset({
                     nombre: "",
+                    establecimiento: "",
                     dimension: "",
                     subdimencion: "",
                     monto_subvencion_general: 0,
@@ -227,6 +254,69 @@ export function AccionDialog({
                                         <FormControl>
                                             <Input placeholder="Nombre de la acción" {...field} />
                                         </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+
+                            <FormField
+                                control={form.control}
+                                name="establecimiento"
+                                render={({ field }) => (
+                                    <FormItem className="col-span-2 flex flex-col">
+                                        <FormLabel>Establecimiento</FormLabel>
+                                        <Popover open={openCombobox} onOpenChange={setOpenCombobox} modal={true}>
+                                            <PopoverTrigger asChild>
+                                                <FormControl>
+                                                    <Button
+                                                        variant="outline"
+                                                        role="combobox"
+                                                        aria-expanded={openCombobox}
+                                                        className={cn(
+                                                            "justify-between",
+                                                            !field.value && "text-muted-foreground"
+                                                        )}
+                                                    >
+                                                        {field.value
+                                                            ? requirentes.find(
+                                                                (r) => r.id === field.value
+                                                            )?.nombre
+                                                            : "Seleccione establecimiento"}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                    </Button>
+                                                </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-[400px] p-0" align="start">
+                                                <Command>
+                                                    <CommandInput placeholder="Buscar establecimiento..." />
+                                                    <CommandList className="max-h-[300px] overflow-y-auto">
+                                                        <CommandEmpty>
+                                                            No se encontró establecimiento.
+                                                        </CommandEmpty>
+                                                        {requirentes.map((r) => (
+                                                            <CommandItem
+                                                                value={r.nombre}
+                                                                key={r.id}
+                                                                onSelect={() => {
+                                                                    field.onChange(r.id);
+                                                                    setOpenCombobox(false);
+                                                                }}
+                                                            >
+                                                                <Check
+                                                                    className={cn(
+                                                                        "mr-2 h-4 w-4",
+                                                                        r.id === field.value
+                                                                            ? "opacity-100"
+                                                                            : "opacity-0"
+                                                                    )}
+                                                                />
+                                                                {r.nombre}
+                                                            </CommandItem>
+                                                        ))}
+                                                    </CommandList>
+                                                </Command>
+                                            </PopoverContent>
+                                        </Popover>
                                         <FormMessage />
                                     </FormItem>
                                 )}

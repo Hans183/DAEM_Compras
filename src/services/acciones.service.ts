@@ -17,6 +17,7 @@ export async function getAcciones(params: GetAccionesParams = {}): Promise<ListR
     return await pb.collection(COLLECTION_NAME).getList<Accion>(page, perPage, {
         filter,
         sort,
+        expand: "establecimiento",
     });
 }
 

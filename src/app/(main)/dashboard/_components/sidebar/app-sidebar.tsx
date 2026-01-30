@@ -87,7 +87,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <Link prefetch={false} href="/dashboard" className="flex items-center justify-center">
                 {isCollapsed ? (
                   // Letra "D" cuando está colapsado
-                  <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-900 text-white font-bold text-2xl">
+                  <div className="flex p-2 items-center justify-center w-10 h-10 rounded-lg bg-purple-900 text-white font-bold text-2xl">
                     D
                   </div>
                 ) : (

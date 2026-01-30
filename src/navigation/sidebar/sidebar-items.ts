@@ -95,6 +95,12 @@ export const sidebarItems: NavGroup[] = [
         icon: Building2,
         allowedRoles: ["Admin", "SEP", "Observador"],
       },
+      {
+        title: "Proyección SEP",
+        url: "/dashboard/proyeccion-sep",
+        icon: DollarSign,
+        allowedRoles: ["Admin", "SEP", "Encargado compras"],
+      },
     ],
   },
 ];

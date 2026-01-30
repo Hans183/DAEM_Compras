@@ -15,7 +15,11 @@ export interface Accion extends RecordModel {
     ate: string;
     responsable: string;
     tic: string;
+    establecimiento: string; // RELATION_RECORD_ID (requirentes)
     planes: string;
+    expand?: {
+        establecimiento?: import("./requirente").Requirente;
+    };
 }
 
 export interface AccionFormData {
@@ -34,6 +38,7 @@ export interface AccionFormData {
     responsable?: string;
     tic?: string;
     planes?: string;
+    establecimiento?: string;
 }
 
 export interface GetAccionesParams {

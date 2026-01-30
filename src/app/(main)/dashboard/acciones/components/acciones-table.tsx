@@ -32,6 +32,7 @@ export function AccionesTable({ data, onDataChanged }: AccionesTableProps) {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Nombre</TableHead>
+                            <TableHead>Establecimiento</TableHead>
                             <TableHead>Dimensión</TableHead>
                             <TableHead>Monto Gral.</TableHead>
                             <TableHead>Monto SEP</TableHead>
@@ -42,7 +43,7 @@ export function AccionesTable({ data, onDataChanged }: AccionesTableProps) {
                     <TableBody>
                         {data.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center">
+                                <TableCell colSpan={7} className="h-24 text-center">
                                     No se encontraron acciones.
                                 </TableCell>
                             </TableRow>
@@ -50,6 +51,7 @@ export function AccionesTable({ data, onDataChanged }: AccionesTableProps) {
                             data.map((item) => (
                                 <TableRow key={item.id}>
                                     <TableCell className="font-medium">{item.nombre}</TableCell>
+                                    <TableCell>{item.expand?.establecimiento?.nombre || "N/A"}</TableCell>
                                     <TableCell>{item.dimension}</TableCell>
                                     <TableCell>${item.monto_subvencion_general?.toLocaleString("es-CL")}</TableCell>
                                     <TableCell>${item.monto_sep?.toLocaleString("es-CL")}</TableCell>
