@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Plus, Search } from "lucide-react";
 import type { ListResult } from "pocketbase";
@@ -14,8 +15,17 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import type { Compra, EstadoCompra, GetComprasParams } from "@/types/compra";
+import type { Subvencion } from "@/types/subvencion";
 import { getCompras } from "@/services/compras.service";
+import { getSubvenciones } from "@/services/subvenciones.service";
 import { useAuth } from "@/hooks/use-auth";
 import { canCreateCompra } from "@/utils/permissions";
 
@@ -23,13 +33,27 @@ import { ComprasTable } from "./components/compras-table";
 import { CompraDialog } from "./components/compra-dialog";
 
 export default function ComprasPage() {
+    const searchParams = useSearchParams();
+    const urlSearch = searchParams.get("search") || "";
+
     const [comprasData, setComprasData] = useState<ListResult<Compra> | null>(null);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
-    const [search, setSearch] = useState("");
-    const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [search, setSearch] = useState(urlSearch); // Initialize with URL param
+    const [debouncedSearch, setDebouncedSearch] = useState(urlSearch);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+
+    // Subventions state
+    const [subvenciones, setSubvenciones] = useState<Subvencion[]>([]);
+
     const { user } = useAuth();
+
+    // Sync local search when URL changes (e.g. from global search)
+    useEffect(() => {
+        if (urlSearch !== search) {
+            setSearch(urlSearch);
+        }
+    }, [urlSearch]);
 
     // Filtros de columna
     const [filters, setFilters] = useState<GetComprasParams>({
@@ -40,7 +64,20 @@ export default function ComprasPage() {
         estado_filter: undefined,
         created_from: "",
         created_to: "",
+        subvencion_filter: undefined,
     });
+
+    useEffect(() => {
+        const fetchSubvenciones = async () => {
+            try {
+                const result = await getSubvenciones({ perPage: 100, sort: "nombre" });
+                setSubvenciones(result.items);
+            } catch (error) {
+                console.error("Error loading subvenciones:", error);
+            }
+        };
+        fetchSubvenciones();
+    }, []);
 
     // Debounce search
     useEffect(() => {
@@ -55,12 +92,20 @@ export default function ComprasPage() {
     const loadCompras = useCallback(async () => {
         setLoading(true);
         try {
+            const isObservador = user?.role.includes("Observador");
+            const restrictedFilters = { ...filters };
+
+            // Si es observador y tiene dependencia asignada, filtramos por ella
+            if (isObservador && user?.dependencia) {
+                restrictedFilters.unidad_requirente_id = user.dependencia;
+            }
+
             const data = await getCompras({
                 page,
                 perPage: 30,
                 search: debouncedSearch,
                 sort: "-created",
-                ...filters,
+                ...restrictedFilters,
             });
             setComprasData(data);
         } catch (error) {
@@ -68,13 +113,14 @@ export default function ComprasPage() {
         } finally {
             setLoading(false);
         }
-    }, [page, debouncedSearch, filters]);
+    }, [page, debouncedSearch, filters, user]);
 
     useEffect(() => {
         loadCompras();
     }, [loadCompras]);
 
     const userCanCreate = user ? canCreateCompra(user.role) : false;
+    const isObservadorRestricted = user?.role.includes("Observador") && !!user?.dependencia;
 
     return (
         <div className="flex flex-col gap-6 p-6">
@@ -93,7 +139,7 @@ export default function ComprasPage() {
                 )}
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-4">
                 <div className="relative flex-1 max-w-sm">
                     <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -102,6 +148,30 @@ export default function ComprasPage() {
                         onChange={(e) => setSearch(e.target.value)}
                         className="pl-9"
                     />
+                </div>
+                <div className="w-[300px]">
+                    <Select
+                        value={filters.subvencion_filter || "all"}
+                        onValueChange={(value) => {
+                            setFilters(prev => ({
+                                ...prev,
+                                subvencion_filter: value === "all" ? undefined : value
+                            }));
+                            setPage(1);
+                        }}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Filtrar por Subvención" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Todas las subvenciones</SelectItem>
+                            {subvenciones.map((sub) => (
+                                <SelectItem key={sub.id} value={sub.id}>
+                                    {sub.nombre}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
 
@@ -126,6 +196,7 @@ export default function ComprasPage() {
                                 setPage(1); // Reset to first page when filters change
                             }}
                             currentUser={user}
+                            isRestricted={isObservadorRestricted}
                         />
                     </div>
 

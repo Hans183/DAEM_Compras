@@ -2,7 +2,7 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -23,10 +23,19 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { createUser, updateUser } from "@/services/users.service";
+import { getRequirentes } from "@/services/requirentes.service";
 import type { User, UserRole } from "@/types/user";
+import type { Requirente } from "@/types/requirente";
 
 import { createUserSchema, type UserFormValues, userFormSchema } from "../schemas/user-form.schema";
 
@@ -41,7 +50,24 @@ const ROLES = ["Comprador", "Observador", "SEP", "Bodega", "Encargado compras", 
 
 export function UserDialog({ user, open, onOpenChange, onSuccess }: UserDialogProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [requirentes, setRequirentes] = useState<Requirente[]>([]);
     const isEditing = !!user;
+
+    useEffect(() => {
+        const fetchRequirentes = async () => {
+            try {
+                // Fetch all requirentes sorted by name
+                const result = await getRequirentes({ perPage: 100, sort: "nombre", active_filter: true });
+                setRequirentes(result.items);
+            } catch (error) {
+                console.error("Error fetching requirentes:", error);
+            }
+        };
+
+        if (open) {
+            fetchRequirentes();
+        }
+    }, [open]);
 
     const form = useForm<UserFormValues>({
         resolver: zodResolver(isEditing ? userFormSchema : createUserSchema) as any,
@@ -56,6 +82,34 @@ export function UserDialog({ user, open, onOpenChange, onSuccess }: UserDialogPr
             oldPassword: "",
         },
     });
+
+    // Update form values when user changes (e.g. when opening edit dialog for different user)
+    useEffect(() => {
+        if (user && open) {
+            form.reset({
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                dependencia: user.dependencia || "",
+                emailVisibility: user.emailVisibility,
+                password: "",
+                passwordConfirm: "",
+                oldPassword: "",
+            });
+        } else if (!user && open) {
+            form.reset({
+                name: "",
+                email: "",
+                role: [],
+                dependencia: "",
+                emailVisibility: true,
+                password: "",
+                passwordConfirm: "",
+                oldPassword: "",
+            });
+        }
+    }, [user, open, form]);
+
 
     const onSubmit = async (data: UserFormValues) => {
         setIsSubmitting(true);
@@ -119,7 +173,7 @@ export function UserDialog({ user, open, onOpenChange, onSuccess }: UserDialogPr
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[500px]">
+            <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>{isEditing ? "Editar Usuario" : "Crear Nuevo Usuario"}</DialogTitle>
                     <DialogDescription>
@@ -154,6 +208,39 @@ export function UserDialog({ user, open, onOpenChange, onSuccess }: UserDialogPr
                                     <FormControl>
                                         <Input type="email" placeholder="usuario@example.com" {...field} />
                                     </FormControl>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+
+                        <FormField
+                            control={form.control}
+                            name="dependencia"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Dependencia (Opcional)</FormLabel>
+                                    <Select
+                                        onValueChange={field.onChange}
+                                        defaultValue={field.value}
+                                        value={field.value}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Seleccionar establecimiento" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="no-selection">Sin dependencia</SelectItem>
+                                            {requirentes.map((req) => (
+                                                <SelectItem key={req.id} value={req.id}>
+                                                    {req.nombre}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <DialogDescription>
+                                        Vincular usuario a un establecimiento (útil para rol Observador).
+                                    </DialogDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}

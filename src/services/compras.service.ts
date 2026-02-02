@@ -25,7 +25,8 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
         created_to,
         fecha_inicio_from,
         fecha_inicio_to,
-        subvencion_filter
+        subvencion_filter,
+        unidad_requirente_id
     } = params;
 
     try {
@@ -33,7 +34,10 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
 
         // Búsqueda general (busca en múltiples campos)
         if (search) {
-            const searchFilters = [`descripcion ~ "${search}"`];
+            const searchFilters = [
+                `descripcion ~ "${search}"`,
+                `unidad_requirente.nombre ~ "${search}"`
+            ];
             // Si el término de búsqueda es un número, buscamos también por número ordinario
             if (!isNaN(Number(search))) {
                 searchFilters.push(`numero_ordinario = ${search}`);
@@ -44,6 +48,11 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
         // Filtros específicos por columna
         if (unidad_requirente_filter) {
             filters.push(`unidad_requirente.nombre ~ "${unidad_requirente_filter}"`);
+        }
+
+        // Filtro estricto por ID de unidad requirente (para permisos)
+        if (unidad_requirente_id) {
+            filters.push(`unidad_requirente = "${unidad_requirente_id}"`);
         }
 
         if (numero_ordinario !== undefined) {

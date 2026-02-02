@@ -72,6 +72,23 @@ export function ComprasSepTable({ data, onDataChanged }: ComprasSepTableProps) {
         }
     };
 
+    const getEstadoColor = (estado: string) => {
+        switch (estado) {
+            case "Anulado":
+            case "Devuelto":
+                return "bg-red-100 text-red-800 border-red-200 hover:bg-red-100";
+            case "En Proceso":
+            case "Asignado":
+                return "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100";
+            case "Comprado":
+            case "En Bodega":
+            case "Entregado":
+                return "bg-green-100 text-green-800 border-green-200 hover:bg-green-100";
+            default:
+                return "bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-100";
+        }
+    };
+
     return (
         <div className="rounded-md border">
             <Table>
@@ -101,9 +118,11 @@ export function ComprasSepTable({ data, onDataChanged }: ComprasSepTableProps) {
                                 </TableCell>
                                 <TableCell>{item.expand?.unidad_requirente?.nombre || "N/A"}</TableCell>
                                 <TableCell>
-                                    <Badge variant="outline">{item.estado}</Badge>
+                                    <Badge variant="outline" className={getEstadoColor(item.estado)}>
+                                        {item.estado}
+                                    </Badge>
                                 </TableCell>
-                                <TableCell>${item.presupuesto?.toLocaleString("es-CL") || 0}</TableCell>
+                                <TableCell className="font-medium">${item.presupuesto?.toLocaleString("es-CL") || 0}</TableCell>
                                 <TableCell>
                                     <ActionSelector
                                         compra={item}
@@ -141,6 +160,7 @@ function ActionSelector({
     );
 
     const orderedActions = relevantActions.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const isMissingAction = !compra.accion;
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -149,11 +169,20 @@ function ActionSelector({
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className="w-full justify-between font-normal"
+                    className={cn(
+                        "w-full justify-between font-normal",
+                        isMissingAction && "border-amber-500 bg-amber-50 text-amber-900 hover:bg-amber-100 hover:text-amber-900"
+                    )}
                 >
-                    {compra.accion
-                        ? acciones.find((a) => a.id === compra.accion)?.nombre || "Acción desconocida"
-                        : "Seleccionar acción..."}
+                    {compra.accion ? (
+                        acciones.find((a) => a.id === compra.accion)?.nombre || "Acción desconocida"
+                    ) : (
+                        <span className="flex items-center gap-2 font-semibold">
+                            {/*AlertCircle className="h-4 w-4" /*/}
+                            Seleccionar acción...
+                        </span>
+                    )
+                    }
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>

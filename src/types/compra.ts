@@ -75,6 +75,7 @@ export interface GetComprasParams {
     created_to?: string;
     accion_filter?: string;
     subvencion_filter?: string;
+    unidad_requirente_id?: string;
 }
 
 /**

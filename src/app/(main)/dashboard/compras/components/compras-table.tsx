@@ -60,6 +60,7 @@ interface ComprasTableProps {
     filters: GetComprasParams;
     onFiltersChange: (filters: GetComprasParams) => void;
     currentUser: User | null;
+    isRestricted?: boolean;
 }
 
 // Debounced input component to prevent UI jitter
@@ -96,7 +97,7 @@ function DebouncedInput({
     );
 }
 
-export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChange, currentUser }: ComprasTableProps) {
+export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChange, currentUser, isRestricted = false }: ComprasTableProps) {
     const [editingCompra, setEditingCompra] = useState<Compra | null>(null);
     const [deletingCompra, setDeletingCompra] = useState<Compra | null>(null);
     const [cancelingCompra, setCancelingCompra] = useState<Compra | null>(null);
@@ -247,10 +248,11 @@ export function ComprasTable({ compras, onCompraUpdated, filters, onFiltersChang
                                 <TableHead className="align-middle">
                                     <div className="flex items-center gap-2">
                                         <DebouncedInput
-                                            placeholder="Unidad requirente"
+                                            placeholder={isRestricted ? "Tu Establecimiento" : "Unidad requirente"}
                                             value={filters.unidad_requirente_filter || ""}
                                             onChange={(value) => updateFilter("unidad_requirente_filter", value)}
                                             className="h-8 w-full font-bold text-foreground text-base"
+                                            disabled={isRestricted}
                                         />
                                     </div>
                                 </TableHead>

@@ -18,8 +18,16 @@ const searchItems = [
   { group: "Dashboards", icon: LayoutDashboard, label: "Default" },
 ];
 
+import { useRouter, useSearchParams } from "next/navigation";
+
+// ... (existing imports)
+
 export function SearchDialog() {
   const [open, setOpen] = React.useState(false);
+  const [searchValue, setSearchValue] = React.useState("");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "j" && (e.metaKey || e.ctrlKey)) {
@@ -30,6 +38,19 @@ export function SearchDialog() {
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
   }, []);
+
+  const handleSearch = (term: string) => {
+    setOpen(false);
+    // Always navigate to the compras page with the search term
+    const params = new URLSearchParams();
+    if (term) {
+      params.set("search", term);
+      router.push(`/dashboard/compras?${params.toString()}`);
+    } else {
+      // If empty? Maybe just stay or go to compras without params
+      router.push(`/dashboard/compras`);
+    }
+  };
 
   return (
     <>
@@ -45,9 +66,34 @@ export function SearchDialog() {
         </kbd>
       </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput placeholder="Search dashboards, users, and more…" />
+        <CommandInput
+          placeholder="Search dashboards, users, and more…"
+          value={searchValue}
+          onValueChange={setSearchValue}
+        />
         <CommandList>
-          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandEmpty>
+            {searchValue ? (
+              <div
+                className="py-6 text-center text-sm cursor-pointer hover:bg-accent"
+                onClick={() => handleSearch(searchValue)}
+              >
+                Buscar: <span className="font-bold">"{searchValue}"</span>
+              </div>
+            ) : (
+              "No results found."
+            )}
+          </CommandEmpty>
+
+          {searchValue && (
+            <CommandGroup heading="Búsqueda Global">
+              <CommandItem onSelect={() => handleSearch(searchValue)}>
+                <Search className="mr-2 h-4 w-4" />
+                <span>Buscar "{searchValue}"</span>
+              </CommandItem>
+            </CommandGroup>
+          )}
+
           {[...new Set(searchItems.map((item) => item.group))].map((group, i) => (
             <React.Fragment key={group}>
               {i !== 0 && <CommandSeparator />}

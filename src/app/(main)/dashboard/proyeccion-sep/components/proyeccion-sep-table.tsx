@@ -9,6 +9,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
 import type { ProyeccionSep } from "@/types/proyeccion-sep";
 import type { Requirente } from "@/types/requirente";
@@ -166,7 +167,7 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
         return sortDirection === "asc" ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />;
     };
 
-    const renderHeader = (label: string, key: SortKey) => {
+    const renderHeader = (label: string | React.ReactNode, key: SortKey) => {
         if (!visibleColumns[key]) return null;
 
         return (
@@ -178,9 +179,9 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
                     <Button
                         variant="ghost"
                         onClick={() => handleSort(key)}
-                        className="hover:bg-transparent px-2 font-medium text-xs h-8 w-full justify-start truncate"
+                        className="hover:bg-transparent px-2 font-medium text-xs h-auto min-h-8 w-full justify-center whitespace-normal text-center py-1"
                     >
-                        {label}
+                        <span className="flex-1 text-center">{label}</span>
                         <SortIcon column={key} />
                     </Button>
                     {/* Resizer Handle */}
@@ -206,6 +207,17 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
         rrhh: "RRHH",
         rrhh_proyectado: "RRHH Proyectado",
         suma_facturado_rrhh: "Facturado + RRHH"
+    };
+
+    const getPercentageColor = (percentage: number) => {
+        if (percentage >= 70) return "bg-green-100 text-green-800 border-green-200 hover:bg-green-100";
+        if (percentage >= 40) return "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100";
+        return "bg-red-100 text-red-800 border-red-200 hover:bg-red-100";
+    };
+
+    const getPorGastarStyle = (amount: number) => {
+        if (amount < 0) return "text-red-600 font-bold";
+        return "text-emerald-700 font-medium";
     };
 
     return (
@@ -300,18 +312,25 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
                                         </TableCell>
                                     )}
                                     {visibleColumns.por_gastar && (
-                                        <TableCell className="font-semibold text-xs py-1 px-0 text-right border-r truncate" style={{ width: columnWidths["por_gastar"] }}>
+                                        <TableCell
+                                            className={`text-xs py-1 px-0 text-right border-r truncate ${getPorGastarStyle(row.por_gastar)}`}
+                                            style={{ width: columnWidths["por_gastar"] }}
+                                        >
                                             {formatCurrency(row.por_gastar, { locale: "es-CL", currency: "CLP", minimumFractionDigits: 0 })}
                                         </TableCell>
                                     )}
                                     {visibleColumns.porcentaje_utilizado && (
-                                        <TableCell className="font-semibold text-xs py-1 px-0 text-right border-r truncate" style={{ width: columnWidths["porcentaje_utilizado"] }}>
-                                            {row.porcentaje_utilizado.toFixed(1)}%
+                                        <TableCell className="text-xs py-1 px-1 text-right border-r truncate" style={{ width: columnWidths["porcentaje_utilizado"] }}>
+                                            <Badge variant="outline" className={`w-full justify-center ${getPercentageColor(row.porcentaje_utilizado)}`}>
+                                                {row.porcentaje_utilizado.toFixed(1)}%
+                                            </Badge>
                                         </TableCell>
                                     )}
                                     {visibleColumns.porcentaje_pagado && (
-                                        <TableCell className="font-semibold text-xs py-1 px-0 text-right border-r truncate" style={{ width: columnWidths["porcentaje_pagado"] }}>
-                                            {row.porcentaje_pagado.toFixed(1)}%
+                                        <TableCell className="text-xs py-1 px-1 text-right border-r truncate" style={{ width: columnWidths["porcentaje_pagado"] }}>
+                                            <Badge variant="outline" className={`w-full justify-center ${getPercentageColor(row.porcentaje_pagado)}`}>
+                                                {row.porcentaje_pagado.toFixed(1)}%
+                                            </Badge>
                                         </TableCell>
                                     )}
                                     {visibleColumns.compras_facturadas && (

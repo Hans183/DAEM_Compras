@@ -17,7 +17,12 @@ import type { ListResult } from "pocketbase";
 import { ComprasSepTable } from "./components/compras-sep-table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+import { useSearchParams } from "next/navigation";
+
 export default function ComprasSepPage() {
+    const searchParams = useSearchParams();
+    const search = searchParams.get("search") || "";
+
     const [data, setData] = useState<ListResult<Compra> | null>(null);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
@@ -64,6 +69,7 @@ export default function ComprasSepPage() {
                 perPage: 30,
                 sort: "-created",
                 subvencion_filter: sepSubvencionId,
+                search: search,
             });
             setData(result);
         } catch (err) {
@@ -72,7 +78,7 @@ export default function ComprasSepPage() {
         } finally {
             setLoading(false);
         }
-    }, [page, sepSubvencionId]);
+    }, [page, sepSubvencionId, search]);
 
     useEffect(() => {
         if (sepSubvencionId) {

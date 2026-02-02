@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import type { ListResult } from "pocketbase";
 import { getProyeccionSepList, createProyeccionSep, updateProyeccionSep } from "@/services/proyeccion-sep.service";
 import { getRrhhSepList } from "@/services/rrhh-sep.service";
@@ -10,8 +10,12 @@ import type { Requirente } from "@/types/requirente";
 import { ProyeccionSepTable } from "./components/proyeccion-sep-table";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useSearchParams } from "next/navigation";
 
 export default function ProyeccionSepPage() {
+    const searchParams = useSearchParams();
+    const search = searchParams.get("search") || "";
+
     // We will hold both raw lists and merge them for the view
     const [schools, setSchools] = useState<Requirente[]>([]);
     const [projections, setProjections] = useState<ProyeccionSep[]>([]);
@@ -146,6 +150,12 @@ export default function ProyeccionSepPage() {
         }
     };
 
+    const filteredSchools = useMemo(() => {
+        if (!search) return schools;
+        const lowerSearch = search.toLowerCase();
+        return schools.filter(s => s.nombre.toLowerCase().includes(lowerSearch));
+    }, [schools, search]);
+
     return (
         <div className="flex flex-col gap-6 p-6">
             <div className="flex items-center justify-between">
@@ -182,7 +192,7 @@ export default function ProyeccionSepPage() {
                 </div>
             ) : (
                 <ProyeccionSepTable
-                    schools={schools}
+                    schools={filteredSchools}
                     projections={projections}
                     rrhhSums={rrhhSums}
                     rrhhProjectedSums={rrhhProjectedSums}
