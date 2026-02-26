@@ -15,8 +15,8 @@ export const THEME_PRESET_OPTIONS = [
     label: "Default",
     value: "default",
     primary: {
-      light: "oklch(0.488 0.243 264.376)",
-      dark: "oklch(0.488 0.243 264.376)",
+      light: "oklch(0.35 0.15 308)",
+      dark: "oklch(0.50 0.20 310)",
     },
   },
   {

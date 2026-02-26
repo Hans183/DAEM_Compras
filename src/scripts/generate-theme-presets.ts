@@ -15,7 +15,7 @@
  * - You may optionally integrate it directly into a build step if preferred.
  */
 
-import { execFileSync } from "node:child_process";
+import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -108,7 +108,7 @@ const updated = fileContent.replace(
 );
 
 async function main() {
-  const formatted = execFileSync("npx", ["@biomejs/biome", "format", "--stdin-file-path", outputPath], {
+  const formatted = execSync(`npx @biomejs/biome format --stdin-file-path "${outputPath}"`, {
     input: updated,
     encoding: "utf8",
   });
