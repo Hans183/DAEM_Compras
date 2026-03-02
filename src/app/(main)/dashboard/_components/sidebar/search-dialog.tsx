@@ -72,12 +72,13 @@ export function SearchDialog() {
         <CommandList>
           <CommandEmpty>
             {searchValue ? (
-              <div
-                className="cursor-pointer py-6 text-center text-sm hover:bg-accent"
+              <button
+                type="button"
+                className="w-full cursor-pointer py-6 text-center text-sm hover:bg-accent"
                 onClick={() => handleSearch(searchValue)}
               >
                 Buscar: <span className="font-bold">"{searchValue}"</span>
-              </div>
+              </button>
             ) : (
               "No results found."
             )}

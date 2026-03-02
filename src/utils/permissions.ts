@@ -72,7 +72,7 @@ export function canEditCompra(roles: UserRole[], compra?: Compra): boolean {
 /**
  * Campos de compra disponibles
  */
-type CompraField =
+export type CompraField =
   | "numero_ordinario"
   | "descripcion"
   | "unidad_requirente"

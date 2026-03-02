@@ -43,7 +43,7 @@ export function LoginForm() {
       toast.success("Inicio de sesión exitoso", {
         description: "Bienvenido al sistema de Compras DAEM",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error de login:", error);
 
       let errorMessage = "Ocurrió un error inesperado. Por favor intenta de nuevo.";

@@ -76,9 +76,11 @@ export async function getSepReport(year: number, schoolId?: string, month?: numb
 
     // Monthly Aggregation
     const itemMonth = getMonth(parseISO(item.created));
-    const mStats = monthlyMap.get(itemMonth)!;
-    mStats.amount += itemAmount;
-    mStats.count += 1;
+    const mStats = monthlyMap.get(itemMonth);
+    if (mStats) {
+      mStats.amount += itemAmount;
+      mStats.count += 1;
+    }
 
     // School Aggregation
     const schoolName = item.expand?.unidad_requirente?.nombre || "Sin Asignar";

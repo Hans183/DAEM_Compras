@@ -140,7 +140,7 @@ export function ComprasTable({
     }
   };
 
-  const updateFilter = (key: string, value: any) => {
+  const updateFilter = (key: string, value: string | number | undefined) => {
     onFiltersChange({
       ...filters,
       [key]: value || undefined,
@@ -411,7 +411,7 @@ export function ComprasTable({
                                       title={`Ver Adjunto OC ${oc.oc}`}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        const url = getOrdenCompraFileUrl(oc, oc.oc_adjunto!);
+                                        const url = getOrdenCompraFileUrl(oc, oc.oc_adjunto as string);
                                         if (url) window.open(url, "_blank");
                                       }}
                                     >

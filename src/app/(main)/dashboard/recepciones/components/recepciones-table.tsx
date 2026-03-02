@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { format, parseISO } from "date-fns";
 import {
@@ -60,7 +60,7 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
   // Editing not fully implemented yet in RecepcionDialog for general update,
   // but we can add it if requested. For now focusing on List, View, Print, Anular.
 
-  const fetchRecepciones = async () => {
+  const fetchRecepciones = useCallback(async () => {
     setIsLoading(true);
     try {
       let filter = "";
@@ -90,7 +90,7 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [searchTerm, filterDate]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -223,8 +223,11 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
                         {recepcion.adjuntos && recepcion.adjuntos.length > 0 && (
                           <DropdownMenuItem
                             onClick={() => {
-                              const url = getRecepcionFileUrl(recepcion, recepcion.adjuntos?.[0]);
-                              if (url) window.open(url, "_blank");
+                              const fileName = recepcion.adjuntos?.[0];
+                              if (fileName) {
+                                const url = getRecepcionFileUrl(recepcion, fileName);
+                                if (url) window.open(url, "_blank");
+                              }
                             }}
                           >
                             <FileText className="mr-2 h-4 w-4" />

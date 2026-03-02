@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
@@ -57,6 +57,23 @@ export function RrhhSepDialog({ open, onOpenChange, record, onSuccess }: RrhhSep
     },
   });
 
+  const loadSchools = useCallback(async () => {
+    setLoadingSchools(true);
+    try {
+      // Fetch all active schools (high limit to get all)
+      const result = await getRequirentes({ perPage: 200, sort: "nombre", sep_filter: true });
+      // Filter only active ones if needed, though usually CRUD fetches all.
+      // Assuming we only want active ones for new records, but existing records might reference inactive ones?
+      // For simplicity, just list all.
+      setSchools(result.items);
+    } catch (error) {
+      console.error(error);
+      toast.error("Error al cargar escuelas");
+    } finally {
+      setLoadingSchools(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (open) {
       loadSchools();
@@ -77,23 +94,6 @@ export function RrhhSepDialog({ open, onOpenChange, record, onSuccess }: RrhhSep
       }
     }
   }, [open, record, form, loadSchools]);
-
-  const loadSchools = async () => {
-    setLoadingSchools(true);
-    try {
-      // Fetch all active schools (high limit to get all)
-      const result = await getRequirentes({ perPage: 200, sort: "nombre", sep_filter: true });
-      // Filter only active ones if needed, though usually CRUD fetches all.
-      // Assuming we only want active ones for new records, but existing records might reference inactive ones?
-      // For simplicity, just list all.
-      setSchools(result.items);
-    } catch (error) {
-      console.error(error);
-      toast.error("Error al cargar escuelas");
-    } finally {
-      setLoadingSchools(false);
-    }
-  };
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);

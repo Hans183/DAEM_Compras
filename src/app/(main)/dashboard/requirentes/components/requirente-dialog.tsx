@@ -57,9 +57,10 @@ export function RequirenteDialog({ requirente, open, onOpenChange, onSuccess }: 
 
       form.reset();
       onSuccess();
-    } catch (error: any) {
-      console.error("Error saving requirente:", error);
-      toast.error(error?.message || "Error al guardar unidad requirente");
+    } catch (error) {
+      const err = error as { message?: string };
+      console.error("Error saving requirente:", err);
+      toast.error(err.message || "Error al guardar unidad requirente");
     } finally {
       setIsSubmitting(false);
     }

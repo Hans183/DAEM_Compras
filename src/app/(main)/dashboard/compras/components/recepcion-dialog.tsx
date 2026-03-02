@@ -204,7 +204,9 @@ export function RecepcionDialog({
 
         // LIMIT CHECK: if total > 15?
         // "con un maximo de 15". I will limit the PASTED items to 15.
-        newDetalles.forEach((d) => append(d));
+        newDetalles.forEach((d) => {
+          append(d);
+        });
         // Wait, if I use forEach append it might be slow for many items in React Hook Form?
         // replace is faster but destructive.
         // Let's use append with the array if supported? FieldArray append supports array.

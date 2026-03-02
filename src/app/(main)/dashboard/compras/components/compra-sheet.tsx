@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { format } from "date-fns";
+import { format, type Locale } from "date-fns";
 import { es } from "date-fns/locale";
 import { AlertCircle, FileText, Plus } from "lucide-react";
 
@@ -21,7 +21,7 @@ interface CompraSheetProps {
 }
 
 // Helper to safely format dates
-const safeFormat = (date: string | Date | undefined, formatStr: string, options?: any) => {
+const safeFormat = (date: string | Date | undefined, formatStr: string, options?: { locale?: Locale }) => {
   if (!date) return "";
   try {
     const d = new Date(date);

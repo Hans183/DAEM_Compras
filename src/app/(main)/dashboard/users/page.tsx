@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
@@ -30,7 +30,7 @@ export default function UsersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setIsLoading(true);
     try {
       const result = await getUsers({
@@ -46,7 +46,7 @@ export default function UsersPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, search]);
 
   useEffect(() => {
     loadUsers();

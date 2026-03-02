@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { ESTADOS_COMPRA } from "@/types/compra";
 import type { UserRole } from "@/types/user";
-import { getEditableFields } from "@/utils/permissions";
+import { type CompraField, getEditableFields } from "@/utils/permissions";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_FILE_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -12,9 +12,9 @@ const ACCEPTED_FILE_TYPES = ["application/pdf", "image/jpeg", "image/jpg", "imag
  */
 export function createCompraFormSchema(roles: UserRole[], context: { isCreating: boolean } = { isCreating: false }) {
   const editableFields = getEditableFields(roles);
-  // Si estamos editando, usamos los permisos normales. Si estamos creando, restringimos los campos requeridos.
   const isRequired = (field: string) => {
-    if (!editableFields.includes(field as any)) return false;
+    const fieldTyped = field as CompraField;
+    if (!editableFields.includes(fieldTyped)) return false;
 
     // En creación, solo estos campos son obligatorios independientemente del rol
     if (context.isCreating) {

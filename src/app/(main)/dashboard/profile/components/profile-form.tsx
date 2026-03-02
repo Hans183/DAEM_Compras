@@ -83,9 +83,10 @@ export function ProfileForm() {
       if (showPasswordSection) {
         setShowPasswordSection(false);
       }
-    } catch (error: any) {
-      console.error("Error updating profile:", error);
-      toast.error(error?.message || "Error al actualizar perfil");
+    } catch (error) {
+      const err = error as { message?: string };
+      console.error("Error updating profile:", err);
+      toast.error(err.message || "Error al actualizar perfil");
     } finally {
       setIsSubmitting(false);
     }
@@ -181,10 +182,8 @@ export function ProfileForm() {
 
               {/* Role Field - Read Only */}
               <div className="space-y-2">
-                <label className="font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  Rol
-                </label>
-                <Input value={user.role} disabled className="cursor-not-allowed bg-muted" />
+                <FormLabel htmlFor="user-role">Rol</FormLabel>
+                <Input id="user-role" value={user.role} disabled className="cursor-not-allowed bg-muted" />
                 <p className="text-muted-foreground text-sm">El rol no puede ser modificado</p>
               </div>
 

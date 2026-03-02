@@ -56,9 +56,10 @@ export function SubvencionDialog({ subvencion, open, onOpenChange, onSuccess }: 
 
       form.reset();
       onSuccess();
-    } catch (error: any) {
-      console.error("Error saving subvencion:", error);
-      toast.error(error?.message || "Error al guardar subvención");
+    } catch (error) {
+      const err = error as { message?: string };
+      console.error("Error saving subvencion:", err);
+      toast.error(err.message || "Error al guardar subvención");
     } finally {
       setIsSubmitting(false);
     }

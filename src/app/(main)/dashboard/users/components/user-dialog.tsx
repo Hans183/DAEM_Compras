@@ -58,7 +58,7 @@ export function UserDialog({ user, open, onOpenChange, onSuccess }: UserDialogPr
   }, [open]);
 
   const form = useForm<UserFormValues>({
-    resolver: zodResolver(isEditing ? userFormSchema : createUserSchema) as any,
+    resolver: zodResolver(isEditing ? userFormSchema : createUserSchema),
     defaultValues: {
       name: user?.name || "",
       email: user?.email || "",
@@ -111,7 +111,7 @@ export function UserDialog({ user, open, onOpenChange, onSuccess }: UserDialogPr
           emailVisibility: data.emailVisibility,
           ...(data.password && {
             password: data.password,
-            passwordConfirm: data.passwordConfirm!,
+            passwordConfirm: data.passwordConfirm || "",
             oldPassword: data.oldPassword,
           }),
         });
@@ -120,8 +120,8 @@ export function UserDialog({ user, open, onOpenChange, onSuccess }: UserDialogPr
         await createUser({
           name: data.name,
           email: data.email,
-          password: data.password!,
-          passwordConfirm: data.passwordConfirm!,
+          password: data.password || "",
+          passwordConfirm: data.passwordConfirm || "",
           role: data.role,
           dependencia: data.dependencia,
           emailVisibility: data.emailVisibility,
@@ -131,26 +131,27 @@ export function UserDialog({ user, open, onOpenChange, onSuccess }: UserDialogPr
 
       form.reset();
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { data?: { data?: Record<string, { message: string; code: string }> }; message?: string };
       // console.error("Error saving user:", error); // Commented to prevet Next.js overlay
 
       // Handle PocketBase validation errors
-      if (error?.data?.data) {
-        const fieldErrors = error.data.data;
-        Object.keys(fieldErrors).forEach((field) => {
+      if (err?.data?.data) {
+        const fieldErrors = err.data.data;
+        for (const field of Object.keys(fieldErrors)) {
           const message = fieldErrors[field].message;
           // Map common PocketBase errors to user-friendly messages
           const errorMessage =
             fieldErrors[field].code === "validation_not_unique" ? "Este valor ya está en uso." : message;
 
-          form.setError(field as any, {
+          form.setError(field as keyof UserFormValues, {
             type: "server",
             message: errorMessage,
           });
-        });
+        }
         toast.error("Por favor revisa los errores en el formulario.");
       } else {
-        toast.error(error?.message || "Error al guardar usuario");
+        toast.error(err?.message || "Error al guardar usuario");
       }
     } finally {
       setIsSubmitting(false);

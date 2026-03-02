@@ -70,13 +70,14 @@ export async function createRecepcion(data: CreateRecepcionDTO) {
     });
   }
 
-  let recepcion;
-  try {
-    recepcion = await pb.collection(RECEPCIONES_COLLECTION).create<Recepcion>(formData);
-  } catch (error: any) {
-    console.error("Validation errors:", JSON.stringify(error.response?.data, null, 2));
-    throw error;
-  }
+  const recepcion = await pb
+    .collection(RECEPCIONES_COLLECTION)
+    .create<Recepcion>(formData)
+    .catch((error: unknown) => {
+      const err = error as { response?: { data?: unknown } };
+      console.error("Validation errors:", JSON.stringify(err.response?.data, null, 2));
+      throw error;
+    });
 
   // 3. Create Details (RecepcionDetalle)
   // This could be done in parallel for speed

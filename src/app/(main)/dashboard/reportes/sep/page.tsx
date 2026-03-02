@@ -95,9 +95,10 @@ export default function SepReportPage() {
               <SelectItem value="all">Todos los meses</SelectItem>
               {Array.from({ length: 12 }).map((_, i) => {
                 const date = new Date(year, i);
+                const monthName = format(date, "MMMM", { locale: es });
                 return (
-                  <SelectItem key={i} value={i.toString()}>
-                    {format(date, "MMMM", { locale: es })}
+                  <SelectItem key={monthName} value={i.toString()}>
+                    {monthName}
                   </SelectItem>
                 );
               })}

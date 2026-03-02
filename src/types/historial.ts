@@ -6,8 +6,8 @@ import type { User } from "./user";
 export type AccionHistorial = "creacion" | "modificacion" | "eliminacion" | "anulacion";
 
 export interface CambioDetalle {
-  anterior: any;
-  nuevo: any;
+  anterior: unknown;
+  nuevo: unknown;
 }
 
 export interface CambiosObj {

@@ -6,7 +6,11 @@ import { GripVertical } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-function DragHandle({ id }: { id: number }) {
+import type { Compra } from "./compra";
+// Import types for related entities if they are used in the ColumnDef
+import type { OrdenCompra } from "./orden-compra";
+
+function DragHandle({ id }: { id: number | string }) {
   const { attributes, listeners } = useSortable({
     id,
   });
@@ -25,7 +29,12 @@ function DragHandle({ id }: { id: number }) {
   );
 }
 
-export const dragColumn: ColumnDef<any> = {
+export const dragColumn: ColumnDef<{
+  id: number | string;
+  orden_compra?: OrdenCompra;
+  compra?: Compra;
+  [key: string]: unknown;
+}> = {
   id: "drag",
   header: () => null,
   cell: ({ row }) => <DragHandle id={row.original.id} />,

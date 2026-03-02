@@ -30,13 +30,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     setLoading(false);
 
-    // Sync cookie initially
+    // biome-ignore lint/suspicious/noDocumentCookie: Sync cookie for PB parity
     document.cookie = pb.authStore.exportToCookie({ httpOnly: false });
 
     // Listen to auth changes
     const unsubscribe = pb.authStore.onChange((_token, model) => {
       setUser(model as User | null);
       // Update cookie on auth change
+      // biome-ignore lint/suspicious/noDocumentCookie: Sync cookie for PB parity on auth change
       document.cookie = pb.authStore.exportToCookie({ httpOnly: false });
     });
 

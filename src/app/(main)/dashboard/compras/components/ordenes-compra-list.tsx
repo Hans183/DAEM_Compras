@@ -179,8 +179,9 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
       await loadOrdenes();
       onUpdate();
     } catch (error) {
-      console.error("Error deleting OC:", error);
-      toast.error("Error al eliminar orden de compra");
+      const err = error as { message?: string };
+      console.error("Error deleting orden de compra:", err);
+      toast.error(err.message || "Error al eliminar orden de compra");
     } finally {
       setIsDeleting(null);
     }
@@ -242,7 +243,10 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                         type="button"
                         variant="ghost"
                         size="icon"
-                        onClick={() => window.open(getOrdenCompraFileUrl(oc, oc.oc_adjunto!)!, "_blank")}
+                        onClick={() => {
+                          const url = getOrdenCompraFileUrl(oc, oc.oc_adjunto as string);
+                          if (url) window.open(url, "_blank");
+                        }}
                         title="Ver Adjunto"
                       >
                         <ExternalLink className="h-4 w-4 text-blue-500" />

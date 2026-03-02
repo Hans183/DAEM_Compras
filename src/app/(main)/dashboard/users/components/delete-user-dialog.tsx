@@ -34,9 +34,10 @@ export function DeleteUserDialog({ user, open, onOpenChange, onSuccess }: Delete
       await deleteUser(user.id);
       toast.success("Usuario eliminado exitosamente");
       onSuccess();
-    } catch (error: any) {
-      console.error("Error deleting user:", error);
-      toast.error(error?.message || "Error al eliminar usuario");
+    } catch (error) {
+      const err = error as { message?: string };
+      console.error("Error deleting user:", err);
+      toast.error(err.message || "Error al eliminar usuario");
     } finally {
       setIsDeleting(false);
     }

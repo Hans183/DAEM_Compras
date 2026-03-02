@@ -34,9 +34,10 @@ export function DeleteSubvencionDialog({ subvencion, open, onOpenChange, onSucce
       await deleteSubvencion(subvencion.id);
       toast.success("Subvención eliminada exitosamente");
       onSuccess();
-    } catch (error: any) {
-      console.error("Error deleting subvencion:", error);
-      toast.error(error?.message || "Error al eliminar subvención");
+    } catch (error) {
+      const err = error as { message?: string };
+      console.error("Error deleting subvencion:", err);
+      toast.error(err.message || "Error al eliminar subvención");
     } finally {
       setIsDeleting(false);
     }

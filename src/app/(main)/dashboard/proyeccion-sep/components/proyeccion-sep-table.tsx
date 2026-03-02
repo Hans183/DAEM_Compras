@@ -24,7 +24,6 @@ interface ProyeccionSepTableProps {
   projections: ProyeccionSep[];
   rrhhSums: Record<string, number>;
   rrhhProjectedSums: Record<string, number>;
-  year: number;
   onUpdate: (schoolId: string, field: keyof ProyeccionSep, value: number) => void;
 }
 
@@ -47,7 +46,6 @@ export function ProyeccionSepTable({
   projections,
   rrhhSums,
   rrhhProjectedSums,
-  year,
   onUpdate,
 }: ProyeccionSepTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("nombre");
@@ -193,11 +191,23 @@ export function ProyeccionSepTable({
             <span className="flex-1 text-center">{label}</span>
             <SortIcon column={key} />
           </Button>
-          {/* Resizer Handle */}
+          {/* biome-ignore lint/a11y/useSemanticElements: Resizer handle is not exactly a HR */}
           <div
             onMouseDown={(e) => handleResizeStart(e, key)}
             className="absolute top-0 right-0 h-full w-1 cursor-col-resize hover:bg-primary/50"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === "ArrowLeft") {
+                setColumnWidths((prev) => ({ ...prev, [key]: Math.max(50, prev[key] - 10) }));
+              } else if (e.key === "ArrowRight") {
+                setColumnWidths((prev) => ({ ...prev, [key]: prev[key] + 10 }));
+              }
+            }}
+            role="separator"
+            aria-orientation="vertical"
+            aria-valuenow={columnWidths[key]}
+            tabIndex={0}
+            aria-label={`Redimensionar columna ${key}`}
           />
         </div>
       </TableHead>
@@ -270,10 +280,23 @@ export function ProyeccionSepTable({
                     Establecimiento
                     <SortIcon column="nombre" />
                   </Button>
+                  {/* biome-ignore lint/a11y/useSemanticElements: Resizer handle is not exactly a HR */}
                   <div
                     onMouseDown={(e) => handleResizeStart(e, "nombre")}
                     className="absolute top-0 right-0 h-full w-1 cursor-col-resize hover:bg-primary/50"
                     onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                      if (e.key === "ArrowLeft") {
+                        setColumnWidths((prev) => ({ ...prev, nombre: Math.max(50, prev.nombre - 10) }));
+                      } else if (e.key === "ArrowRight") {
+                        setColumnWidths((prev) => ({ ...prev, nombre: prev.nombre + 10 }));
+                      }
+                    }}
+                    role="separator"
+                    aria-orientation="vertical"
+                    aria-valuenow={columnWidths.nombre}
+                    tabIndex={0}
+                    aria-label="Redimensionar columna nombre"
                   />
                 </div>
               </TableHead>

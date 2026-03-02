@@ -21,9 +21,9 @@ export interface Recepcion extends RecordModel {
   expand?: {
     recepcionado_por?: User;
     "recepcion_detalles(recepcion)"?: RecepcionDetalle[];
-    orden_compra?: any; // Avoiding circular dependency for now, or use generic
-    compra?: any; // Often expanded
-    [key: string]: any;
+    orden_compra?: import("./orden-compra").OrdenCompra;
+    compra?: import("./compra").Compra;
+    [key: string]: unknown;
   };
 }
 

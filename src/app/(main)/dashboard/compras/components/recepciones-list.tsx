@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { format, parseISO } from "date-fns";
 import { Calendar, ChevronDown, ChevronRight, FileText, Loader2, Package, User as UserIcon } from "lucide-react";
@@ -18,12 +18,12 @@ interface RecepcionesListProps {
   refreshTrigger?: number; // Prop to trigger refresh from parent
 }
 
-export function RecepcionesList({ compraId, refreshTrigger }: RecepcionesListProps) {
+export function RecepcionesList({ compraId }: RecepcionesListProps) {
   const [recepciones, setRecepciones] = useState<Recepcion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
 
-  const fetchRecepciones = async () => {
+  const fetchRecepciones = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await getRecepcionesByCompra(compraId);
@@ -37,7 +37,7 @@ export function RecepcionesList({ compraId, refreshTrigger }: RecepcionesListPro
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [compraId]);
 
   useEffect(() => {
     if (compraId) {
@@ -141,9 +141,9 @@ export function RecepcionesList({ compraId, refreshTrigger }: RecepcionesListPro
 
                 {recepcion.adjuntos && recepcion.adjuntos.length > 0 && (
                   <div className="flex gap-2 overflow-x-auto border-t bg-muted/10 px-4 py-2">
-                    {recepcion.adjuntos.map((adjunto, idx) => (
+                    {recepcion.adjuntos.map((adjunto) => (
                       <Button
-                        key={idx}
+                        key={`${recepcion.id}-${adjunto}`}
                         variant="outline"
                         size="sm"
                         className="flex h-7 items-center gap-1 text-xs"

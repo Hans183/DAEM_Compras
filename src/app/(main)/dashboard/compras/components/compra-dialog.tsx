@@ -112,7 +112,7 @@ export function CompraDialog({
         "fecha_inicio",
       ].includes(fieldName);
     }
-    return editableFields.includes(fieldName as any);
+    return editableFields.includes(fieldName as keyof CompraFormValues);
   };
 
   // ... useEffect loadData ...
@@ -161,7 +161,7 @@ export function CompraDialog({
     setIsSubmitting(true);
 
     try {
-      let result: any;
+      let result: Compra;
       if (isEditing) {
         result = await updateCompra(compra.id, {
           numero_ordinario: data.numero_ordinario,
@@ -232,9 +232,10 @@ export function CompraDialog({
 
       form.reset();
       onSuccess();
-    } catch (error: any) {
-      console.error("Error saving compra:", error);
-      toast.error(error?.message || "Error al guardar compra");
+    } catch (error) {
+      const err = error as { message?: string };
+      console.error("Error saving compra:", err);
+      toast.error(err.message || "Error al guardar compra");
     } finally {
       setIsSubmitting(false);
     }
@@ -582,7 +583,9 @@ export function CompraDialog({
                       currentUser?.role.includes("Comprador") ||
                       false
                     }
-                    onUpdate={() => {}}
+                    onUpdate={() => {
+                      // No-op for this dialog context
+                    }}
                   />
 
                   <FormField

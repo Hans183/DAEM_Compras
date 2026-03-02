@@ -58,7 +58,9 @@ export async function createUser(data: CreateUserData): Promise<User> {
   formData.append("password", data.password);
   formData.append("passwordConfirm", data.passwordConfirm);
   formData.append("name", data.name);
-  data.role.forEach((r) => formData.append("role", r));
+  data.role.forEach((r) => {
+    formData.append("role", r);
+  });
   formData.append("emailVisibility", String(data.emailVisibility ?? true));
 
   if (data.dependencia) {
@@ -82,7 +84,9 @@ export async function updateUser(id: string, data: UpdateUserData): Promise<User
     if (data.name) formData.append("name", data.name);
     if (data.email) formData.append("email", data.email);
     if (data.role && data.role.length > 0) {
-      data.role.forEach((r) => formData.append("role", r));
+      data.role.forEach((r) => {
+        formData.append("role", r);
+      });
     }
     if (data.dependencia) formData.append("dependencia", data.dependencia);
     if (data.emailVisibility !== undefined) {
