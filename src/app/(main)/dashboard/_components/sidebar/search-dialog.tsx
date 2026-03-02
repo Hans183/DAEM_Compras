@@ -14,9 +14,7 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 
-const searchItems = [
-  { group: "Dashboards", icon: LayoutDashboard, label: "Default" },
-];
+const searchItems = [{ group: "Dashboards", icon: LayoutDashboard, label: "Default" }];
 
 import { useRouter, useSearchParams } from "next/navigation";
 

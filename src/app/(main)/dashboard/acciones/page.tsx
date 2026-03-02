@@ -26,6 +26,7 @@ import { getCompras } from "@/services/compras.service";
 import { getDimensiones, getSubdimenciones } from "@/services/dimensiones.service";
 import { getRequirentes } from "@/services/requirentes.service";
 import type { Accion } from "@/types/accion";
+import type { Compra } from "@/types/compra";
 import type { Dimension, Subdimencion } from "@/types/dimension";
 import type { Requirente } from "@/types/requirente";
 
@@ -39,6 +40,7 @@ export default function AccionesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [allCompras, setAllCompras] = useState<Compra[]>([]);
 
   // Filter states
   const [establecimientos, setEstablecimientos] = useState<Requirente[]>([]);
@@ -128,6 +130,7 @@ export default function AccionesPage() {
         }
       });
       setUsageMap(map);
+      setAllCompras(comprasResult.items);
     } catch (error) {
       console.error("Error loading acciones:", error);
     } finally {
@@ -300,7 +303,12 @@ export default function AccionesPage() {
         </div>
       ) : (
         <>
-          <AccionesTable data={data?.items || []} usageMap={usageMap} onDataChanged={loadData} />
+          <AccionesTable
+            data={data?.items || []}
+            usageMap={usageMap}
+            allCompras={allCompras}
+            onDataChanged={loadData}
+          />
 
           {data && data.totalPages > 1 && (
             <Pagination>

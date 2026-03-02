@@ -165,7 +165,7 @@ export function NavMain({ items, userRole }: NavMainProps) {
     if (!userRole || userRole.length === 0) {
       return false; // Si se requieren roles pero no hay usuario, no es accesible
     }
-    return item.allowedRoles.some(allowed => userRole.includes(allowed));
+    return item.allowedRoles.some((allowed) => userRole.includes(allowed));
   };
 
   return (

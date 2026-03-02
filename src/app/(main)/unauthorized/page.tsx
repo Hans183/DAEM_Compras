@@ -9,8 +9,8 @@ export default function page() {
         <Lock className="mx-auto size-12 text-primary" />
         <h1 className="mt-4 font-bold text-3xl tracking-tight sm:text-4xl">Acceso No Autorizado</h1>
         <p className="mt-4 text-muted-foreground">
-          No tienes permiso para ver el contenido solicitado. Por favor contacta al administrador del sitio si crees
-          que esto es un error.
+          No tienes permiso para ver el contenido solicitado. Por favor contacta al administrador del sitio si crees que
+          esto es un error.
         </p>
         <div className="mt-6">
           <Link

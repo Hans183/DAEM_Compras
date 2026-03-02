@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+
 import { CircleUser, CreditCard, EllipsisVertical, LogOut, MessageSquareDot } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -19,11 +20,7 @@ import { getInitials } from "@/lib/utils";
 import { getUserAvatarUrl } from "@/services/users.service";
 import type { User } from "@/types/user";
 
-export function NavUser({
-  user,
-}: {
-  readonly user: User;
-}) {
+export function NavUser({ user }: { readonly user: User }) {
   const { isMobile } = useSidebar();
   const { logout } = useAuth();
 

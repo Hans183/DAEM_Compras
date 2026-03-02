@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 
 import { CircleHelp, ClipboardList, Command, Database, File, Search, Settings } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
@@ -101,7 +101,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       height={340}
                       priority
                       className="block dark:hidden w-full h-auto object-contain"
-                      style={{ maxHeight: '60px' }}
+                      style={{ maxHeight: "60px" }}
                     />
                     {/* Logo para tema oscuro */}
                     <Image
@@ -111,7 +111,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       height={340}
                       priority
                       className="hidden dark:block w-full h-auto object-contain"
-                      style={{ maxHeight: '60px' }}
+                      style={{ maxHeight: "60px" }}
                     />
                   </div>
                 )}
@@ -125,9 +125,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         {/* <NavDocuments items={data.documents} /> */}
         {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
-      <SidebarFooter>
-        {user && <NavUser user={user} />}
-      </SidebarFooter>
+      <SidebarFooter>{user && <NavUser user={user} />}</SidebarFooter>
     </Sidebar>
   );
 }

@@ -72,8 +72,8 @@ These serve as the fallback; there is no separate default.css file. */
   --input: oklch(0.92 0.004 286.32);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.75 0.12 295);
-  --chart-2: oklch(0.60 0.18 305);
-  --chart-3: oklch(0.50 0.20 310);
+  --chart-2: oklch(0.6 0.18 305);
+  --chart-3: oklch(0.5 0.2 310);
   --chart-4: oklch(0.35 0.15 308);
   --chart-5: oklch(0.28 0.13 308);
   --sidebar: oklch(0.985 0 0);
@@ -97,7 +97,7 @@ These serve as the fallback; there is no separate default.css file. */
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.21 0.006 285.885);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.50 0.20 310);
+  --primary: oklch(0.5 0.2 310);
   --primary-foreground: oklch(0.98 0.01 308);
   --secondary: oklch(0.274 0.006 286.033);
   --secondary-foreground: oklch(0.985 0 0);
@@ -110,13 +110,13 @@ These serve as the fallback; there is no separate default.css file. */
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.75 0.12 295);
-  --chart-2: oklch(0.60 0.18 305);
-  --chart-3: oklch(0.50 0.20 310);
+  --chart-2: oklch(0.6 0.18 305);
+  --chart-3: oklch(0.5 0.2 310);
   --chart-4: oklch(0.35 0.15 308);
   --chart-5: oklch(0.28 0.13 308);
   --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.60 0.18 305);
+  --sidebar-primary: oklch(0.6 0.18 305);
   --sidebar-primary-foreground: oklch(0.98 0.01 308);
   --sidebar-accent: oklch(0.274 0.006 286.033);
   --sidebar-accent-foreground: oklch(0.985 0 0);
@@ -218,7 +218,7 @@ html {
   body * {
     visibility: hidden;
   }
-  
+
   /* Ensure the portal and dialog wrappers don't mess up positioning */
   [role="dialog"],
   [data-radix-portal],
@@ -238,7 +238,7 @@ html {
     background: transparent !important;
   }
 
-  #printable-sheet, 
+  #printable-sheet,
   #printable-sheet * {
     visibility: visible;
   }
