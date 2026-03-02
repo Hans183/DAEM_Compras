@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
@@ -30,7 +30,7 @@ export default function SubvencionesPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const loadSubvenciones = async () => {
+  const loadSubvenciones = useCallback(async () => {
     setIsLoading(true);
     try {
       const result = await getSubvenciones({
@@ -46,7 +46,7 @@ export default function SubvencionesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentPage, search]);
 
   useEffect(() => {
     loadSubvenciones();

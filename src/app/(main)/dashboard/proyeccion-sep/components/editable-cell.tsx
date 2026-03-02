@@ -67,16 +67,16 @@ export function EditableCell({ value, onSave, type = "currency" }: EditableCellP
     <button
       type="button"
       onClick={handleStartEditing}
-      className="w-full text-left cursor-pointer truncate rounded p-1 text-xs transition-colors hover:bg-muted"
+      className="w-full cursor-pointer truncate rounded p-1 text-left text-xs transition-colors hover:bg-muted"
       title="Click to edit"
     >
       {type === "currency"
         ? formatCurrency(value, {
-          locale: "es-CL",
-          currency: "CLP",
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
-        })
+            locale: "es-CL",
+            currency: "CLP",
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          })
         : value}
     </button>
   );

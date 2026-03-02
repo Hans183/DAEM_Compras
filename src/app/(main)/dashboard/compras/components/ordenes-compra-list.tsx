@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
@@ -69,7 +69,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
 
   // Watch values for live calculation in form
 
-  const loadOrdenes = async () => {
+  const loadOrdenes = useCallback(async () => {
     try {
       const result = await getOrdenesByCompra(compraId);
       setOrdenes(result.items);
@@ -79,7 +79,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [compraId]);
 
   useEffect(() => {
     const fetchHolidays = async () => {
