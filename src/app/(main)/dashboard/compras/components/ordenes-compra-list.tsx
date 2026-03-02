@@ -12,9 +12,6 @@ import * as z from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  // Dialog imports removed as they were unused
-} from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -71,7 +68,6 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
   });
 
   // Watch values for live calculation in form
-  const watchFecha = form.watch("oc_fecha");
 
   const loadOrdenes = async () => {
     try {
@@ -98,7 +94,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
     if (compraId) {
       loadOrdenes();
     }
-  }, [compraId]);
+  }, [compraId, loadOrdenes]);
 
   // ... existing functions (onSubmit, handleEditClick, handleCancelEdit, handleDelete) ...
 
@@ -147,13 +143,13 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
       // Handle both ISO string with T or space
       if (oc.oc_fecha) {
         const dateObj = parseToLocalDate(oc.oc_fecha);
-        if (dateObj && !isNaN(dateObj.getTime())) {
+        if (dateObj && !Number.isNaN(dateObj.getTime())) {
           formattedDate = format(dateObj, "yyyy-MM-dd");
         } else {
           formattedDate = new Date().toISOString().split("T")[0];
         }
       }
-    } catch (e) {
+    } catch (_e) {
       formattedDate = new Date().toISOString().split("T")[0];
     }
 
@@ -202,14 +198,14 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h4 className="text-sm font-medium">Órdenes de Compra Asociadas</h4>
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium text-sm">Órdenes de Compra Asociadas</h4>
         <Badge variant="outline" className="text-xs">
           Total: $ {new Intl.NumberFormat("es-CL").format(totalValor)}
         </Badge>
       </div>
 
-      <div className="border rounded-md">
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -224,7 +220,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
           <TableBody>
             {ordenes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={canEdit ? 6 : 5} className="text-center text-muted-foreground text-sm h-20">
+                <TableCell colSpan={canEdit ? 6 : 5} className="h-20 text-center text-muted-foreground text-sm">
                   No hay órdenes de compra registradas.
                 </TableCell>
               </TableRow>
@@ -252,7 +248,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                         <ExternalLink className="h-4 w-4 text-blue-500" />
                       </Button>
                     ) : (
-                      <span className="text-muted-foreground text-xs text-center block">-</span>
+                      <span className="block text-center text-muted-foreground text-xs">-</span>
                     )}
                   </TableCell>
                   {canEdit && (
@@ -271,7 +267,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                         disabled={isDeleting === oc.id}
                         onClick={() => handleDelete(oc.id)}
                         title="Eliminar"
@@ -292,9 +288,9 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
       </div>
 
       {canEdit && (
-        <div className="bg-muted/30 p-4 rounded-md border">
-          <div className="flex justify-between items-center mb-3">
-            <h5 className="text-xs font-semibold uppercase text-muted-foreground">
+        <div className="rounded-md border bg-muted/30 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h5 className="font-semibold text-muted-foreground text-xs uppercase">
               {editingOc ? "Editar Orden de Compra" : "Agregar Nueva OC"}
             </h5>
             {editingOc && (
@@ -303,15 +299,15 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                 variant="ghost"
                 size="sm"
                 onClick={handleCancelEdit}
-                className="h-6 text-xs text-muted-foreground hover:text-foreground"
+                className="h-6 text-muted-foreground text-xs hover:text-foreground"
               >
                 Cancelar Edición
               </Button>
             )}
           </div>
           <Form {...form}>
-            <div className="flex gap-4 items-end">
-              <div className="grid grid-cols-12 gap-2 w-full">
+            <div className="flex items-end gap-4">
+              <div className="grid w-full grid-cols-12 gap-2">
                 <div className="col-span-3">
                   <FormField
                     control={form.control}
@@ -360,7 +356,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                               <Button
                                 variant={"outline"}
                                 className={cn(
-                                  "h-8 text-xs w-full pl-3 text-left font-normal",
+                                  "h-8 w-full pl-3 text-left font-normal text-xs",
                                   !field.value && "text-muted-foreground",
                                 )}
                               >
@@ -424,7 +420,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                     render={({ field: { value, onChange, ...field } }) => (
                       <FormItem>
                         <FormLabel className="text-xs">
-                          {editingOc && editingOc.oc_adjunto ? "Cambiar Adjunto" : "Adjunto"}
+                          {editingOc?.oc_adjunto ? "Cambiar Adjunto" : "Adjunto"}
                         </FormLabel>
                         <FormControl>
                           <Input
@@ -445,7 +441,7 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
                 type="button"
                 size="sm"
                 disabled={isCreating}
-                className="h-8 mb-0.5"
+                className="mb-0.5 h-8"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();

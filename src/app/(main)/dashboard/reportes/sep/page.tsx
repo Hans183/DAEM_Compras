@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Building2, Calendar as CalendarIcon, DollarSign, Filter, ShoppingCart } from "lucide-react";
+import { Building2, Calendar as CalendarIcon, DollarSign, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ export default function SepReportPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const m = month === "all" ? undefined : parseInt(month);
+      const m = month === "all" ? undefined : parseInt(month, 10);
       const s = schoolId === "all" ? undefined : schoolId;
 
       const data = await getSepReport(year, s, m);
@@ -63,18 +63,18 @@ export default function SepReportPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Reporte Ley SEP</h1>
+          <h1 className="font-bold text-3xl tracking-tight">Reporte Ley SEP</h1>
           <p className="text-muted-foreground">Seguimiento presupuestario de compras SEP</p>
         </div>
 
         {/* Filters Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 bg-background p-2 rounded-lg border shadow-sm">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2 shadow-sm">
           <div className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-            <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v))}>
-              <SelectTrigger className="w-[100px] h-8">
+            <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v, 10))}>
+              <SelectTrigger className="h-8 w-[100px]">
                 <SelectValue placeholder="Año" />
               </SelectTrigger>
               <SelectContent>
@@ -85,10 +85,10 @@ export default function SepReportPage() {
             </Select>
           </div>
 
-          <div className="h-4 w-[1px] bg-border mx-1" />
+          <div className="mx-1 h-4 w-[1px] bg-border" />
 
           <Select value={month} onValueChange={setMonth}>
-            <SelectTrigger className="w-[140px] h-8">
+            <SelectTrigger className="h-8 w-[140px]">
               <SelectValue placeholder="Todos los meses" />
             </SelectTrigger>
             <SelectContent>
@@ -104,10 +104,10 @@ export default function SepReportPage() {
             </SelectContent>
           </Select>
 
-          <div className="h-4 w-[1px] bg-border mx-1" />
+          <div className="mx-1 h-4 w-[1px] bg-border" />
 
           <Select value={schoolId} onValueChange={setSchoolId}>
-            <SelectTrigger className="w-[200px] h-8">
+            <SelectTrigger className="h-8 w-[200px]">
               <SelectValue placeholder="Todas las Escuelas" />
             </SelectTrigger>
             <SelectContent className="max-h-[300px]">
@@ -138,8 +138,8 @@ export default function SepReportPage() {
       </div>
 
       {loading && !stats ? (
-        <div className="h-[400px] w-full flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        <div className="flex h-[400px] w-full items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-primary border-b-2" />
         </div>
       ) : stats ? (
         <>
@@ -147,32 +147,32 @@ export default function SepReportPage() {
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Inversión Total SEP</CardTitle>
+                <CardTitle className="font-medium text-sm">Inversión Total SEP</CardTitle>
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(stats.totalInvestment)}</div>
-                <p className="text-xs text-muted-foreground">En compras con órdenes generadas</p>
+                <div className="font-bold text-2xl">{formatCurrency(stats.totalInvestment)}</div>
+                <p className="text-muted-foreground text-xs">En compras con órdenes generadas</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Solicitudes Gestionadas</CardTitle>
+                <CardTitle className="font-medium text-sm">Solicitudes Gestionadas</CardTitle>
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.totalOrders}</div>
-                <p className="text-xs text-muted-foreground">Total de procesos de compra SEP</p>
+                <div className="font-bold text-2xl">{stats.totalOrders}</div>
+                <p className="text-muted-foreground text-xs">Total de procesos de compra SEP</p>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Establecimientos</CardTitle>
+                <CardTitle className="font-medium text-sm">Establecimientos</CardTitle>
                 <Building2 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.bySchool.length}</div>
-                <p className="text-xs text-muted-foreground">Con movimientos este periodo</p>
+                <div className="font-bold text-2xl">{stats.bySchool.length}</div>
+                <p className="text-muted-foreground text-xs">Con movimientos este periodo</p>
               </CardContent>
             </Card>
           </div>
@@ -183,23 +183,23 @@ export default function SepReportPage() {
               <SepEvolutionChart data={stats.monthlyEvolution} year={year} />
             </div>
             <div className="col-span-3">
-              <Card className="h-full flex flex-col">
+              <Card className="flex h-full flex-col">
                 <CardHeader>
                   <CardTitle>Desglose por Escuela</CardTitle>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-auto max-h-[400px]">
+                <CardContent className="max-h-[400px] flex-1 overflow-auto">
                   <div className="space-y-4">
                     {stats.bySchool.map((item) => (
                       <div key={item.name} className="flex items-center">
-                        <div className="ml-4 space-y-1 flex-1">
-                          <p className="text-sm font-medium leading-none">{item.name}</p>
-                          <p className="text-xs text-muted-foreground">{item.count} compras</p>
+                        <div className="ml-4 flex-1 space-y-1">
+                          <p className="font-medium text-sm leading-none">{item.name}</p>
+                          <p className="text-muted-foreground text-xs">{item.count} compras</p>
                         </div>
                         <div className="font-medium text-sm">{formatCurrency(item.amount)}</div>
                       </div>
                     ))}
                     {stats.bySchool.length === 0 && (
-                      <div className="text-center text-muted-foreground py-8">Sin datos para mostrar</div>
+                      <div className="py-8 text-center text-muted-foreground">Sin datos para mostrar</div>
                     )}
                   </div>
                 </CardContent>

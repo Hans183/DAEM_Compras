@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 
-import { BadgeCheck, Bell, CircleUser, LogOut } from "lucide-react";
+import { Bell, CircleUser, LogOut } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -25,7 +25,7 @@ export function UserAvatar() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Avatar className="size-9 rounded-lg cursor-pointer">
+        <Avatar className="size-9 cursor-pointer rounded-lg">
           <AvatarImage src={getUserAvatarUrl(user)} alt={user.name || user.email} />
           <AvatarFallback className="rounded-lg">{getInitials(user.name || user.email)}</AvatarFallback>
         </Avatar>
@@ -38,7 +38,7 @@ export function UserAvatar() {
           </Avatar>
           <div className="grid flex-1 text-left text-sm leading-tight">
             <span className="truncate font-semibold">{user.name || user.email}</span>
-            <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+            <span className="truncate text-muted-foreground text-xs">{user.email}</span>
           </div>
         </div>
         <DropdownMenuSeparator />

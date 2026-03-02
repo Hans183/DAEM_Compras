@@ -1,13 +1,4 @@
-import {
-  Building2,
-  DollarSign,
-  LayoutDashboard,
-  type LucideIcon,
-  ShoppingCart,
-  Users,
-  Package,
-} from "lucide-react";
-
+import { Building2, DollarSign, LayoutDashboard, type LucideIcon, Package, ShoppingCart, Users } from "lucide-react";
 
 export interface NavSubItem {
   title: string;

@@ -21,7 +21,7 @@ export default function RecepcionesPage() {
     return (
       <div className="flex h-full items-center justify-center p-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-destructive mb-2">Acceso Denegado</h1>
+          <h1 className="mb-2 font-bold text-2xl text-destructive">Acceso Denegado</h1>
           <p className="text-muted-foreground">No tienes permisos para ver este módulo.</p>
         </div>
       </div>
@@ -31,7 +31,7 @@ export default function RecepcionesPage() {
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Recepciones de Bodega</h2>
+        <h2 className="font-bold text-3xl tracking-tight">Recepciones de Bodega</h2>
         <div className="flex items-center space-x-2">{/* Additional actions if needed */}</div>
       </div>
 

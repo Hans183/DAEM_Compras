@@ -8,7 +8,6 @@ export const APP_CONFIG = {
   copyright: `© ${currentYear}, Compras DAEM. por Hans von Edelsberg`,
   meta: {
     title: "Compras DAEM - Dashboard",
-    description:
-      "Compras DAEM es una plataforma de compras para la empresa DAEM.",
+    description: "Compras DAEM es una plataforma de compras para la empresa DAEM.",
   },
 };

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useSearchParams } from "next/navigation";
 
-import type { ListResult } from "pocketbase";
 import { toast } from "sonner";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -173,7 +172,7 @@ export default function ProyeccionSepPage() {
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Proyección SEP</h1>
+          <h1 className="font-bold text-3xl tracking-tight">Proyección SEP</h1>
           <p className="text-muted-foreground">Gestión de presupuesto y gastos SEP por establecimiento.</p>
         </div>
       </div>
@@ -193,7 +192,7 @@ export default function ProyeccionSepPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="text-sm text-muted-foreground">
+        <div className="text-muted-foreground text-sm">
           Calculando acciones y RRHH para: <span className="font-semibold">{selectedYear}</span>
         </div>
       </div>

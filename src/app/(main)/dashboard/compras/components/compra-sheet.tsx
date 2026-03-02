@@ -25,7 +25,7 @@ const safeFormat = (date: string | Date | undefined, formatStr: string, options?
   if (!date) return "";
   try {
     const d = new Date(date);
-    if (isNaN(d.getTime())) return "";
+    if (Number.isNaN(d.getTime())) return "";
     return format(d, formatStr, options);
   } catch {
     return "";
@@ -38,20 +38,20 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
 
   return (
     <div
-      className="bg-background text-foreground p-8 w-full mx-auto print:p-0 print:max-w-none print:bg-white print:text-black"
+      className="mx-auto w-full bg-background p-8 text-foreground print:max-w-none print:bg-white print:p-0 print:text-black"
       id="printable-sheet"
     >
       {/* Header */}
-      <div className="mb-6 text-center border-b pb-4">
-        <h1 className="text-2xl font-bold uppercase tracking-tight">Ficha de Compra</h1>
-        <p className="text-sm text-muted-foreground mt-1">Departamento de Administración de Educación Municipal</p>
-        <div className="mt-4 flex justify-between items-end px-4">
+      <div className="mb-6 border-b pb-4 text-center">
+        <h1 className="font-bold text-2xl uppercase tracking-tight">Ficha de Compra</h1>
+        <p className="mt-1 text-muted-foreground text-sm">Departamento de Administración de Educación Municipal</p>
+        <div className="mt-4 flex items-end justify-between px-4">
           <div className="text-left">
-            <span className="block text-xs font-semibold text-muted-foreground uppercase">N° Ordinario</span>
-            <span className="text-xl font-mono">{compra.numero_ordinario}</span>
+            <span className="block font-semibold text-muted-foreground text-xs uppercase">N° Ordinario</span>
+            <span className="font-mono text-xl">{compra.numero_ordinario}</span>
           </div>
           <div className="text-right">
-            <span className="block text-xs font-semibold text-muted-foreground uppercase">Fecha de Solicitud</span>
+            <span className="block font-semibold text-muted-foreground text-xs uppercase">Fecha de Solicitud</span>
             <span className="text-lg">{safeFormat(compra.created, "dd 'de' MMMM, yyyy", { locale: es })}</span>
           </div>
         </div>
@@ -60,8 +60,8 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
       {/* Datos de Solicitud */}
       <div className="mb-8">
         {compra.estado === "Anulado" && (
-          <div className="mb-6 p-4 rounded-md bg-destructive/10 border border-destructive/20 text-destructive">
-            <div className="flex items-center gap-2 font-bold mb-2">
+          <div className="mb-6 rounded-md border border-destructive/20 bg-destructive/10 p-4 text-destructive">
+            <div className="mb-2 flex items-center gap-2 font-bold">
               <AlertCircle className="h-5 w-5" />
               <span>COMPRA ANULADA</span>
             </div>
@@ -70,28 +70,28 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
             </p>
           </div>
         )}
-        <h3 className="text-sm font-bold uppercase text-muted-foreground border-b mb-4 pb-1">Datos de Solicitud</h3>
-        <div className="grid grid-cols-2 gap-y-4 gap-x-8">
+        <h3 className="mb-4 border-b pb-1 font-bold text-muted-foreground text-sm uppercase">Datos de Solicitud</h3>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
           <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground font-semibold uppercase">Estado Actual</span>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary text-secondary-foreground w-fit mt-1">
+            <span className="font-semibold text-muted-foreground text-xs uppercase">Estado Actual</span>
+            <span className="mt-1 inline-flex w-fit items-center rounded-full bg-secondary px-2.5 py-0.5 font-medium text-secondary-foreground text-xs">
               {compra.estado}
             </span>
           </div>
           <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground font-semibold uppercase">Unidad Requirente</span>
-            <span className="text-sm mt-1">{compra.expand?.unidad_requirente?.nombre || "No especificada"}</span>
+            <span className="font-semibold text-muted-foreground text-xs uppercase">Unidad Requirente</span>
+            <span className="mt-1 text-sm">{compra.expand?.unidad_requirente?.nombre || "No especificada"}</span>
           </div>
-          <div className="col-span-2 flex flex-col mt-2">
-            <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">
+          <div className="col-span-2 mt-2 flex flex-col">
+            <span className="mb-1 font-semibold text-muted-foreground text-xs uppercase">
               Descripción del Requerimiento
             </span>
-            <div className="bg-muted p-4 rounded-md border text-sm whitespace-pre-wrap min-h-[100px]">
+            <div className="min-h-[100px] whitespace-pre-wrap rounded-md border bg-muted p-4 text-sm">
               {compra.descripcion}
             </div>
           </div>
           {compra.adjunta_ordinario && (
-            <div className="col-span-2 flex items-center gap-2 mt-2 text-sm text-blue-600">
+            <div className="col-span-2 mt-2 flex items-center gap-2 text-blue-600 text-sm">
               <FileText className="h-4 w-4" />
               <span>Documento Ordinario Adjunto</span>
             </div>
@@ -101,22 +101,22 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
 
       {/* Datos de Gestión */}
       <div className="mb-8">
-        <h3 className="text-sm font-bold uppercase text-muted-foreground border-b mb-4 pb-1">
+        <h3 className="mb-4 border-b pb-1 font-bold text-muted-foreground text-sm uppercase">
           Datos de Gestión y Adjudicación
         </h3>
-        <div className="grid grid-cols-2 gap-y-4 gap-x-8">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
           <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground font-semibold uppercase">Comprador Asignado</span>
-            <span className="text-sm mt-1">{compra.expand?.comprador?.name || "Sin asignar"}</span>
+            <span className="font-semibold text-muted-foreground text-xs uppercase">Comprador Asignado</span>
+            <span className="mt-1 text-sm">{compra.expand?.comprador?.name || "Sin asignar"}</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground font-semibold uppercase">Subvención</span>
-            <span className="text-sm mt-1">{compra.expand?.subvencion?.nombre || "No definida"}</span>
+            <span className="font-semibold text-muted-foreground text-xs uppercase">Subvención</span>
+            <span className="mt-1 text-sm">{compra.expand?.subvencion?.nombre || "No definida"}</span>
           </div>
 
           <div className="col-span-2">
-            <h4 className="text-xs text-muted-foreground font-semibold uppercase mb-2">Órdenes de Compra</h4>
-            <div className="border rounded-md overflow-hidden">
+            <h4 className="mb-2 font-semibold text-muted-foreground text-xs uppercase">Órdenes de Compra</h4>
+            <div className="overflow-hidden rounded-md border">
               <table className="w-full text-sm">
                 <thead className="bg-muted">
                   <tr>
@@ -133,7 +133,7 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
                         <td className="px-3 py-2 font-mono">
                           {oc.oc}
                           {linkedOcId === oc.id && (
-                            <span className="ml-2 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80">
+                            <span className="ml-2 inline-flex items-center rounded-full border border-transparent bg-primary px-2.5 py-0.5 font-semibold text-primary-foreground text-xs shadow transition-colors hover:bg-primary/80 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                               Vinculada
                             </span>
                           )}
@@ -174,9 +174,9 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
             </div>
           </div>
           {compra.observacion && (
-            <div className="col-span-2 flex flex-col mt-4 border-t pt-4">
-              <span className="text-xs text-muted-foreground font-semibold uppercase mb-1">Observación Comprador</span>
-              <div className="bg-muted p-4 rounded-md border text-sm whitespace-pre-wrap">{compra.observacion}</div>
+            <div className="col-span-2 mt-4 flex flex-col border-t pt-4">
+              <span className="mb-1 font-semibold text-muted-foreground text-xs uppercase">Observación Comprador</span>
+              <div className="whitespace-pre-wrap rounded-md border bg-muted p-4 text-sm">{compra.observacion}</div>
             </div>
           )}
         </div>
@@ -184,8 +184,8 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
 
       {/* Recepciones Bodega */}
       <div className="mb-8">
-        <div className="flex justify-between items-center border-b mb-4 pb-1">
-          <h3 className="text-sm font-bold uppercase text-muted-foreground">Recepciones de Bodega</h3>
+        <div className="mb-4 flex items-center justify-between border-b pb-1">
+          <h3 className="font-bold text-muted-foreground text-sm uppercase">Recepciones de Bodega</h3>
           {currentUser && canCreateRecepcion(currentUser.role) && (
             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setIsRecepcionDialogOpen(true)}>
               <Plus className="mr-2 h-3 w-3" />
@@ -193,7 +193,7 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
             </Button>
           )}
         </div>
-        <div className="bg-background rounded-md">
+        <div className="rounded-md bg-background">
           <RecepcionesList compraId={compra.id} refreshTrigger={refreshTrigger} />
         </div>
       </div>
@@ -201,18 +201,18 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
       {/* Historial de Cambios */}
 
       <div className="mb-8">
-        <h3 className="text-sm font-bold uppercase text-muted-foreground border-b mb-4 pb-1">Historial de Cambios</h3>
-        <div className="bg-muted/10 rounded-md border p-4">
+        <h3 className="mb-4 border-b pb-1 font-bold text-muted-foreground text-sm uppercase">Historial de Cambios</h3>
+        <div className="rounded-md border bg-muted/10 p-4">
           <HistorialTimeline compraId={compra.id} />
         </div>
       </div>
 
       {/* Firmas removed as per user request */}
 
-      <div className="mt-8 pt-4 border-t border-border flex justify-between items-center text-xs text-muted-foreground">
+      <div className="mt-8 flex items-center justify-between border-border border-t pt-4 text-muted-foreground text-xs">
         <div className="flex flex-col">
           <span>Última actualización: {safeFormat(compra.updated, "dd 'de' MMMM, yyyy HH:mm", { locale: es })}</span>
-          {compra.usuario_modificador && <span className="font-medium mt-1">Por: {compra.usuario_modificador}</span>}
+          {compra.usuario_modificador && <span className="mt-1 font-medium">Por: {compra.usuario_modificador}</span>}
         </div>
       </div>
       {currentUser && (

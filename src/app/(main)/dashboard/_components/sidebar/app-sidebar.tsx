@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
-import { CircleHelp, ClipboardList, Command, Database, File, Search, Settings } from "lucide-react";
+import { CircleHelp, ClipboardList, Database, File, Search, Settings } from "lucide-react";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -16,7 +16,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { APP_CONFIG } from "@/config/app-config";
 import { useAuth } from "@/hooks/use-auth";
 import { sidebarItems } from "@/navigation/sidebar/sidebar-items";
 import { usePreferencesStore } from "@/stores/preferences/preferences-provider";
@@ -87,7 +86,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <Link prefetch={false} href="/dashboard" className="flex items-center justify-center">
                 {isCollapsed ? (
                   // Letra "D" cuando está colapsado
-                  <div className="flex p-2 items-center justify-center w-10 h-10 rounded-lg bg-purple-900 text-white font-bold text-2xl">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-900 p-2 font-bold text-2xl text-white">
                     D
                   </div>
                 ) : (
@@ -100,7 +99,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       width={340}
                       height={340}
                       priority
-                      className="block dark:hidden w-full h-auto object-contain"
+                      className="block h-auto w-full object-contain dark:hidden"
                       style={{ maxHeight: "60px" }}
                     />
                     {/* Logo para tema oscuro */}
@@ -110,7 +109,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       width={340}
                       height={340}
                       priority
-                      className="hidden dark:block w-full h-auto object-contain"
+                      className="hidden h-auto w-full object-contain dark:block"
                       style={{ maxHeight: "60px" }}
                     />
                   </div>

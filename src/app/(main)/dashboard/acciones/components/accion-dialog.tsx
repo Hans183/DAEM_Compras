@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -68,7 +68,7 @@ export function AccionDialog({ open, onOpenChange, onSuccess, accionToEdit }: Ac
   const [dimensiones, setDimensiones] = useState<Dimension[]>([]);
   const [requirentes, setRequirentes] = useState<Requirente[]>([]);
   const [subdimenciones, setSubdimenciones] = useState<Subdimencion[]>([]);
-  const [loadingDimensions, setLoadingDimensions] = useState(false);
+  const [_loadingDimensions, setLoadingDimensions] = useState(false);
   const [openCombobox, setOpenCombobox] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -204,13 +204,13 @@ export function AccionDialog({ open, onOpenChange, onSuccess, accionToEdit }: Ac
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-7xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{accionToEdit ? "Editar Acción" : "Nueva Acción"}</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="nombre"
@@ -323,7 +323,7 @@ export function AccionDialog({ open, onOpenChange, onSuccess, accionToEdit }: Ac
                       <SelectContent position="popper">
                         {subdimenciones.map((s) => (
                           <SelectItem key={s.id} value={s.id}>
-                            {s.nombre.length > 50 ? s.nombre.substring(0, 50) + "..." : s.nombre}
+                            {s.nombre.length > 50 ? `${s.nombre.substring(0, 50)}...` : s.nombre}
                           </SelectItem>
                         ))}
                       </SelectContent>

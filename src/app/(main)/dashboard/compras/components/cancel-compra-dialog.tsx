@@ -91,7 +91,7 @@ export function CancelCompraDialog({ compra, open, onOpenChange, onSuccess, curr
                   <FormControl>
                     <Textarea
                       placeholder="Describa por qué se anula esta compra..."
-                      className="resize-none min-h-[100px]"
+                      className="min-h-[100px] resize-none"
                       {...field}
                     />
                   </FormControl>

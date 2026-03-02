@@ -71,7 +71,7 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                 return (
                   <Fragment key={item.id}>
                     <TableRow
-                      className={cn("cursor-pointer hover:bg-muted/50 transition-colors", isExpanded && "bg-muted/30")}
+                      className={cn("cursor-pointer transition-colors hover:bg-muted/50", isExpanded && "bg-muted/30")}
                       onClick={() => toggleExpand(item.id)}
                     >
                       <TableCell
@@ -86,7 +86,7 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                           <ChevronRight className="h-4 w-4 text-muted-foreground" />
                         )}
                       </TableCell>
-                      <TableCell className="font-medium max-w-[200px] truncate" title={item.nombre}>
+                      <TableCell className="max-w-[200px] truncate font-medium" title={item.nombre}>
                         {item.nombre}
                       </TableCell>
                       <TableCell>{item.expand?.establecimiento?.nombre || "N/A"}</TableCell>
@@ -94,9 +94,9 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                       <TableCell>${item.monto_sep?.toLocaleString("es-CL")}</TableCell>
                       <TableCell>${valorAccion.toLocaleString("es-CL")}</TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-1 w-full">
-                          <span className="text-xs text-muted-foreground text-right">{percentage.toFixed(1)}%</span>
-                          <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                        <div className="flex w-full flex-col gap-1">
+                          <span className="text-right text-muted-foreground text-xs">{percentage.toFixed(1)}%</span>
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
                             <div
                               className={`h-full ${progressColor} transition-all duration-300`}
                               style={{ width: `${Math.min(percentage, 100)}%` }}
@@ -123,12 +123,12 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                     {isExpanded && (
                       <TableRow className="bg-muted/20 hover:bg-muted/20">
                         <TableCell colSpan={8} className="p-0">
-                          <div className="p-4 border-t animate-in fade-in slide-in-from-top-1 duration-200">
-                            <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                          <div className="fade-in slide-in-from-top-1 animate-in border-t p-4 duration-200">
+                            <h4 className="mb-3 flex items-center gap-2 font-semibold text-sm">
                               Compras Relacionadas ({relatedCompras.length})
                             </h4>
                             {relatedCompras.length === 0 ? (
-                              <div className="text-sm text-muted-foreground italic py-2">
+                              <div className="py-2 text-muted-foreground text-sm italic">
                                 No hay compras vinculadas a esta acción.
                               </div>
                             ) : (
@@ -140,14 +140,14 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                                       <TableHead className="text-xs">N° Oficio</TableHead>
                                       <TableHead className="text-xs">OC</TableHead>
                                       <TableHead className="text-xs">Comprador</TableHead>
-                                      <TableHead className="text-xs text-right">Monto</TableHead>
+                                      <TableHead className="text-right text-xs">Monto</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
                                     {relatedCompras.map((compra) => (
                                       <TableRow key={compra.id} className="hover:bg-muted/30">
                                         <TableCell
-                                          className="text-xs max-w-[300px] truncate"
+                                          className="max-w-[300px] truncate text-xs"
                                           title={compra.descripcion}
                                         >
                                           {compra.descripcion}
@@ -160,7 +160,7 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                                         <TableCell className="text-xs">
                                           {compra.expand?.comprador?.name || "---"}
                                         </TableCell>
-                                        <TableCell className="text-xs text-right font-medium">
+                                        <TableCell className="text-right font-medium text-xs">
                                           ${compra.presupuesto?.toLocaleString("es-CL")}
                                         </TableCell>
                                       </TableRow>

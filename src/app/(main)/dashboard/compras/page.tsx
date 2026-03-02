@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 
 import { Plus, Search } from "lucide-react";
 import type { ListResult } from "pocketbase";
@@ -21,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/hooks/use-auth";
 import { getCompras } from "@/services/compras.service";
 import { getSubvenciones } from "@/services/subvenciones.service";
-import type { Compra, EstadoCompra, GetComprasParams } from "@/types/compra";
+import type { Compra, GetComprasParams } from "@/types/compra";
 import type { Subvencion } from "@/types/subvencion";
 import { canCreateCompra } from "@/utils/permissions";
 
@@ -49,7 +49,7 @@ export default function ComprasPage() {
     if (urlSearch !== search) {
       setSearch(urlSearch);
     }
-  }, [urlSearch]);
+  }, [urlSearch, search]);
 
   // Filtros de columna
   const [filters, setFilters] = useState<GetComprasParams>({
@@ -122,7 +122,7 @@ export default function ComprasPage() {
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Compras</h1>
+          <h1 className="font-bold text-3xl tracking-tight">Compras</h1>
           <p className="text-muted-foreground">Gestiona las compras del sistema</p>
         </div>
         {userCanCreate && (
@@ -134,8 +134,8 @@ export default function ComprasPage() {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="relative max-w-sm flex-1">
+          <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por numero de Ordinario..."
             value={search}
@@ -177,8 +177,8 @@ export default function ComprasPage() {
         <>
           <div className="relative">
             {loading && (
-              <div className="absolute inset-0 bg-background/50 z-10 flex items-center justify-center backdrop-blur-[1px]">
-                <div className="text-muted-foreground text-sm bg-background px-3 py-1 rounded-full border shadow-sm">
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-[1px]">
+                <div className="rounded-full border bg-background px-3 py-1 text-muted-foreground text-sm shadow-sm">
                   Actualizando...
                 </div>
               </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { AlertTriangle, Clock, DollarSign, ShoppingCart, TrendingUp, Users } from "lucide-react";
+import { AlertTriangle, Clock, DollarSign, ShoppingCart, TrendingUp } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,48 +48,48 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard General</h1>
+      <h1 className="font-bold text-3xl tracking-tight">Dashboard General</h1>
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Gasto Total (Año)</CardTitle>
+            <CardTitle className="font-medium text-sm">Gasto Total (Año)</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{currencyFormatter.format(stats.totalSpent)}</div>
-            <p className="text-xs text-muted-foreground">Pesos chilenos (CLP)</p>
+            <div className="font-bold text-2xl">{currencyFormatter.format(stats.totalSpent)}</div>
+            <p className="text-muted-foreground text-xs">Pesos chilenos (CLP)</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Órdenes</CardTitle>
+            <CardTitle className="font-medium text-sm">Total Órdenes</CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalOrders}</div>
-            <p className="text-xs text-muted-foreground">Órdenes procesadas</p>
+            <div className="font-bold text-2xl">{stats.totalOrders}</div>
+            <p className="text-muted-foreground text-xs">Órdenes procesadas</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unidades Activas</CardTitle>
+            <CardTitle className="font-medium text-sm">Unidades Activas</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.rankingUnidades.length}</div>
-            <p className="text-xs text-muted-foreground">Unidades con compras</p>
+            <div className="font-bold text-2xl">{stats.rankingUnidades.length}</div>
+            <p className="text-muted-foreground text-xs">Unidades con compras</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tiempo Promedio Gestión</CardTitle>
+            <CardTitle className="font-medium text-sm">Tiempo Promedio Gestión</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.avgCycleTime} días</div>
-            <p className="text-xs text-muted-foreground">Desde solicitud hasta OC</p>
+            <div className="font-bold text-2xl">{stats.avgCycleTime} días</div>
+            <p className="text-muted-foreground text-xs">Desde solicitud hasta OC</p>
           </CardContent>
         </Card>
       </div>

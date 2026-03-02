@@ -159,7 +159,7 @@ export function UserDialog({ user, open, onOpenChange, onSuccess }: UserDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Editar Usuario" : "Crear Nuevo Usuario"}</DialogTitle>
           <DialogDescription>
@@ -307,7 +307,7 @@ export function UserDialog({ user, open, onOpenChange, onSuccess }: UserDialogPr
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
                     <FormLabel>Email público</FormLabel>
-                    <div className="text-sm text-muted-foreground">Permitir que otros usuarios vean este email</div>
+                    <div className="text-muted-foreground text-sm">Permitir que otros usuarios vean este email</div>
                   </div>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />

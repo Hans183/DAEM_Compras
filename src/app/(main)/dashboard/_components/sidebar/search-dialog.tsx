@@ -24,7 +24,7 @@ export function SearchDialog() {
   const [open, setOpen] = React.useState(false);
   const [searchValue, setSearchValue] = React.useState("");
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const _searchParams = useSearchParams();
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -73,7 +73,7 @@ export function SearchDialog() {
           <CommandEmpty>
             {searchValue ? (
               <div
-                className="py-6 text-center text-sm cursor-pointer hover:bg-accent"
+                className="cursor-pointer py-6 text-center text-sm hover:bg-accent"
                 onClick={() => handleSearch(searchValue)}
               >
                 Buscar: <span className="font-bold">"{searchValue}"</span>

@@ -116,35 +116,36 @@ export function getEditableFields(roles: UserRole[], estadoCompra?: EstadoCompra
 
   // SEP puede editar campos básicos para iniciar la compra
   if (roles.includes("SEP")) {
-    (
-      [
-        "numero_ordinario",
-        "descripcion",
-        "unidad_requirente",
-        "fecha_inicio",
-        "subvencion",
-        "estado",
-        "adjunta_ordinario",
-      ] as CompraField[]
-    ).forEach((f) => fields.add(f));
+    const sepFields: CompraField[] = [
+      "numero_ordinario",
+      "descripcion",
+      "unidad_requirente",
+      "fecha_inicio",
+      "subvencion",
+      "estado",
+      "adjunta_ordinario",
+    ];
+    for (const f of sepFields) {
+      fields.add(f);
+    }
   }
 
   // Comprador puede editar todo excepto el presupuesto
   if (roles.includes("Comprador")) {
-    (
-      [
-        "numero_ordinario",
-        "descripcion",
-        "unidad_requirente",
-        "comprador",
-        "fecha_solicitud",
-
-        "subvencion",
-        "estado",
-        "adjunta_ordinario",
-        "observacion",
-      ] as CompraField[]
-    ).forEach((f) => fields.add(f));
+    const compradorFields: CompraField[] = [
+      "numero_ordinario",
+      "descripcion",
+      "unidad_requirente",
+      "comprador",
+      "fecha_solicitud",
+      "subvencion",
+      "estado",
+      "adjunta_ordinario",
+      "observacion",
+    ];
+    for (const f of compradorFields) {
+      fields.add(f);
+    }
   }
 
   // Bodega solo puede editar estado

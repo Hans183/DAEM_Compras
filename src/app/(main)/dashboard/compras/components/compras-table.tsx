@@ -2,14 +2,10 @@
 
 import { useEffect, useState } from "react";
 
-import { addDays, differenceInCalendarDays, format, isPast, isSameDay, isToday, parseISO } from "date-fns";
-import { es } from "date-fns/locale";
+import { format, isPast, isSameDay, parseISO } from "date-fns";
 import {
-  AlertTriangle,
   Ban,
   CalendarIcon,
-  CheckCircle,
-  Clock,
   Eye,
   FileText,
   MoreHorizontal,
@@ -45,7 +41,7 @@ import { getUserAvatarUrl, getUsers } from "@/services/users.service";
 import type { Compra, GetComprasParams } from "@/types/compra";
 import { ESTADOS_COMPRA } from "@/types/compra";
 import type { User } from "@/types/user";
-import { calculateBusinessDate, parseToLocalDate } from "@/utils/date-utils";
+import { parseToLocalDate } from "@/utils/date-utils";
 import { canCancelCompra, canDeleteCompra, canEditCompra } from "@/utils/permissions";
 
 import { CancelCompraDialog } from "./cancel-compra-dialog";
@@ -85,7 +81,7 @@ function DebouncedInput({
     }, debounce);
 
     return () => clearTimeout(timeout);
-  }, [value, debounce]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [value, debounce, onChange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return <Input {...props} value={value} onChange={(e) => setValue(e.target.value)} />;
 }
@@ -104,7 +100,7 @@ export function ComprasTable({
   const [duplicatingCompra, setDuplicatingCompra] = useState<Compra | null>(null);
   const [viewingCompra, setViewingCompra] = useState<Compra | null>(null);
   const [buyers, setBuyers] = useState<User[]>([]);
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [_holidays, setHolidays] = useState<Holiday[]>([]);
 
   useEffect(() => {
     const fetchBuyers = async () => {
@@ -191,7 +187,7 @@ export function ComprasTable({
                             variant={"outline"}
                             size="sm"
                             className={cn(
-                              "w-full h-8 justify-start text-left font-normal px-2 text-xs",
+                              "h-8 w-full justify-start px-2 text-left font-normal text-xs",
                               !filters.created_from && !filters.created_to && "text-muted-foreground",
                             )}
                           >
@@ -206,7 +202,7 @@ export function ComprasTable({
                                 format(parseISO(filters.created_from), "dd/MM/yy")
                               )
                             ) : (
-                              <span className="font-bold text-foreground text-base">Fecha</span>
+                              <span className="font-bold text-base text-foreground">Fecha</span>
                             )}
                           </Button>
                         </PopoverTrigger>
@@ -240,7 +236,7 @@ export function ComprasTable({
                 </TableHead>
                 <TableHead className="align-middle">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-foreground text-base whitespace-nowrap">Orden</span>
+                    <span className="whitespace-nowrap font-bold text-base text-foreground">Orden</span>
                   </div>
                 </TableHead>
                 <TableHead className="align-middle">
@@ -249,13 +245,13 @@ export function ComprasTable({
                       placeholder={isRestricted ? "Tu Establecimiento" : "Unidad requirente"}
                       value={filters.unidad_requirente_filter || ""}
                       onChange={(value) => updateFilter("unidad_requirente_filter", value)}
-                      className="h-8 w-full font-bold text-foreground text-base"
+                      className="h-8 w-full font-bold text-base text-foreground"
                       disabled={isRestricted}
                     />
                   </div>
                 </TableHead>
                 <TableHead className="align-middle">
-                  <div className="flex items-center gap-2 font-bold text-foreground text-base">
+                  <div className="flex items-center gap-2 font-bold text-base text-foreground">
                     <DebouncedInput
                       placeholder="Descripción"
                       value={filters.descripcion_filter || ""}
@@ -270,7 +266,7 @@ export function ComprasTable({
                       value={filters.estado_filter || undefined}
                       onValueChange={(value) => updateFilter("estado_filter", value)}
                     >
-                      <SelectTrigger className="h-8 w-full font-bold text-foreground text-base">
+                      <SelectTrigger className="h-8 w-full font-bold text-base text-foreground">
                         <SelectValue placeholder="Estado" />
                       </SelectTrigger>
                       <SelectContent>
@@ -283,12 +279,12 @@ export function ComprasTable({
                     </Select>
                   </div>
                 </TableHead>
-                <TableHead className="align-middle w-[150px]">
+                <TableHead className="w-[150px] align-middle">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-foreground text-base">Órdenes de Compra</span>
+                    <span className="font-bold text-base text-foreground">Órdenes de Compra</span>
                   </div>
                 </TableHead>
-                <TableHead className="w-[60px] align-middle px-1">
+                <TableHead className="w-[60px] px-1 align-middle">
                   <div className="flex items-center justify-center">
                     <Select
                       value={filters.comprador_filter || undefined}
@@ -296,8 +292,8 @@ export function ComprasTable({
                     >
                       <SelectTrigger
                         className={cn(
-                          "h-8 w-8 p-0 border-transparent hover:bg-muted/50 focus:ring-0 flex justify-center items-center shadow-none",
-                          filters.comprador_filter && "text-primary bg-primary/10",
+                          "flex h-8 w-8 items-center justify-center border-transparent p-0 shadow-none hover:bg-muted/50 focus:ring-0",
+                          filters.comprador_filter && "bg-primary/10 text-primary",
                         )}
                       >
                         <UserIcon className="h-4 w-4" />
@@ -381,10 +377,10 @@ export function ComprasTable({
                                 const isDelayed = isPast(fechaEntrega) && !isSameDay(fechaEntrega, now);
 
                                 statusElement = (
-                                  <div className="flex flex-col items-end leading-tight min-w-[80px]">
+                                  <div className="flex min-w-[80px] flex-col items-end leading-tight">
                                     <span
                                       className={cn(
-                                        "text-[10px] font-bold uppercase",
+                                        "font-bold text-[10px] uppercase",
                                         isDelayed ? "text-red-500" : "text-green-600",
                                       )}
                                     >
@@ -401,17 +397,17 @@ export function ComprasTable({
                             return (
                               <div
                                 key={oc.id}
-                                className="flex items-center justify-between gap-2 p-1 rounded hover:bg-muted/50 border border-transparent hover:border-border transition-colors group w-full"
+                                className="group flex w-full items-center justify-between gap-2 rounded border border-transparent p-1 transition-colors hover:border-border hover:bg-muted/50"
                               >
-                                <div className="flex items-center gap-1 min-w-[80px]">
-                                  <span className="text-xs font-medium group-hover:underline decoration-dotted underline-offset-2">
+                                <div className="flex min-w-[80px] items-center gap-1">
+                                  <span className="font-medium text-xs decoration-dotted underline-offset-2 group-hover:underline">
                                     {oc.oc}
                                   </span>
                                   {oc.oc_adjunto && (
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="h-5 w-5 opacity-50 group-hover:opacity-100 transition-opacity"
+                                      className="h-5 w-5 opacity-50 transition-opacity group-hover:opacity-100"
                                       title={`Ver Adjunto OC ${oc.oc}`}
                                       onClick={(e) => {
                                         e.stopPropagation();
@@ -483,7 +479,7 @@ export function ComprasTable({
                                 Editar
                               </DropdownMenuItem>
                             )}
-                            {currentUser && currentUser.role.includes("Encargado compras") && (
+                            {currentUser?.role.includes("Encargado compras") && (
                               <DropdownMenuItem onClick={() => setDuplicatingCompra(compra)}>
                                 <FileText className="mr-2 h-4 w-4" />
                                 Duplicar
@@ -573,7 +569,7 @@ export function ComprasTable({
         <Dialog open={!!viewingCompra} onOpenChange={(open) => !open && setViewingCompra(null)}>
           <DialogContent
             aria-describedby="ficha-compra-desc"
-            className="!max-w-[60vw] !w-[60vw] max-h-[90vh] overflow-y-auto print:max-w-none print:max-h-none print:overflow-visible print:border-0 print:shadow-none print:bg-white print:static print:transform-none"
+            className="!max-w-[60vw] !w-[60vw] max-h-[90vh] overflow-y-auto print:static print:max-h-none print:max-w-none print:transform-none print:overflow-visible print:border-0 print:bg-white print:shadow-none"
           >
             <DialogTitle className="sr-only">Ficha de Compra</DialogTitle>
             <DialogDescription id="ficha-compra-desc" className="sr-only">

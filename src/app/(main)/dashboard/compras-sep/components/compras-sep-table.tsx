@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ interface ComprasSepTableProps {
 
 export function ComprasSepTable({ data, onDataChanged }: ComprasSepTableProps) {
   const [acciones, setAcciones] = useState<Accion[]>([]);
-  const [loadingAcciones, setLoadingAcciones] = useState(false);
+  const [_loadingAcciones, setLoadingAcciones] = useState(false);
 
   // Initial load of actions
   useEffect(() => {
@@ -187,7 +187,7 @@ function ActionSelector({
                   <Check className={cn("mr-2 h-4 w-4", compra.accion === accion.id ? "opacity-100" : "opacity-0")} />
                   <div className="flex flex-col">
                     <span>{accion.nombre}</span>
-                    {accion.dimension && <span className="text-xs text-muted-foreground">{accion.dimension}</span>}
+                    {accion.dimension && <span className="text-muted-foreground text-xs">{accion.dimension}</span>}
                   </div>
                 </CommandItem>
               ))}

@@ -76,7 +76,7 @@ export function RrhhSepDialog({ open, onOpenChange, record, onSuccess }: RrhhSep
         });
       }
     }
-  }, [open, record, form]);
+  }, [open, record, form, loadSchools]);
 
   const loadSchools = async () => {
     setLoadingSchools(true);

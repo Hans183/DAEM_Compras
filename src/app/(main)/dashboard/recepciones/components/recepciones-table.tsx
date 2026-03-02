@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 
 import { format, parseISO } from "date-fns";
 import {
-  AlertTriangle,
   Ban,
   Calendar as CalendarIcon,
   Eye,
@@ -98,7 +97,7 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
       fetchRecepciones();
     }, 500);
     return () => clearTimeout(timeout);
-  }, [searchTerm, filterDate]);
+  }, [fetchRecepciones]);
 
   const handleSuccess = () => {
     fetchRecepciones();
@@ -108,7 +107,7 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative max-w-sm flex-1">
           <Input
             placeholder="Buscar por Folio, OC, N° Doc..."
             value={searchTerm}
@@ -167,14 +166,14 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
             ) : (
               recepciones.map((recepcion) => (
                 <TableRow key={recepcion.id}>
-                  <TableCell className="font-mono font-medium">{recepcion.folio}</TableCell>
+                  <TableCell className="font-medium font-mono">{recepcion.folio}</TableCell>
                   <TableCell>{format(parseISO(recepcion.fecha_recepcion), "dd/MM/yyyy")}</TableCell>
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="font-medium text-xs">
                         {recepcion.expand?.orden_compra?.oc || recepcion.expand?.compra?.numero_ordinario}
                       </span>
-                      <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">
+                      <span className="max-w-[150px] truncate text-[10px] text-muted-foreground">
                         {recepcion.expand?.compra?.descripcion}
                       </span>
                     </div>
@@ -184,8 +183,8 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="text-xs font-medium">{recepcion.documento_tipo}</span>
-                      <span className="text-xs text-muted-foreground">{recepcion.documento_numero || "-"}</span>
+                      <span className="font-medium text-xs">{recepcion.documento_tipo}</span>
+                      <span className="text-muted-foreground text-xs">{recepcion.documento_numero || "-"}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -198,8 +197,8 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
                       variant={recepcion.estado === "Anulado" ? "destructive" : "outline"}
                       className={cn(
                         recepcion.estado === "Anulado"
-                          ? "bg-red-100 text-red-800 hover:bg-red-200 border-red-200"
-                          : "bg-green-100 text-green-800 hover:bg-green-200 border-green-200",
+                          ? "border-red-200 bg-red-100 text-red-800 hover:bg-red-200"
+                          : "border-green-200 bg-green-100 text-green-800 hover:bg-green-200",
                       )}
                     >
                       {recepcion.estado || "Conforme"}
@@ -224,7 +223,7 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
                         {recepcion.adjuntos && recepcion.adjuntos.length > 0 && (
                           <DropdownMenuItem
                             onClick={() => {
-                              const url = getRecepcionFileUrl(recepcion, recepcion.adjuntos![0]);
+                              const url = getRecepcionFileUrl(recepcion, recepcion.adjuntos?.[0]);
                               if (url) window.open(url, "_blank");
                             }}
                           >
@@ -269,7 +268,7 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
       </div>
 
       {/* Dialogs */}
-      {viewingRecepcion && viewingRecepcion.expand?.compra && (
+      {viewingRecepcion?.expand?.compra && (
         <Dialog open={!!viewingRecepcion} onOpenChange={(open) => !open && setViewingRecepcion(null)}>
           <DialogContent className="!max-w-[60vw] !w-[60vw] max-h-[90vh] overflow-y-auto">
             <DialogTitle className="sr-only">Detalle de Compra</DialogTitle>
@@ -285,7 +284,7 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
         </Dialog>
       )}
 
-      {editingRecepcion && editingRecepcion.expand?.compra && (
+      {editingRecepcion?.expand?.compra && (
         <RecepcionDialog
           compra={editingRecepcion.expand.compra}
           open={!!editingRecepcion}

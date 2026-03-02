@@ -35,7 +35,7 @@ interface OperationalFunnelChartProps {
 
 export function OperationalFunnelChart({ data }: OperationalFunnelChartProps) {
   return (
-    <Card className="flex flex-col h-full">
+    <Card className="flex h-full flex-col">
       <CardHeader className="items-start pb-0">
         <CardTitle>Embudo de Operaciones</CardTitle>
         <CardDescription>Flujo de solicitudes desde creación hasta término</CardDescription>

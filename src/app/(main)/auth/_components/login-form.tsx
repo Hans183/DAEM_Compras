@@ -25,7 +25,7 @@ const FormSchema = z.object({
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
-  const router = useRouter();
+  const _router = useRouter();
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),

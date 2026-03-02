@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { ListResult } from "pocketbase";
 
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getRequirentes } from "@/services/requirentes.service";
 import { getRrhhSepList } from "@/services/rrhh-sep.service";
 import type { Requirente } from "@/types/requirente";
-import type { GetRrhhSepParams, RrhhSep } from "@/types/rrhh-sep";
+import type { RrhhSep } from "@/types/rrhh-sep";
 import { MONTHS } from "@/types/rrhh-sep";
 
 import { RrhhSepDialog } from "./components/rrhh-sep-dialog";
@@ -81,7 +81,7 @@ export default function RrhhSepPage() {
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">RRHH SEP</h1>
+          <h1 className="font-bold text-3xl tracking-tight">RRHH SEP</h1>
           <p className="text-muted-foreground">Gestiona el gasto en personal por establecimiento</p>
         </div>
         <Button onClick={() => setIsCreateOpen(true)}>
@@ -90,7 +90,7 @@ export default function RrhhSepPage() {
         </Button>
       </div>
 
-      <div className="flex items-center gap-4 flex-wrap">
+      <div className="flex flex-wrap items-center gap-4">
         <div className="w-[120px]">
           <Input
             type="number"

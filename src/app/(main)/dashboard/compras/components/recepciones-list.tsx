@@ -7,11 +7,9 @@ import { Calendar, ChevronDown, ChevronRight, FileText, Loader2, Package, User a
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 import { getRecepcionesByCompra, getRecepcionFileUrl } from "@/services/recepciones.service";
 import type { Recepcion } from "@/types/recepcion";
 
@@ -45,7 +43,7 @@ export function RecepcionesList({ compraId, refreshTrigger }: RecepcionesListPro
     if (compraId) {
       fetchRecepciones();
     }
-  }, [compraId, refreshTrigger]);
+  }, [compraId, fetchRecepciones]);
 
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
@@ -61,9 +59,9 @@ export function RecepcionesList({ compraId, refreshTrigger }: RecepcionesListPro
 
   if (recepciones.length === 0) {
     return (
-      <div className="text-center p-8 border rounded-md border-dashed bg-muted/30">
-        <Package className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-        <p className="text-sm text-muted-foreground">No hay recepciones registradas para esta compra.</p>
+      <div className="rounded-md border border-dashed bg-muted/30 p-8 text-center">
+        <Package className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+        <p className="text-muted-foreground text-sm">No hay recepciones registradas para esta compra.</p>
       </div>
     );
   }
@@ -72,13 +70,13 @@ export function RecepcionesList({ compraId, refreshTrigger }: RecepcionesListPro
     <div className="space-y-4">
       {recepciones.map((recepcion) => (
         <Card key={recepcion.id} className="overflow-hidden">
-          <CardHeader className="p-4 bg-muted/10 pb-2">
+          <CardHeader className="bg-muted/10 p-4 pb-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="font-mono text-sm bg-background">
+                <Badge variant="outline" className="bg-background font-mono text-sm">
                   {recepcion.folio}
                 </Badge>
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <span className="flex items-center gap-1 text-muted-foreground text-xs">
                   <Calendar className="h-3 w-3" />
                   {format(parseISO(recepcion.fecha_recepcion), "dd/MM/yyyy")}
                 </span>
@@ -91,7 +89,7 @@ export function RecepcionesList({ compraId, refreshTrigger }: RecepcionesListPro
                 )}
               </Button>
             </div>
-            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm mt-2 text-muted-foreground">
+            <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground text-sm">
               <div className="flex items-center gap-1">
                 <span className="font-medium text-foreground">{recepcion.documento_tipo}</span>
                 {recepcion.documento_numero && <span>#{recepcion.documento_numero}</span>}
@@ -109,7 +107,7 @@ export function RecepcionesList({ compraId, refreshTrigger }: RecepcionesListPro
             <CollapsibleContent>
               <CardContent className="p-0">
                 {recepcion.observaciones && (
-                  <div className="px-4 py-2 bg-yellow-50/50 text-sm border-b">
+                  <div className="border-b bg-yellow-50/50 px-4 py-2 text-sm">
                     <span className="font-semibold text-yellow-700">Obs:</span> {recepcion.observaciones}
                   </div>
                 )}
@@ -132,7 +130,7 @@ export function RecepcionesList({ compraId, refreshTrigger }: RecepcionesListPro
                       {(!recepcion.expand?.["recepcion_detalles(recepcion)"] ||
                         recepcion.expand?.["recepcion_detalles(recepcion)"].length === 0) && (
                         <TableRow>
-                          <TableCell colSpan={2} className="text-center text-muted-foreground py-4">
+                          <TableCell colSpan={2} className="py-4 text-center text-muted-foreground">
                             Sin detalles
                           </TableCell>
                         </TableRow>
@@ -142,13 +140,13 @@ export function RecepcionesList({ compraId, refreshTrigger }: RecepcionesListPro
                 </div>
 
                 {recepcion.adjuntos && recepcion.adjuntos.length > 0 && (
-                  <div className="bg-muted/10 px-4 py-2 border-t flex gap-2 overflow-x-auto">
+                  <div className="flex gap-2 overflow-x-auto border-t bg-muted/10 px-4 py-2">
                     {recepcion.adjuntos.map((adjunto, idx) => (
                       <Button
                         key={idx}
                         variant="outline"
                         size="sm"
-                        className="h-7 text-xs flex items-center gap-1"
+                        className="flex h-7 items-center gap-1 text-xs"
                         onClick={() => {
                           const url = getRecepcionFileUrl(recepcion, adjunto);
                           if (url) window.open(url, "_blank");

@@ -1,6 +1,5 @@
 import { z } from "zod";
 
-import type { UserRole } from "@/types/user";
 import { USER_ROLES } from "@/types/user";
 
 // Base schema without password fields

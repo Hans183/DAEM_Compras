@@ -64,7 +64,7 @@ export default function RequirentesPage() {
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Unidades Requirentes</h1>
+          <h1 className="font-bold text-3xl tracking-tight">Unidades Requirentes</h1>
           <p className="text-muted-foreground">Gestiona las unidades requirentes del sistema</p>
         </div>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
@@ -74,8 +74,8 @@ export default function RequirentesPage() {
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="relative max-w-sm flex-1">
+          <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar unidades requirentes..."
             value={search}

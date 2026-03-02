@@ -98,7 +98,7 @@ export function ProfileForm() {
   const currentAvatarUrl = avatarPreview || getUserAvatarUrl(user);
 
   return (
-    <div className="flex justify-center w-full">
+    <div className="flex w-full justify-center">
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle>Información del Perfil</CardTitle>
@@ -181,11 +181,11 @@ export function ProfileForm() {
 
               {/* Role Field - Read Only */}
               <div className="space-y-2">
-                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                <label className="font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                   Rol
                 </label>
-                <Input value={user.role} disabled className="bg-muted cursor-not-allowed" />
-                <p className="text-sm text-muted-foreground">El rol no puede ser modificado</p>
+                <Input value={user.role} disabled className="cursor-not-allowed bg-muted" />
+                <p className="text-muted-foreground text-sm">El rol no puede ser modificado</p>
               </div>
 
               <Separator />

@@ -18,36 +18,36 @@ export function RecepcionPrintTemplate({ recepcion, label }: RecepcionPrintTempl
   const ordinario = compra?.numero_ordinario || "N/A";
 
   return (
-    <div className="w-[210mm] h-[279mm] bg-white p-8 mx-auto relative text-sm border-b-2 border-dashed last:border-0 print:border-none print:h-screen print:w-screen">
+    <div className="relative mx-auto h-[279mm] w-[210mm] border-b-2 border-dashed bg-white p-8 text-sm last:border-0 print:h-screen print:w-screen print:border-none">
       {/* Header */}
-      <div className="flex gap-6 items-start mb-2 border-b pb-2">
+      <div className="mb-2 flex items-start gap-6 border-b pb-2">
         <div className="max-w-[70%]">
-          <h1 className="text-2xl font-bold uppercase tracking-wide">
+          <h1 className="font-bold text-2xl uppercase tracking-wide">
             Recepción de bienes - servicios y despacho de materiales
           </h1>
           <div className="mt-2">
-            <p className="text-xs text-gray-500 font-bold uppercase">
+            <p className="font-bold text-gray-500 text-xs uppercase">
               Departamento Administrativo de Educación Municipal
             </p>
-            <p className="text-xs text-gray-500">Unidad de Contabilidad y Finanazas</p>
+            <p className="text-gray-500 text-xs">Unidad de Contabilidad y Finanazas</p>
           </div>
         </div>
         <div className="text-center">
-          <div className="border border-black rounded">
-            <p className="text-xs font-bold uppercase">Folio Recepción</p>
-            <p className="text-xl font-mono font-bold text-red-600">{recepcion.folio}</p>
+          <div className="rounded border border-black">
+            <p className="font-bold text-xs uppercase">Folio Recepción</p>
+            <p className="font-bold font-mono text-red-600 text-xl">{recepcion.folio}</p>
           </div>
-          <div className="mt-2 inline-block border-2 border-red-500 px-3 py-1 rounded">
-            <p className="text-red-600 font-bold uppercase text-sm tracking-wider whitespace-nowrap">{label}</p>
+          <div className="mt-2 inline-block rounded border-2 border-red-500 px-3 py-1">
+            <p className="whitespace-nowrap font-bold text-red-600 text-sm uppercase tracking-wider">{label}</p>
           </div>
-          <p className="font-medium whitespace-nowrap">
+          <p className="whitespace-nowrap font-medium">
             Fecha: {format(parseISO(recepcion.fecha_recepcion), "dd 'de' MMMM 'de' yyyy", { locale: es })}
           </p>
         </div>
       </div>
 
       {/* Info quien envia */}
-      <div className="grid grid-cols-1 gap-x-8 gap-y-4 border p-4 rounded-sm bg-gray-50/30">
+      <div className="grid grid-cols-1 gap-x-8 gap-y-4 rounded-sm border bg-gray-50/30 p-4">
         <div>
           <p className="font-bold uppercase">De: Cristian Oyarzo Ulloa</p>
           <p className="uppercase"> A: Jefe de Departamento Contabilidad y Finanzas DAEM.</p>
@@ -55,29 +55,29 @@ export function RecepcionPrintTemplate({ recepcion, label }: RecepcionPrintTempl
         </div>
 
         {/* Info compra */}
-        <div className="grid grid-cols-4 gap-x-8 gap-y-2 mb-0 border p-2 rounded-sm bg-gray-50/30">
+        <div className="mb-0 grid grid-cols-4 gap-x-8 gap-y-2 rounded-sm border bg-gray-50/30 p-2">
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase">Orden de Compra</p>
+            <p className="font-bold text-gray-500 text-xs uppercase">Orden de Compra</p>
             <p className="font-medium">{recepcion.expand?.orden_compra?.oc || "No Asociada"}</p>
             {recepcion.expand?.orden_compra?.oc_fecha && (
-              <p className="text-xs font-bold text-gray-500 uppercase">
+              <p className="font-bold text-gray-500 text-xs uppercase">
                 {format(parseISO(recepcion.expand.orden_compra.oc_fecha), "dd/MM/yyyy")}
               </p>
             )}
           </div>
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase">Unidad Requirente</p>
+            <p className="font-bold text-gray-500 text-xs uppercase">Unidad Requirente</p>
             <p className="font-medium">{unidad}</p>
-            <p className="text-xs font-bold text-gray-500 uppercase">Ordinario N° {ordinario}</p>
+            <p className="font-bold text-gray-500 text-xs uppercase">Ordinario N° {ordinario}</p>
           </div>
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase">Subvención</p>
+            <p className="font-bold text-gray-500 text-xs uppercase">Subvención</p>
             <p className="font-medium">{subvencion}</p>
           </div>
           <div>
-            <p className="text-xs font-bold text-gray-500 uppercase whitespace-nowrap">Documento Respaldo</p>
-            <p className="text-xs font-medium uppercase">{recepcion.documento_tipo} </p>
-            <p className="text-xs font-bold text-gray-500 uppercase">N° {recepcion.documento_numero || "Sin Numero"}</p>
+            <p className="whitespace-nowrap font-bold text-gray-500 text-xs uppercase">Documento Respaldo</p>
+            <p className="font-medium text-xs uppercase">{recepcion.documento_tipo} </p>
+            <p className="font-bold text-gray-500 text-xs uppercase">N° {recepcion.documento_numero || "Sin Numero"}</p>
           </div>
         </div>
 
@@ -85,9 +85,9 @@ export function RecepcionPrintTemplate({ recepcion, label }: RecepcionPrintTempl
         <div className="min-h-[300px]">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-100 border-b border-gray-300">
-                <th className="py-1 px-3 text-left w-20 text-xs font-bold uppercase text-gray-600">Cantidad</th>
-                <th className="py-1 px-3 text-left text-xs font-bold uppercase text-gray-600">
+              <tr className="border-gray-300 border-b bg-gray-100">
+                <th className="w-20 px-3 py-1 text-left font-bold text-gray-600 text-xs uppercase">Cantidad</th>
+                <th className="px-3 py-1 text-left font-bold text-gray-600 text-xs uppercase">
                   Descripción del Artículo / Servicio
                 </th>
               </tr>
@@ -95,9 +95,9 @@ export function RecepcionPrintTemplate({ recepcion, label }: RecepcionPrintTempl
             <tbody>
               {detalles.length > 0 ? (
                 detalles.map((detalle, index) => (
-                  <tr key={detalle.id || index} className="border-b border-gray-200">
-                    <td className="py-1 px-3 align-top text-center font-mono">{detalle.cantidad}</td>
-                    <td className="py-1 px-3 align-top whitespace-nowrap">{detalle.detalle}</td>
+                  <tr key={detalle.id || index} className="border-gray-200 border-b">
+                    <td className="px-3 py-1 text-center align-top font-mono">{detalle.cantidad}</td>
+                    <td className="whitespace-nowrap px-3 py-1 align-top">{detalle.detalle}</td>
                   </tr>
                 ))
               ) : (
@@ -113,23 +113,23 @@ export function RecepcionPrintTemplate({ recepcion, label }: RecepcionPrintTempl
 
         {/* Observations */}
         <div className="py-1">
-          <p className="text-xs font-bold text-gray-500 uppercase">Observaciones</p>
-          <div className="border rounded p-2 min-h-[40px] text-gray-700 bg-gray-50">
+          <p className="font-bold text-gray-500 text-xs uppercase">Observaciones</p>
+          <div className="min-h-[40px] rounded border bg-gray-50 p-2 text-gray-700">
             {recepcion.observaciones || "Sin observaciones."}
           </div>
         </div>
 
         {/* Conformidad */}
-        <div className="mb-4 border-y-2 border-gray-200 py-1">
-          <p className="text-xs font-bold uppercase text-center mb-1">Declaración de Conformidad</p>
+        <div className="mb-4 border-gray-200 border-y-2 py-1">
+          <p className="mb-1 text-center font-bold text-xs uppercase">Declaración de Conformidad</p>
           <div className="flex justify-center gap-20">
             <div className="flex items-center gap-3">
-              <div className="w-5 h-5 border-2 border-black bg-white" />
-              <span className="text-xs font-bold uppercase">Se da conformidad</span>
+              <div className="h-5 w-5 border-2 border-black bg-white" />
+              <span className="font-bold text-xs uppercase">Se da conformidad</span>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-5 h-5 border-2 border-black bg-white" />
-              <span className="text-xs font-bold uppercase">No se da conformidad</span>
+              <div className="h-5 w-5 border-2 border-black bg-white" />
+              <span className="font-bold text-xs uppercase">No se da conformidad</span>
             </div>
           </div>
         </div>
@@ -137,19 +137,19 @@ export function RecepcionPrintTemplate({ recepcion, label }: RecepcionPrintTempl
         {/* Signatures */}
         <div className="grid grid-cols-3 gap-12">
           <div className="text-center">
-            <div className="border-b border-black h-6" />
+            <div className="h-6 border-black border-b" />
             <p className="font-bold text-sm uppercase">Nombre, Firma y Timbre</p>
-            <p className="text-xs text-gray-500">Director del Establecimiento</p>
+            <p className="text-gray-500 text-xs">Director del Establecimiento</p>
           </div>
           <div className="text-center">
-            <div className="border-b border-black h-6" />
+            <div className="h-6 border-black border-b" />
             <p className="font-bold text-sm uppercase">Revisión Bodega</p>
-            <p className="text-xs text-gray-500">DAEM</p>
+            <p className="text-gray-500 text-xs">DAEM</p>
           </div>
           <div className="text-center">
-            <div className="border-b border-black h-6" />
+            <div className="h-6 border-black border-b" />
             <p className="font-bold text-sm uppercase">Encargado Bodega</p>
-            <p className="text-xs text-gray-500">DAEM</p>
+            <p className="text-gray-500 text-xs">DAEM</p>
           </div>
         </div>
       </div>

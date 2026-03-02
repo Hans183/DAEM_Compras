@@ -112,7 +112,7 @@ export default function ComprasSepPage() {
   return (
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Compras SEP</h1>
+        <h1 className="font-bold text-2xl tracking-tight">Compras SEP</h1>
       </div>
 
       {loading && !data ? (
@@ -124,7 +124,7 @@ export default function ComprasSepPage() {
           <ComprasSepTable data={data?.items || []} onDataChanged={loadCompras} />
 
           {data && data.totalPages > 1 && (
-            <div className="flex justify-center mt-4">
+            <div className="mt-4 flex justify-center">
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>

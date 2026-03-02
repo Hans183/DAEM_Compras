@@ -39,13 +39,13 @@ export function SpendingBySubventionChart({ data }: SpendingBySubventionChartPro
   }, [data]);
 
   const chartData = React.useMemo(() => {
-    return data.map((item, index) => ({
+    return data.map((item, _index) => ({
       ...item,
       fill: `var(--color-${item.name})`,
     }));
   }, [data]);
 
-  const totalAmount = React.useMemo(() => {
+  const _totalAmount = React.useMemo(() => {
     return data.reduce((acc, curr) => acc + curr.amount, 0);
   }, [data]);
 
@@ -65,7 +65,7 @@ export function SpendingBySubventionChart({ data }: SpendingBySubventionChartPro
                   if (viewBox && "cx" in viewBox && "cy" in viewBox) {
                     return (
                       <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                        <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-2xl font-bold">
+                        <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground font-bold text-2xl">
                           {data.length}
                         </tspan>
                         <tspan x={viewBox.cx} y={(viewBox.cy || 0) + 24} className="fill-muted-foreground text-xs">

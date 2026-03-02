@@ -22,14 +22,14 @@ export function ProcessingTimeChart({ data }: ProcessingTimeChartProps) {
   const hasData = data && data.length > 0;
 
   return (
-    <Card className="flex flex-col h-full">
+    <Card className="flex h-full flex-col">
       <CardHeader className="items-start pb-0">
         <CardTitle>Tiempos de Gestión</CardTitle>
         <CardDescription>Promedio de días desde Solicitud hasta Orden de Compra (Mensual)</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-4">
         {hasData ? (
-          <ChartContainer config={chartConfig} className="w-full h-[300px]">
+          <ChartContainer config={chartConfig} className="h-[300px] w-full">
             <BarChart accessibilityLayer data={data} margin={{ top: 20 }}>
               <CartesianGrid vertical={false} />
               <XAxis

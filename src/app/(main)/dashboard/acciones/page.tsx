@@ -44,11 +44,11 @@ export default function AccionesPage() {
 
   // Filter states
   const [establecimientos, setEstablecimientos] = useState<Requirente[]>([]);
-  const [dimensiones, setDimensiones] = useState<Dimension[]>([]);
-  const [subdimenciones, setSubdimenciones] = useState<Subdimencion[]>([]);
+  const [_dimensiones, setDimensiones] = useState<Dimension[]>([]);
+  const [_subdimenciones, setSubdimenciones] = useState<Subdimencion[]>([]);
 
   const [selectedEstablecimiento, setSelectedEstablecimiento] = useState<string>("");
-  const [selectedDimension, setSelectedDimension] = useState<string>("");
+  const [selectedDimension, _setSelectedDimension] = useState<string>("");
   const [selectedSubdimencion, setSelectedSubdimencion] = useState<string>("");
   const [openCombobox, setOpenCombobox] = useState(false);
 
@@ -147,7 +147,7 @@ export default function AccionesPage() {
       {/* Top Header Section */}
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-2">
-          <h1 className="text-xl font-bold tracking-tight">Apartado de Acciones</h1>
+          <h1 className="font-bold text-xl tracking-tight">Apartado de Acciones</h1>
           <div className="flex items-center gap-2">
             <span className="font-semibold text-sm">PERIODO</span>
             <Select
@@ -157,7 +157,7 @@ export default function AccionesPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-7 text-xs w-[120px]">
+              <SelectTrigger className="h-7 w-[120px] text-xs">
                 <Calendar className="mr-2 h-3 w-3" />
                 <SelectValue placeholder="Año" />
               </SelectTrigger>
@@ -188,9 +188,9 @@ export default function AccionesPage() {
       </div>
 
       {/* Center School Search Card */}
-      <div className="flex justify-center my-2">
-        <div className="w-[500px] border rounded-md p-6 flex flex-col items-center gap-6 relative mt-4">
-          <div className="absolute -top-3 bg-background px-2 text-xs text-muted-foreground w-max text-center">
+      <div className="my-2 flex justify-center">
+        <div className="relative mt-4 flex w-[500px] flex-col items-center gap-6 rounded-md border p-6">
+          <div className="-top-3 absolute w-max bg-background px-2 text-center text-muted-foreground text-xs">
             Buscar Colegio
           </div>
 
@@ -201,7 +201,7 @@ export default function AccionesPage() {
                   variant="outline"
                   role="combobox"
                   aria-expanded={openCombobox}
-                  className="w-full h-10 justify-between font-normal bg-background"
+                  className="h-10 w-full justify-between bg-background font-normal"
                 >
                   <span className="truncate">
                     {selectedEstablecimiento
@@ -262,11 +262,11 @@ export default function AccionesPage() {
             </Popover>
           </div>
 
-          <Button className="font-semibold w-[240px]" size="lg" onClick={loadData}>
+          <Button className="w-[240px] font-semibold" size="lg" onClick={loadData}>
             CONSULTAR ACCIONES
           </Button>
 
-          <div className="text-sm mt-2">
+          <div className="mt-2 text-sm">
             Colegio consultado:{" "}
             <span className="font-semibold text-muted-foreground">
               {selectedEstablecimiento === "all" || !selectedEstablecimiento
@@ -278,7 +278,7 @@ export default function AccionesPage() {
       </div>
 
       {/* Bottom Actions Row */}
-      <div className="flex items-center justify-between mt-4">
+      <div className="mt-4 flex items-center justify-between">
         <div className="relative w-[600px]">
           <Input
             placeholder="Buscar"
@@ -287,11 +287,11 @@ export default function AccionesPage() {
               setSearchTerm(e.target.value);
               setPage(1);
             }}
-            className="pr-10 h-10 bg-muted/20"
+            className="h-10 bg-muted/20 pr-10"
           />
-          <Search className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute top-3 right-3 h-4 w-4 text-muted-foreground" />
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} variant="secondary" className="font-semibold px-6">
+        <Button onClick={() => setIsCreateOpen(true)} variant="secondary" className="px-6 font-semibold">
           <Plus className="mr-2 h-4 w-4" />
           AGREGAR ACCIÓN
         </Button>

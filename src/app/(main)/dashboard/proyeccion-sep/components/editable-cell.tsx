@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
@@ -32,7 +32,7 @@ export function EditableCell({ value, onSave, type = "currency" }: EditableCellP
     const clean = inputValue.replace(/[$\s.]/g, "").replace(",", ".");
 
     let num = parseFloat(clean);
-    if (isNaN(num)) num = 0;
+    if (Number.isNaN(num)) num = 0;
 
     // Force integer
     num = Math.round(num);
@@ -57,26 +57,27 @@ export function EditableCell({ value, onSave, type = "currency" }: EditableCellP
         onChange={(e) => setInputValue(e.target.value)}
         onBlur={handleSave}
         onKeyDown={handleKeyDown}
-        className="h-7 text-xs px-2 w-full"
+        className="h-7 w-full px-2 text-xs"
         placeholder="0"
       />
     );
   }
 
   return (
-    <div
+    <button
+      type="button"
       onClick={handleStartEditing}
-      className="cursor-pointer hover:bg-muted p-1 text-xs rounded truncate transition-colors"
+      className="w-full text-left cursor-pointer truncate rounded p-1 text-xs transition-colors hover:bg-muted"
       title="Click to edit"
     >
       {type === "currency"
         ? formatCurrency(value, {
-            locale: "es-CL",
-            currency: "CLP",
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          })
+          locale: "es-CL",
+          currency: "CLP",
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        })
         : value}
-    </div>
+    </button>
   );
 }

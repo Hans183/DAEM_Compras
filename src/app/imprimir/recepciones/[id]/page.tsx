@@ -59,7 +59,7 @@ export default function RecepcionPrintPage() {
   return (
     <div
       id="printable-sheet"
-      className="bg-gray-100 min-h-screen p-8 print:bg-white print:p-0 print:m-0 print:absolute print:top-0 print:left-0"
+      className="min-h-screen bg-gray-100 p-8 print:absolute print:top-0 print:left-0 print:m-0 print:bg-white print:p-0"
     >
       <style jsx global>{`
                 @media print {
@@ -83,7 +83,7 @@ export default function RecepcionPrintPage() {
                 }
             `}</style>
 
-      <div className="mx-auto max-w-[210mm] space-y-8 print:space-y-0 text-black">
+      <div className="mx-auto max-w-[210mm] space-y-8 text-black print:space-y-0">
         {/* 1. ORIGINAL */}
         <div className="page-break">
           <RecepcionPrintTemplate recepcion={recepcion} label="ORIGINAL" />

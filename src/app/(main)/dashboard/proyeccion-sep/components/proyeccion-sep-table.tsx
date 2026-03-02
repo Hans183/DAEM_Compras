@@ -184,11 +184,11 @@ export function ProyeccionSepTable({
 
     return (
       <TableHead className="relative px-0 py-0" style={{ width: columnWidths[key] }}>
-        <div className="flex items-center h-full w-full">
+        <div className="flex h-full w-full items-center">
           <Button
             variant="ghost"
             onClick={() => handleSort(key)}
-            className="hover:bg-transparent px-2 font-medium text-xs h-auto min-h-8 w-full justify-center whitespace-normal text-center py-1"
+            className="h-auto min-h-8 w-full justify-center whitespace-normal px-2 py-1 text-center font-medium text-xs hover:bg-transparent"
           >
             <span className="flex-1 text-center">{label}</span>
             <SortIcon column={key} />
@@ -196,7 +196,7 @@ export function ProyeccionSepTable({
           {/* Resizer Handle */}
           <div
             onMouseDown={(e) => handleResizeStart(e, key)}
-            className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/50"
+            className="absolute top-0 right-0 h-full w-1 cursor-col-resize hover:bg-primary/50"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
@@ -234,7 +234,7 @@ export function ProyeccionSepTable({
       <div className="flex justify-end">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="ml-auto h-8 flex">
+            <Button variant="outline" size="sm" className="ml-auto flex h-8">
               <Settings2 className="mr-2 h-4 w-4" />
               Columnas
             </Button>
@@ -256,23 +256,23 @@ export function ProyeccionSepTable({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="rounded-md border overflow-x-auto">
+      <div className="overflow-x-auto rounded-md border">
         <Table className="w-full table-fixed">
           <TableHeader>
             <TableRow>
-              <TableHead className="relative px-0 py-0" style={{ width: columnWidths["nombre"] }}>
-                <div className="flex items-center h-full w-full">
+              <TableHead className="relative px-0 py-0" style={{ width: columnWidths.nombre }}>
+                <div className="flex h-full w-full items-center">
                   <Button
                     variant="ghost"
                     onClick={() => handleSort("nombre")}
-                    className="hover:bg-transparent px-2 font-medium text-xs h-8 w-full justify-start truncate"
+                    className="h-8 w-full justify-start truncate px-2 font-medium text-xs hover:bg-transparent"
                   >
                     Establecimiento
                     <SortIcon column="nombre" />
                   </Button>
                   <div
                     onMouseDown={(e) => handleResizeStart(e, "nombre")}
-                    className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/50"
+                    className="absolute top-0 right-0 h-full w-1 cursor-col-resize hover:bg-primary/50"
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
@@ -303,20 +303,20 @@ export function ProyeccionSepTable({
               sortedData.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell
-                    className="font-medium text-xs px-1 border-r truncate"
-                    style={{ width: columnWidths["nombre"], maxWidth: columnWidths["nombre"] }}
+                    className="truncate border-r px-1 font-medium text-xs"
+                    style={{ width: columnWidths.nombre, maxWidth: columnWidths.nombre }}
                   >
                     {row.nombre}
                   </TableCell>
                   {visibleColumns.presupuesto && (
-                    <TableCell className="p-1 px-0 text-right border-r" style={{ width: columnWidths["presupuesto"] }}>
+                    <TableCell className="border-r p-1 px-0 text-right" style={{ width: columnWidths.presupuesto }}>
                       <EditableCell value={row.presupuesto} onSave={(val) => onUpdate(row.id, "presupuesto", val)} />
                     </TableCell>
                   )}
                   {visibleColumns.total_utilizado && (
                     <TableCell
-                      className="font-semibold text-xs py-1 px-0 text-right border-r truncate"
-                      style={{ width: columnWidths["total_utilizado"] }}
+                      className="truncate border-r px-0 py-1 text-right font-semibold text-xs"
+                      style={{ width: columnWidths.total_utilizado }}
                     >
                       {formatCurrency(row.total_utilizado, {
                         locale: "es-CL",
@@ -327,16 +327,16 @@ export function ProyeccionSepTable({
                   )}
                   {visibleColumns.por_gastar && (
                     <TableCell
-                      className={`text-xs py-1 px-0 text-right border-r truncate ${getPorGastarStyle(row.por_gastar)}`}
-                      style={{ width: columnWidths["por_gastar"] }}
+                      className={`truncate border-r px-0 py-1 text-right text-xs ${getPorGastarStyle(row.por_gastar)}`}
+                      style={{ width: columnWidths.por_gastar }}
                     >
                       {formatCurrency(row.por_gastar, { locale: "es-CL", currency: "CLP", minimumFractionDigits: 0 })}
                     </TableCell>
                   )}
                   {visibleColumns.porcentaje_utilizado && (
                     <TableCell
-                      className="text-xs py-1 px-1 text-right border-r truncate"
-                      style={{ width: columnWidths["porcentaje_utilizado"] }}
+                      className="truncate border-r px-1 py-1 text-right text-xs"
+                      style={{ width: columnWidths.porcentaje_utilizado }}
                     >
                       <Badge
                         variant="outline"
@@ -348,8 +348,8 @@ export function ProyeccionSepTable({
                   )}
                   {visibleColumns.porcentaje_pagado && (
                     <TableCell
-                      className="text-xs py-1 px-1 text-right border-r truncate"
-                      style={{ width: columnWidths["porcentaje_pagado"] }}
+                      className="truncate border-r px-1 py-1 text-right text-xs"
+                      style={{ width: columnWidths.porcentaje_pagado }}
                     >
                       <Badge
                         variant="outline"
@@ -361,8 +361,8 @@ export function ProyeccionSepTable({
                   )}
                   {visibleColumns.compras_facturadas && (
                     <TableCell
-                      className="p-1 px-0 text-right border-r"
-                      style={{ width: columnWidths["compras_facturadas"] }}
+                      className="border-r p-1 px-0 text-right"
+                      style={{ width: columnWidths.compras_facturadas }}
                     >
                       <EditableCell
                         value={row.compras_facturadas}
@@ -372,8 +372,8 @@ export function ProyeccionSepTable({
                   )}
                   {visibleColumns.compras_obligadas && (
                     <TableCell
-                      className="p-1 px-0 text-right border-r"
-                      style={{ width: columnWidths["compras_obligadas"] }}
+                      className="border-r p-1 px-0 text-right"
+                      style={{ width: columnWidths.compras_obligadas }}
                     >
                       <EditableCell
                         value={row.compras_obligadas}
@@ -383,16 +383,16 @@ export function ProyeccionSepTable({
                   )}
                   {visibleColumns.rrhh && (
                     <TableCell
-                      className="text-muted-foreground bg-muted/20 text-xs py-1 px-0 text-right border-r truncate"
-                      style={{ width: columnWidths["rrhh"] }}
+                      className="truncate border-r bg-muted/20 px-0 py-1 text-right text-muted-foreground text-xs"
+                      style={{ width: columnWidths.rrhh }}
                     >
                       {formatCurrency(row.rrhh, { locale: "es-CL", currency: "CLP", minimumFractionDigits: 0 })}
                     </TableCell>
                   )}
                   {visibleColumns.rrhh_proyectado && (
                     <TableCell
-                      className="text-muted-foreground bg-amber-500/10 text-xs py-1 px-0 text-right border-r truncate"
-                      style={{ width: columnWidths["rrhh_proyectado"] }}
+                      className="truncate border-r bg-amber-500/10 px-0 py-1 text-right text-muted-foreground text-xs"
+                      style={{ width: columnWidths.rrhh_proyectado }}
                     >
                       {formatCurrency(row.rrhh_proyectado, {
                         locale: "es-CL",
@@ -403,8 +403,8 @@ export function ProyeccionSepTable({
                   )}
                   {visibleColumns.suma_facturado_rrhh && (
                     <TableCell
-                      className="font-semibold text-muted-foreground bg-muted/20 text-xs py-1 px-0 text-right truncate"
-                      style={{ width: columnWidths["suma_facturado_rrhh"] }}
+                      className="truncate bg-muted/20 px-0 py-1 text-right font-semibold text-muted-foreground text-xs"
+                      style={{ width: columnWidths.suma_facturado_rrhh }}
                     >
                       {formatCurrency(row.suma_facturado_rrhh, {
                         locale: "es-CL",

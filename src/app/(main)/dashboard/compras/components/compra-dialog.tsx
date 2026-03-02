@@ -27,12 +27,10 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { createCompra, updateCompra } from "@/services/compras.service";
-import { getOrdenesByCompra } from "@/services/ordenes-compra.service";
 import { getRequirentes } from "@/services/requirente.service";
 import { getSubvenciones } from "@/services/subvenciones.service";
 import { getUsers } from "@/services/users.service";
-import type { Compra } from "@/types/compra";
-import { ESTADOS_COMPRA, type EstadoCompra } from "@/types/compra";
+import type { Compra, EstadoCompra } from "@/types/compra";
 import type { Requirente } from "@/types/requirente";
 import type { Subvencion } from "@/types/subvencion";
 import type { User } from "@/types/user";
@@ -65,7 +63,7 @@ export function CompraDialog({
   const [usuarios, setUsuarios] = useState<User[]>([]);
   const [requirentes, setRequirentes] = useState<Requirente[]>([]);
   const [openRequirente, setOpenRequirente] = useState(false);
-  const [loadingData, setLoadingData] = useState(true);
+  const [_loadingData, setLoadingData] = useState(true);
   const isEditing = !!compra;
 
   // Determine available estados based on user role and current estado
@@ -157,7 +155,7 @@ export function CompraDialog({
         observacion: compra?.observacion || "",
       });
     }
-  }, [open, compra, form, initialData]);
+  }, [open, compra, form, initialData, currentUser?.role.includes]);
 
   const onSubmit = async (data: CompraFormValues) => {
     setIsSubmitting(true);
@@ -245,7 +243,7 @@ export function CompraDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* ... Content ... */}
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[700px]">
         <DialogHeader>
           {/* ... Header ... */}
           <DialogTitle>{isEditing ? "Editar Compra" : "Crear Nueva Compra"}</DialogTitle>
@@ -269,7 +267,7 @@ export function CompraDialog({
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* SECCIÓN: DATOS DE SOLICITUD */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">Datos de Solicitud</h3>
+              <h3 className="font-medium text-lg">Datos de Solicitud</h3>
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -278,7 +276,7 @@ export function CompraDialog({
                     <FormItem>
                       <FormLabel>
                         Número Ordinario
-                        {isRequired("numero_ordinario") && <span className="text-red-500 ml-1">*</span>}
+                        {isRequired("numero_ordinario") && <span className="ml-1 text-red-500">*</span>}
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -293,7 +291,6 @@ export function CompraDialog({
                   )}
                 />
 
-
                 <FormField
                   control={form.control}
                   name="fecha_inicio"
@@ -301,7 +298,7 @@ export function CompraDialog({
                     <FormItem>
                       <FormLabel>
                         Fecha de Inicio
-                        {isRequired("fecha_inicio") && <span className="text-red-500 ml-1">*</span>}
+                        {isRequired("fecha_inicio") && <span className="ml-1 text-red-500">*</span>}
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -325,7 +322,7 @@ export function CompraDialog({
                     <FormItem>
                       <FormLabel>
                         Estado
-                        {isRequired("estado") && <span className="text-red-500 ml-1">*</span>}
+                        {isRequired("estado") && <span className="ml-1 text-red-500">*</span>}
                       </FormLabel>
                       <Select
                         onValueChange={field.onChange}
@@ -361,7 +358,7 @@ export function CompraDialog({
                   <FormItem>
                     <FormLabel>
                       Descripción
-                      {isRequired("descripcion") && <span className="text-red-500 ml-1">*</span>}
+                      {isRequired("descripcion") && <span className="ml-1 text-red-500">*</span>}
                     </FormLabel>
                     <FormControl>
                       <Textarea
@@ -384,7 +381,7 @@ export function CompraDialog({
                     <FormItem>
                       <FormLabel>
                         Unidad Requirente
-                        {isRequired("unidad_requirente") && <span className="text-red-500 ml-1">*</span>}
+                        {isRequired("unidad_requirente") && <span className="ml-1 text-red-500">*</span>}
                       </FormLabel>
                       <Popover open={openRequirente} onOpenChange={setOpenRequirente}>
                         <PopoverTrigger asChild>
@@ -466,7 +463,7 @@ export function CompraDialog({
 
             {/* SECCIÓN: DATOS DE GESTIÓN */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">Datos de Gestión</h3>
+              <h3 className="font-medium text-lg">Datos de Gestión</h3>
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -475,7 +472,7 @@ export function CompraDialog({
                     <FormItem>
                       <FormLabel>
                         Comprador
-                        {isRequired("comprador") && <span className="text-red-500 ml-1">*</span>}
+                        {isRequired("comprador") && <span className="ml-1 text-red-500">*</span>}
                       </FormLabel>
                       <Select
                         onValueChange={field.onChange}
@@ -509,7 +506,7 @@ export function CompraDialog({
                     <FormItem>
                       <FormLabel>
                         Subvención
-                        {isRequired("subvencion") && <span className="text-red-500 ml-1">*</span>}
+                        {isRequired("subvencion") && <span className="ml-1 text-red-500">*</span>}
                       </FormLabel>
                       <Select
                         onValueChange={field.onChange}
@@ -541,7 +538,7 @@ export function CompraDialog({
                     <FormItem>
                       <FormLabel>
                         Presupuesto
-                        {isRequired("presupuesto") && <span className="text-red-500 ml-1">*</span>}
+                        {isRequired("presupuesto") && <span className="ml-1 text-red-500">*</span>}
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -568,7 +565,7 @@ export function CompraDialog({
 
             {/* SECCIÓN: ÓRDENES DE COMPRA */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">Órdenes de Compra</h3>
+              <h3 className="font-medium text-lg">Órdenes de Compra</h3>
 
               {!isEditing ? (
                 <Alert className="bg-muted/50">
@@ -579,13 +576,13 @@ export function CompraDialog({
               ) : (
                 <>
                   <OrdenesCompraList
-                    compraId={compra!.id}
+                    compraId={compra?.id}
                     canEdit={
                       currentUser?.role.includes("Encargado compras") ||
                       currentUser?.role.includes("Comprador") ||
                       false
                     }
-                    onUpdate={() => { }}
+                    onUpdate={() => {}}
                   />
 
                   <FormField

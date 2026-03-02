@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO } from "date-fns";
-import { ClipboardPaste, FileText, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { ClipboardPaste, Loader2, Plus, Trash2 } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -159,7 +158,7 @@ export function RecepcionDialog({
           } else if (!col0IsNum && col1IsNum) {
             // Swapped: Desc | Qty
             cantidad = parseFloat(col1.replace(",", "."));
-            detalle = cols[0].trim() + (cols.length > 2 ? " " + cols.slice(2).join(" ") : "");
+            detalle = cols[0].trim() + (cols.length > 2 ? ` ${cols.slice(2).join(" ")}` : "");
           } else if (col0IsNum && col1IsNum) {
             // Both are numbers? Assume Qty | Price? or Qty | Code?
             // Default to first is Qty.
@@ -278,7 +277,7 @@ export function RecepcionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col">
         <DialogHeader>
           <DialogTitle>
             {initialData ? `Editar Recepción ${initialData.folio}` : "Nueva Recepción de Bodega"}
@@ -290,15 +289,15 @@ export function RecepcionDialog({
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               {/* Header Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border p-4 rounded-md bg-muted/20">
+              <div className="grid grid-cols-1 gap-4 rounded-md border bg-muted/20 p-4 md:grid-cols-2">
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase">Compra Asociada</FormLabel>
-                  <div className="font-mono font-bold">{compra.numero_ordinario}</div>
-                  <div className="text-sm truncate">{compra.descripcion}</div>
+                  <FormLabel className="text-muted-foreground text-xs uppercase">Compra Asociada</FormLabel>
+                  <div className="font-bold font-mono">{compra.numero_ordinario}</div>
+                  <div className="truncate text-sm">{compra.descripcion}</div>
                 </FormItem>
 
                 <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground uppercase">Subvención</FormLabel>
+                  <FormLabel className="text-muted-foreground text-xs uppercase">Subvención</FormLabel>
                   <div className="font-medium">{compra.expand?.subvencion?.nombre || "N/A"}</div>
                 </FormItem>
 
@@ -344,7 +343,7 @@ export function RecepcionDialog({
                 ) : (
                   <FormItem>
                     <FormLabel>Orden de Compra</FormLabel>
-                    <div className="text-sm text-muted-foreground italic py-2">No hay OCs asociadas</div>
+                    <div className="py-2 text-muted-foreground text-sm italic">No hay OCs asociadas</div>
                   </FormItem>
                 )}
 
@@ -388,18 +387,18 @@ export function RecepcionDialog({
               </div>
 
               {/* Details Section */}
-              <div className="border rounded-md p-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h4 className="text-sm font-semibold uppercase">Detalle de lo Recibido</h4>
+              <div className="rounded-md border p-4">
+                <div className="mb-4 flex items-center justify-between">
+                  <h4 className="font-semibold text-sm uppercase">Detalle de lo Recibido</h4>
                   <div className="flex gap-2">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={handlePasteFromClipboard}
-                      className="text-green-600 border-green-200 hover:bg-green-50"
+                      className="border-green-200 text-green-600 hover:bg-green-50"
                     >
-                      <ClipboardPaste className="h-4 w-4 mr-2" />
+                      <ClipboardPaste className="mr-2 h-4 w-4" />
                       Pegar Excel
                     </Button>
                     <Button
@@ -408,7 +407,7 @@ export function RecepcionDialog({
                       size="sm"
                       onClick={() => append({ cantidad: 1, detalle: "" })}
                     >
-                      <Plus className="h-4 w-4 mr-2" />
+                      <Plus className="mr-2 h-4 w-4" />
                       Agregar Ítem
                     </Button>
                   </div>
@@ -471,12 +470,12 @@ export function RecepcionDialog({
                   </TableBody>
                 </Table>
                 {form.formState.errors.detalles && (
-                  <p className="text-sm text-destructive mt-2">{form.formState.errors.detalles.message}</p>
+                  <p className="mt-2 text-destructive text-sm">{form.formState.errors.detalles.message}</p>
                 )}
               </div>
 
               {/* Footer Section: Observaciones & Files */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="observaciones"
@@ -486,7 +485,7 @@ export function RecepcionDialog({
                       <FormControl>
                         <Textarea
                           placeholder="Comentarios adicionales..."
-                          className="resize-none min-h-[80px]"
+                          className="min-h-[80px] resize-none"
                           {...field}
                         />
                       </FormControl>
@@ -516,9 +515,9 @@ export function RecepcionDialog({
                             accept=".pdf,.jpg,.jpeg,.png"
                           />
                         </div>
-                        <p className="text-xs text-muted-foreground">Puede subir múltiples archivos (PDF, JPG, PNG)</p>
+                        <p className="text-muted-foreground text-xs">Puede subir múltiples archivos (PDF, JPG, PNG)</p>
                         {initialData?.adjuntos && initialData.adjuntos.length > 0 && (
-                          <div className="mt-2 text-xs text-muted-foreground bg-muted p-2 rounded">
+                          <div className="mt-2 rounded bg-muted p-2 text-muted-foreground text-xs">
                             <strong>Adjuntos actuales:</strong> {initialData.adjuntos.join(", ")}
                             <br /> (Subir nuevos archivos se sumará o reemplazará la lógica según implementación, aquí
                             agrega)
@@ -531,7 +530,7 @@ export function RecepcionDialog({
                 />
               </div>
 
-              <DialogFooter className="sticky bottom-0 bg-background pt-4 border-t mt-6">
+              <DialogFooter className="sticky bottom-0 mt-6 border-t bg-background pt-4">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                   Cancelar
                 </Button>
