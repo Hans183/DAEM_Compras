@@ -109,11 +109,23 @@ export default function ComprasPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, filters, user]);
+  }, [page, debouncedSearch, filters, user?.role, user?.dependencia]);
 
   useEffect(() => {
     loadCompras();
   }, [loadCompras]);
+
+  const handleFiltersChange = useCallback((newFilters: GetComprasParams) => {
+    setFilters((prev) => {
+      // Shallow comparison to break infinite loops
+      const hasChanged = Object.keys(newFilters).some(
+        (key) => newFilters[key as keyof GetComprasParams] !== prev[key as keyof GetComprasParams],
+      );
+      if (!hasChanged) return prev;
+      return newFilters;
+    });
+    setPage(1); // Reset to first page when filters change
+  }, []);
 
   const userCanCreate = user ? canCreateCompra(user.role) : false;
   const isObservadorRestricted = user?.role.includes("Observador") && !!user?.dependencia;
@@ -147,11 +159,10 @@ export default function ComprasPage() {
           <Select
             value={filters.subvencion_filter || "all"}
             onValueChange={(value) => {
-              setFilters((prev) => ({
-                ...prev,
+              handleFiltersChange({
+                ...filters,
                 subvencion_filter: value === "all" ? undefined : value,
-              }));
-              setPage(1);
+              });
             }}
           >
             <SelectTrigger>
@@ -187,10 +198,7 @@ export default function ComprasPage() {
               compras={comprasData?.items || []}
               onCompraUpdated={loadCompras}
               filters={filters}
-              onFiltersChange={(newFilters) => {
-                setFilters(newFilters);
-                setPage(1); // Reset to first page when filters change
-              }}
+              onFiltersChange={handleFiltersChange}
               currentUser={user}
               isRestricted={isObservadorRestricted}
             />

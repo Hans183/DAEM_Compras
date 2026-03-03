@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { createContext, useEffect, useState } from "react";
+import { createContext, useCallback, useEffect, useMemo, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -46,22 +46,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
-    try {
-      const authData = await pb.collection("users").authWithPassword(email, password);
-      setUser(authData.record as User);
-      router.push("/dashboard");
-    } catch (error) {
-      console.error("Login error:", error);
-      throw error;
-    }
-  };
+  const login = useCallback(
+    async (email: string, password: string) => {
+      try {
+        const authData = await pb.collection("users").authWithPassword(email, password);
+        setUser(authData.record as User);
+        router.push("/dashboard");
+      } catch (error) {
+        console.error("Login error:", error);
+        throw error;
+      }
+    },
+    [router],
+  );
 
-  const logout = () => {
+  const logout = useCallback(() => {
     pb.authStore.clear();
     setUser(null);
     router.push("/auth/login");
-  };
+  }, [router]);
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>;
+  const contextValue = useMemo(() => ({ user, loading, login, logout }), [user, loading, login, logout]);
+
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 }

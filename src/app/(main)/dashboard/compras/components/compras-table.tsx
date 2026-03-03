@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { format, isPast, isSameDay, parseISO } from "date-fns";
 import {
@@ -76,12 +76,15 @@ function DebouncedInput({
   }, [initialValue]);
 
   useEffect(() => {
+    // Break the loop: only fire if local value is different from the prop
+    if (value === initialValue) return;
+
     const timeout = setTimeout(() => {
       onChange(value);
     }, debounce);
 
     return () => clearTimeout(timeout);
-  }, [value, debounce, onChange]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [value, initialValue, onChange, debounce]);
 
   return <Input {...props} value={value} onChange={(e) => setValue(e.target.value)} />;
 }
@@ -140,12 +143,15 @@ export function ComprasTable({
     }
   };
 
-  const updateFilter = (key: string, value: string | number | undefined) => {
-    onFiltersChange({
-      ...filters,
-      [key]: value || undefined,
-    });
-  };
+  const updateFilter = useCallback(
+    (key: string, value: string | number | undefined) => {
+      onFiltersChange({
+        ...filters,
+        [key]: value || undefined,
+      });
+    },
+    [onFiltersChange, filters],
+  );
 
   const clearAllFilters = () => {
     onFiltersChange({
