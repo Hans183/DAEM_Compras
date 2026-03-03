@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from "react";
 
-import { ChevronDown, ChevronRight, Edit, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Edit, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,6 +12,7 @@ import type { Compra } from "@/types/compra";
 
 import { AccionDialog } from "./accion-dialog";
 import { DeleteAccionDialog } from "./delete-accion-dialog";
+import { ManualSepCompraDialog } from "./manual-sep-compra-dialog";
 
 interface AccionesTableProps {
   data: Accion[];
@@ -24,6 +25,7 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
   const [editingAccion, setEditingAccion] = useState<Accion | null>(null);
   const [deletingAccion, setDeletingAccion] = useState<Accion | null>(null);
   const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
+  const [addingSepTo, setAddingSepTo] = useState<Accion | null>(null);
 
   const toggleExpand = (id: string) => {
     setExpandedActionId(expandedActionId === id ? null : id);
@@ -124,9 +126,20 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                       <TableRow className="bg-muted/20 hover:bg-muted/20">
                         <TableCell colSpan={8} className="p-0">
                           <div className="fade-in slide-in-from-top-1 animate-in border-t p-4 duration-200">
-                            <h4 className="mb-3 flex items-center gap-2 font-semibold text-sm">
-                              Compras Relacionadas ({relatedCompras.length})
-                            </h4>
+                            <div className="mb-3 flex items-center justify-between">
+                              <h4 className="flex items-center gap-2 font-semibold text-sm">
+                                Compras Relacionadas ({relatedCompras.length})
+                              </h4>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 border-dashed border-primary text-primary hover:bg-primary/5"
+                                onClick={() => setAddingSepTo(item)}
+                              >
+                                <Plus className="mr-2 h-4 w-4" />
+                                AGREGAR COMPRA SEP
+                              </Button>
+                            </div>
                             {relatedCompras.length === 0 ? (
                               <div className="py-2 text-muted-foreground text-sm italic">
                                 No hay compras vinculadas a esta acción.
@@ -200,6 +213,18 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
           onDataChanged();
         }}
       />
+
+      {addingSepTo && (
+        <ManualSepCompraDialog
+          open={!!addingSepTo}
+          onOpenChange={(open) => !open && setAddingSepTo(null)}
+          accion={addingSepTo}
+          onSuccess={() => {
+            setAddingSepTo(null);
+            onDataChanged();
+          }}
+        />
+      )}
     </>
   );
 }
