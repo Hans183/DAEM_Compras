@@ -5,10 +5,9 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { GripVertical } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-
-import type { Compra } from "./compra";
+import type { Compra } from "@/types/compra";
 // Import types for related entities if they are used in the ColumnDef
-import type { OrdenCompra } from "./orden-compra";
+import type { OrdenCompra } from "@/types/orden-compra";
 
 function DragHandle({ id }: { id: number | string }) {
   const { attributes, listeners } = useSortable({
