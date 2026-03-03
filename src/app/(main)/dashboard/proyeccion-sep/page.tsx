@@ -207,7 +207,6 @@ export default function ProyeccionSepPage() {
           projections={projections}
           rrhhSums={rrhhSums}
           rrhhProjectedSums={rrhhProjectedSums}
-          year={selectedYear}
           onUpdate={handleUpdate}
         />
       )}
