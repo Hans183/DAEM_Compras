@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "kpi-dashboard-design": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "794d224f736d59551566cd604fc528b6cc1d638569652829b4b0a9b7ee6d7b24"
+    }
+  }
+}

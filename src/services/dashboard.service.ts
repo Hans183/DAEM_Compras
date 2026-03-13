@@ -6,10 +6,13 @@ import { getCompras } from "./compras.service";
 export interface DashboardStats {
   totalSpent: number;
   totalOrders: number;
-  avgCycleTime: number; // New metric
-  cycleTimeTrend: { month: string; days: number }[]; // New metric
-  funnelData: { stage: string; count: number; fill: string }[]; // New metric
-  stagnationCount: number; // New metric
+  totalSavings: number;
+  conversionRate: number;
+  avgCycleTime: number;
+  cycleTimeTrend: { month: string; days: number }[];
+  volumeTrend: { month: string; count: number }[];
+  funnelData: { stage: string; count: number; fill: string }[];
+  stagnationCount: number;
   rankingCompradores: { name: string; amount: number; count: number }[];
   rankingUnidades: { name: string; amount: number; count: number }[];
   rankingSubvenciones: { name: string; amount: number; count: number }[];
@@ -37,6 +40,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   let totalDays = 0;
   let validCycleCount = 0;
   const monthlyCycleMap = new Map<string, { totalDays: number; count: number }>();
+  const monthlyVolumeMap = new Map<string, number>();
+  let totalRequestsWithOc = 0;
   let stagnationCount = 0;
   const now = new Date();
 
@@ -84,29 +89,34 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     subStats.count += 1;
     subvencionesMap.set(subvName, subStats);
 
+    // Track Monthly Volume (Seasonality)
+    const creationMonth = format(parseISO(item.fecha_solicitud || item.fecha_inicio || item.created), "yyyy-MM");
+    monthlyVolumeMap.set(creationMonth, (monthlyVolumeMap.get(creationMonth) || 0) + 1);
+
     // Calculate Cycle Time
-    // Logic: Date of first OC - Date of Request
+    // Logic: Date of first OC - Date of Request (or Request assignment)
     // We look for the earliest OC date for this purchase
-    if (
-      item.fecha_solicitud &&
-      item.expand?.["ordenes_compra(compra)"] &&
-      item.expand["ordenes_compra(compra)"].length > 0
-    ) {
+    const requestDateStr = item.fecha_solicitud || item.fecha_inicio || item.created;
+
+    if (requestDateStr && item.expand?.["ordenes_compra(compra)"] && item.expand["ordenes_compra(compra)"].length > 0) {
+      totalRequestsWithOc++;
       const ocs = item.expand["ordenes_compra(compra)"];
       // Find earliest OC date
       const dates = ocs
         .map((oc) => oc.oc_fecha)
         .filter(Boolean)
         .map((d) => parseISO(d).getTime());
+
       if (dates.length > 0) {
         const firstOcDate = new Date(Math.min(...dates));
-        const requestDate = parseISO(item.fecha_solicitud);
+        const requestDate = parseISO(requestDateStr);
 
         const days = differenceInDays(firstOcDate, requestDate);
-        // Filter out weird negative days or extreme outliers (> 365 days) if necessary,
-        // but for now assume data is relatively sane or we want to see the errors.
-        // Ignore negatives (data entry error)
-        if (days >= 0) {
+
+        // Quality Filter:
+        // 1. Ignore negative days (likely bad data entry where OC predates request)
+        // 2. Ignore extreme outliers (e.g., > 120 days) that skew the average of "normal" operations
+        if (days >= 0 && days < 120) {
           totalDays += days;
           validCycleCount++;
 
@@ -122,6 +132,19 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   });
 
   const avgCycleTime = validCycleCount > 0 ? Math.round(totalDays / validCycleCount) : 0;
+  const conversionRate = items.length > 0 ? Math.round((totalRequestsWithOc / items.length) * 100) : 0;
+
+  // Calculate Institutional Savings
+  // Based on (Budget of purchases with OC) - (Sum of OC values)
+  const totalSavings = items.reduce((acc, item) => {
+    const budget = item.presupuesto || 0;
+    const ocs = item.expand?.["ordenes_compra(compra)"] || [];
+    if (ocs.length === 0) return acc;
+
+    const ocTotal = ocs.reduce((sum, oc) => sum + (oc.oc_valor || 0), 0);
+    // Only count as savings if we have a budget and it's positive
+    return acc + Math.max(0, budget - ocTotal);
+  }, 0);
 
   // Process Trend Data
   const cycleTimeTrend = Array.from(monthlyCycleMap.entries())
@@ -131,9 +154,19 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       const [year, month] = key.split("-");
       const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1);
       return {
-        month: format(date, "MMMM", { locale: es }), // e.g. "enero"
-        rawMonth: key,
+        month: format(date, "MMM", { locale: es }), // e.g. "ene"
         days: Math.round(stats.totalDays / stats.count),
+      };
+    });
+
+  const volumeTrend = Array.from(monthlyVolumeMap.entries())
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([key, count]) => {
+      const [year, month] = key.split("-");
+      const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1);
+      return {
+        month: format(date, "MMM", { locale: es }),
+        count,
       };
     });
 
@@ -162,8 +195,11 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   return {
     totalSpent,
     totalOrders,
+    totalSavings,
+    conversionRate,
     avgCycleTime,
     cycleTimeTrend,
+    volumeTrend,
     funnelData,
     stagnationCount,
     rankingCompradores,

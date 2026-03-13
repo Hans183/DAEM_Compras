@@ -14,14 +14,17 @@ interface SpendingBySubventionChartProps {
 }
 
 const COLORS = [
-  "#3b82f6", // Blue 500
-  "#8b5cf6", // Violet 500
-  "#f59e0b", // Amber 500
-  "#10b981", // Emerald 500
-  "#ef4444", // Red 500
-  "#06b6d4", // Cyan 500
-  "#ec4899", // Pink 500
+  "#2563eb", // Blue 600
+  "#7c3aed", // Violet 600
+  "#db2777", // Pink 600
+  "#ea580c", // Orange 600
+  "#059669", // Emerald 600
+  "#0891b2", // Cyan 600
+  "#4f46e5", // Indigo 600
 ];
+
+// Helper to sanitize names for CSS variable keys
+const sanitizeKey = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "-");
 
 export function SpendingBySubventionChart({ data }: SpendingBySubventionChartProps) {
   // Generate dynamic chart config based on data
@@ -30,7 +33,8 @@ export function SpendingBySubventionChart({ data }: SpendingBySubventionChartPro
       amount: { label: "Monto" },
     };
     data.forEach((item, index) => {
-      config[item.name] = {
+      const key = sanitizeKey(item.name);
+      config[key] = {
         label: item.name,
         color: COLORS[index % COLORS.length],
       };
@@ -41,7 +45,7 @@ export function SpendingBySubventionChart({ data }: SpendingBySubventionChartPro
   const chartData = React.useMemo(() => {
     return data.map((item, _index) => ({
       ...item,
-      fill: `var(--color-${item.name})`,
+      fill: `var(--color-${sanitizeKey(item.name)})`,
     }));
   }, [data]);
 

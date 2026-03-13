@@ -12,6 +12,7 @@ import { OperationalFunnelChart } from "../_components/charts/operational-funnel
 import { ProcessingTimeChart } from "../_components/charts/processing-time-chart";
 import { SpendingBySubventionChart } from "../_components/charts/spending-by-subvention-chart";
 import { TopUnitsChart } from "../_components/charts/top-units-chart";
+import { VolumeTrendChart } from "../_components/charts/volume-trend-chart";
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -51,7 +52,7 @@ export default function DashboardPage() {
       <h1 className="font-bold text-3xl tracking-tight">Dashboard General</h1>
 
       {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="font-medium text-sm">Gasto Total (Año)</CardTitle>
@@ -92,6 +93,26 @@ export default function DashboardPage() {
             <p className="text-muted-foreground text-xs">Desde solicitud hasta OC</p>
           </CardContent>
         </Card>
+        <Card className="border-blue-100 bg-blue-50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="font-medium text-blue-900 text-sm">Tasa de Conversión</CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="font-bold text-2xl text-blue-900">{stats.conversionRate}%</div>
+            <p className="text-blue-700 text-xs">Solicitudes que llegan a OC</p>
+          </CardContent>
+        </Card>
+        <Card className="border-green-100 bg-green-50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="font-medium text-green-900 text-sm">Ahorro Institucional</CardTitle>
+            <DollarSign className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="font-bold text-2xl text-green-900">{currencyFormatter.format(stats.totalSavings)}</div>
+            <p className="text-green-700 text-xs">Presupuesto vs Valor OC</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Stagnation Alert */}
@@ -106,21 +127,25 @@ export default function DashboardPage() {
         </Alert>
       )}
 
-      {/* Charts Grid */}
+      {/* Charts Grid - Row 1: Trends */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <div className="col-span-4">
-          <ProcessingTimeChart data={stats.cycleTimeTrend} />
+        <div className="lg:col-span-4">
+          <VolumeTrendChart data={stats.volumeTrend} />
         </div>
-        <div className="col-span-3">
-          <SpendingBySubventionChart data={stats.rankingSubvenciones} />
+        <div className="lg:col-span-3">
+          <ProcessingTimeChart data={stats.cycleTimeTrend} />
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <div className="col-span-4">
+      {/* Charts Grid - Row 2: Distributions */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+        <div className="lg:col-span-2">
           <OperationalFunnelChart data={stats.funnelData} />
         </div>
-        <div className="col-span-3">
+        <div className="lg:col-span-2">
+          <SpendingBySubventionChart data={stats.rankingSubvenciones} />
+        </div>
+        <div className="lg:col-span-2">
           <TopUnitsChart data={stats.rankingUnidades} />
         </div>
       </div>
