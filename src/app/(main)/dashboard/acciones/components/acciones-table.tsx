@@ -133,7 +133,7 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-8 border-dashed border-primary text-primary hover:bg-primary/5"
+                                className="h-8 border-primary border-dashed text-primary hover:bg-primary/5"
                                 onClick={() => setAddingSepTo(item)}
                               >
                                 <Plus className="mr-2 h-4 w-4" />

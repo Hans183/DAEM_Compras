@@ -46,10 +46,8 @@ export default function ComprasPage() {
 
   // Sync local search when URL changes (e.g. from global search)
   useEffect(() => {
-    if (urlSearch !== search) {
-      setSearch(urlSearch);
-    }
-  }, [urlSearch, search]);
+    setSearch(urlSearch);
+  }, [urlSearch]);
 
   // Filtros de columna
   const [filters, setFilters] = useState<GetComprasParams>({

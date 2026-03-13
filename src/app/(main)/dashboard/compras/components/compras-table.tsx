@@ -145,9 +145,14 @@ export function ComprasTable({
 
   const updateFilter = useCallback(
     (key: string, value: string | number | undefined) => {
+      let finalValue = value;
+      if (key === "numero_ordinario" && value !== undefined && value !== "") {
+        finalValue = Number(value);
+      }
+
       onFiltersChange({
         ...filters,
-        [key]: value || undefined,
+        [key]: finalValue || undefined,
       });
     },
     [onFiltersChange, filters],
@@ -242,7 +247,12 @@ export function ComprasTable({
                 </TableHead>
                 <TableHead className="align-middle">
                   <div className="flex items-center gap-2">
-                    <span className="whitespace-nowrap font-bold text-base text-foreground">Orden</span>
+                    <DebouncedInput
+                      placeholder="N° Ordinario"
+                      value={filters.numero_ordinario || ""}
+                      onChange={(value) => updateFilter("numero_ordinario", value)}
+                      className="h-8 w-full font-bold text-base text-foreground"
+                    />
                   </div>
                 </TableHead>
                 <TableHead className="align-middle">
