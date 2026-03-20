@@ -4,10 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useSearchParams } from "next/navigation";
 
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, X } from "lucide-react";
 import type { ListResult } from "pocketbase";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Pagination,
   PaginationContent,
@@ -16,9 +18,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getCompras } from "@/services/compras.service";
+import { getRequirentes } from "@/services/requirentes.service";
 import { getSubvenciones } from "@/services/subvenciones.service";
 import type { Compra } from "@/types/compra";
+import type { Requirente } from "@/types/requirente";
 
 import { ComprasSepTable } from "./components/compras-sep-table";
 
@@ -31,6 +36,11 @@ export default function ComprasSepPage() {
   const [page, setPage] = useState(1);
   const [sepSubvencionId, setSepSubvencionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // States for filters
+  const [establecimientos, setEstablecimientos] = useState<Requirente[]>([]);
+  const [selectedEstablecimientoId, setSelectedEstablecimientoId] = useState<string>("all");
+  const [ordinarioSearch, setOrdinarioSearch] = useState<string>("");
 
   // Initial load: Find the "Ley SEP" subvencion ID using a robust search
   useEffect(() => {
@@ -59,6 +69,17 @@ export default function ComprasSepPage() {
       }
     };
     findSepId();
+
+    // Load establishments for filter
+    const loadEstablecimientos = async () => {
+      try {
+        const result = await getRequirentes({ perPage: 100, sort: "nombre", sep_filter: true });
+        setEstablecimientos(result.items);
+      } catch (err) {
+        console.error("Error loading establishments:", err);
+      }
+    };
+    loadEstablecimientos();
   }, []);
 
   const loadCompras = useCallback(async () => {
@@ -72,6 +93,8 @@ export default function ComprasSepPage() {
         sort: "-created",
         subvencion_filter: sepSubvencionId,
         search: search,
+        unidad_requirente_id: selectedEstablecimientoId === "all" ? undefined : selectedEstablecimientoId,
+        numero_ordinario: ordinarioSearch ? Number(ordinarioSearch) : undefined,
       });
       setData(result);
     } catch (err) {
@@ -80,7 +103,7 @@ export default function ComprasSepPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, sepSubvencionId, search]);
+  }, [page, sepSubvencionId, search, selectedEstablecimientoId, ordinarioSearch]);
 
   useEffect(() => {
     if (sepSubvencionId) {
@@ -113,6 +136,71 @@ export default function ComprasSepPage() {
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="font-bold text-2xl tracking-tight">Compras SEP</h1>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-4 rounded-lg border bg-card p-4 shadow-sm">
+        <div className="flex-1 min-w-[200px]">
+          <label
+            htmlFor="establecimiento-filter"
+            className="text-xs font-medium mb-1.5 block text-muted-foreground uppercase tracking-wider"
+          >
+            Establecimiento
+          </label>
+          <Select
+            value={selectedEstablecimientoId}
+            onValueChange={(val) => {
+              setSelectedEstablecimientoId(val);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger id="establecimiento-filter" className="w-full">
+              <SelectValue placeholder="Todos los establecimientos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos los establecimientos</SelectItem>
+              {establecimientos.map((est) => (
+                <SelectItem key={est.id} value={est.id}>
+                  {est.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex-1 min-w-[200px]">
+          <label
+            htmlFor="ordinario-filter"
+            className="text-xs font-medium mb-1.5 block text-muted-foreground uppercase tracking-wider"
+          >
+            Número de Ordinario
+          </label>
+          <div className="relative">
+            <Input
+              id="ordinario-filter"
+              placeholder="Buscar por N° Ord..."
+              type="number"
+              value={ordinarioSearch}
+              onChange={(e) => {
+                setOrdinarioSearch(e.target.value);
+                setPage(1);
+              }}
+              className="pr-10"
+            />
+            {ordinarioSearch && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                onClick={() => {
+                  setOrdinarioSearch("");
+                  setPage(1);
+                }}
+              >
+                <X className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
 
       {loading && !data ? (

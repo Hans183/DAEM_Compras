@@ -82,7 +82,7 @@ export function ComprasSepTable({ data, onDataChanged }: ComprasSepTableProps) {
             <TableHead>Descripción</TableHead>
             <TableHead>Establecimiento</TableHead>
             <TableHead>Estado</TableHead>
-            <TableHead>Monto (Presupuesto)</TableHead>
+            <TableHead>Total OC's</TableHead>
             <TableHead className="w-[300px]">Acción SEP</TableHead>
           </TableRow>
         </TableHeader>
@@ -106,7 +106,12 @@ export function ComprasSepTable({ data, onDataChanged }: ComprasSepTableProps) {
                     {item.estado}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-medium">${item.presupuesto?.toLocaleString("es-CL") || 0}</TableCell>
+                <TableCell className="font-medium text-blue-700">
+                  $
+                  {item.expand?.["ordenes_compra(compra)"]
+                    ?.reduce((acc, current) => acc + (current.oc_valor || 0), 0)
+                    .toLocaleString("es-CL") || 0}
+                </TableCell>
                 <TableCell>
                   <ActionSelector
                     compra={item}
@@ -159,12 +164,11 @@ function ActionSelector({
           )}
         >
           {compra.accion ? (
-            acciones.find((a) => a.id === compra.accion)?.nombre || "Acción desconocida"
-          ) : (
-            <span className="flex items-center gap-2 font-semibold">
-              {/*AlertCircle className="h-4 w-4" /*/}
-              Seleccionar acción...
+            <span className="max-w-[200px] truncate" title={acciones.find((a) => a.id === compra.accion)?.nombre}>
+              {acciones.find((a) => a.id === compra.accion)?.nombre || "Acción desconocida"}
             </span>
+          ) : (
+            <span className="flex max-w-[200px] items-center gap-2 truncate font-semibold">Seleccionar acción...</span>
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -187,7 +191,6 @@ function ActionSelector({
                   <Check className={cn("mr-2 h-4 w-4", compra.accion === accion.id ? "opacity-100" : "opacity-0")} />
                   <div className="flex flex-col">
                     <span>{accion.nombre}</span>
-                    {accion.dimension && <span className="text-muted-foreground text-xs">{accion.dimension}</span>}
                   </div>
                 </CommandItem>
               ))}
