@@ -124,9 +124,11 @@ export default function AccionesPage() {
       // Calculate usage map
       const map: Record<string, number> = {};
       comprasResult.items.forEach((compra) => {
-        if (compra.accion && compra.presupuesto) {
+        if (compra.accion) {
+          const totalOc =
+            compra.expand?.["ordenes_compra(compra)"]?.reduce((acc, oc) => acc + (oc.oc_valor || 0), 0) || 0;
           if (!map[compra.accion]) map[compra.accion] = 0;
-          map[compra.accion] += compra.presupuesto;
+          map[compra.accion] += totalOc;
         }
       });
       setUsageMap(map);

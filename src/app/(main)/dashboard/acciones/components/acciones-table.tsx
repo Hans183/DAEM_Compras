@@ -48,7 +48,6 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
               <TableHead>Establecimiento</TableHead>
               <TableHead>Dimensión</TableHead>
               <TableHead>Monto SEP</TableHead>
-              <TableHead>Valor Acción</TableHead>
               <TableHead className="w-[150px]">% Uso</TableHead>
               <TableHead className="w-[100px]">Acciones</TableHead>
             </TableRow>
@@ -62,9 +61,8 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
               </TableRow>
             ) : (
               data.map((item) => {
-                const valorAccion = item.valor_accion || 0;
                 const used = usageMap[item.id] || 0;
-                const percentage = valorAccion > 0 ? (used / valorAccion) * 100 : 0;
+                const percentage = item.monto_sep > 0 ? (used / item.monto_sep) * 100 : 0;
                 const isExpanded = expandedActionId === item.id;
 
                 // Filter compras related to this action
@@ -100,7 +98,6 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                       <TableCell>{item.expand?.establecimiento?.nombre || "N/A"}</TableCell>
                       <TableCell>{item.expand?.dimension?.nombre || item.dimension || "N/A"}</TableCell>
                       <TableCell>${item.monto_sep?.toLocaleString("es-CL")}</TableCell>
-                      <TableCell>${valorAccion.toLocaleString("es-CL")}</TableCell>
                       <TableCell>
                         <div className="flex w-full flex-col gap-1">
                           <span className="text-right text-muted-foreground text-xs">{percentage.toFixed(1)}%</span>
@@ -181,7 +178,10 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                                           {compra.expand?.comprador?.name || "---"}
                                         </TableCell>
                                         <TableCell className="text-right font-medium text-xs">
-                                          ${compra.presupuesto?.toLocaleString("es-CL")}
+                                          $
+                                          {compra.expand?.["ordenes_compra(compra)"]
+                                            ?.reduce((acc, current) => acc + (current.oc_valor || 0), 0)
+                                            .toLocaleString("es-CL") || 0}
                                         </TableCell>
                                         <TableCell>
                                           <Button

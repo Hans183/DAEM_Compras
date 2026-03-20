@@ -295,6 +295,11 @@ export function ComprasTable({
                     </Select>
                   </div>
                 </TableHead>
+                <TableHead className="w-[120px] align-middle">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-base text-foreground">Monto</span>
+                  </div>
+                </TableHead>
                 <TableHead className="w-[150px] align-middle">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-base text-foreground">Órdenes de Compra</span>
@@ -357,7 +362,6 @@ export function ComprasTable({
                               if (url) window.open(url, "_blank");
                             }}
                           >
-                            {" "}
                             <span className="sr-only">Ver Ordinario</span>
                             <FileText className="h-4 w-4 text-blue-500" />
                           </Button>
@@ -376,6 +380,12 @@ export function ComprasTable({
                           {compra.estado}
                         </Badge>
                       </div>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      $
+                      {compra.expand?.["ordenes_compra(compra)"]
+                        ?.reduce((acc, oc) => acc + (oc.oc_valor || 0), 0)
+                        .toLocaleString("es-CL") || 0}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-2">

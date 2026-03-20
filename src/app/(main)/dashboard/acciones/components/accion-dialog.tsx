@@ -28,9 +28,7 @@ const formSchema = z.object({
   establecimiento: z.string().min(1, "El establecimiento es requerido"),
   dimension: z.string().optional(),
   subdimencion: z.string().optional(),
-  monto_subvencion_general: z.coerce.number().min(0),
   monto_sep: z.coerce.number().min(0),
-  valor_accion: z.coerce.number().min(0).optional(),
 });
 
 interface AccionDialogProps {
@@ -67,9 +65,7 @@ export function AccionDialog({ open, onOpenChange, onSuccess, accionToEdit }: Ac
       establecimiento: "",
       dimension: "",
       subdimencion: "",
-      monto_subvencion_general: 0,
       monto_sep: 0,
-      valor_accion: 0,
     },
   });
 
@@ -123,9 +119,7 @@ export function AccionDialog({ open, onOpenChange, onSuccess, accionToEdit }: Ac
           establecimiento: accionToEdit.establecimiento || "",
           dimension: accionToEdit.dimension,
           subdimencion: accionToEdit.subdimencion,
-          monto_subvencion_general: accionToEdit.monto_subvencion_general,
           monto_sep: accionToEdit.monto_sep,
-          valor_accion: accionToEdit.valor_accion || 0,
         });
       } else {
         form.reset({
@@ -133,9 +127,7 @@ export function AccionDialog({ open, onOpenChange, onSuccess, accionToEdit }: Ac
           establecimiento: "",
           dimension: "",
           subdimencion: "",
-          monto_subvencion_general: 0,
           monto_sep: 0,
-          valor_accion: 0,
         });
       }
     }
@@ -294,58 +286,15 @@ export function AccionDialog({ open, onOpenChange, onSuccess, accionToEdit }: Ac
 
               <FormField
                 control={form.control}
-                name="monto_subvencion_general"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Monto Subvención General</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="text"
-                        placeholder="0"
-                        value={formatCurrency(field.value)}
-                        onChange={(e) => {
-                          const rawValue = parseCurrency(e.target.value);
-                          field.onChange(rawValue);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="monto_sep"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="col-span-2">
                     <FormLabel>Monto SEP</FormLabel>
                     <FormControl>
                       <Input
                         type="text"
                         placeholder="0"
                         value={formatCurrency(field.value)}
-                        onChange={(e) => {
-                          const rawValue = parseCurrency(e.target.value);
-                          field.onChange(rawValue);
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="valor_accion"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Valor Acción (Presupuesto)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="text"
-                        placeholder="0"
-                        value={formatCurrency(field.value || 0)}
                         onChange={(e) => {
                           const rawValue = parseCurrency(e.target.value);
                           field.onChange(rawValue);
