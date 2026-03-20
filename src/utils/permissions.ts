@@ -42,10 +42,10 @@ export function canEditCompra(roles: UserRole[], compra?: Compra): boolean {
   // Admin puede editar cualquier compra
   if (roles.includes("Admin")) return true;
 
-  // SEP puede crear y editar sus propias compras en estado Iniciado
+  // SEP puede crear y editar sus propias compras en estado Iniciado, Comprado o Facturado
   if (roles.includes("SEP")) {
     if (!compra) return true; // Creación permitida
-    if (compra.estado === "Iniciado") return true;
+    if (["Iniciado", "Comprado", "Facturado"].includes(compra.estado)) return true;
   }
 
   // Comprador puede editar compras en estado Asignado, En Proceso, Devuelto o Comprado
@@ -83,7 +83,9 @@ export type CompraField =
   | "estado"
   | "adjunta_ordinario"
   | "presupuesto"
-  | "observacion";
+  | "observacion"
+  | "decreto_pago"
+  | "fecha_pago";
 
 /**
  * Obtiene los campos que un rol puede editar
@@ -111,6 +113,8 @@ export function getEditableFields(roles: UserRole[], estadoCompra?: EstadoCompra
       "presupuesto",
       "fecha_inicio",
       "observacion",
+      "decreto_pago",
+      "fecha_pago",
     ];
   }
 
@@ -124,6 +128,8 @@ export function getEditableFields(roles: UserRole[], estadoCompra?: EstadoCompra
       "subvencion",
       "estado",
       "adjunta_ordinario",
+      "decreto_pago",
+      "fecha_pago",
     ];
     for (const f of sepFields) {
       fields.add(f);
@@ -142,6 +148,8 @@ export function getEditableFields(roles: UserRole[], estadoCompra?: EstadoCompra
       "estado",
       "adjunta_ordinario",
       "observacion",
+      "decreto_pago",
+      "fecha_pago",
     ];
     for (const f of compradorFields) {
       fields.add(f);
@@ -180,9 +188,10 @@ export function getAvailableEstados(roles: UserRole[], currentEstado?: EstadoCom
     return ["Iniciado", "Asignado", "Comprado", "En Bodega", "Entregado"];
   }
 
-  // SEP solo puede usar Iniciado
+  // SEP solo puede usar Comprado y Facturado (por requerimiento)
   if (roles.includes("SEP")) {
-    states.add("Iniciado");
+    states.add("Comprado");
+    states.add("Facturado");
   }
 
   // Bodega puede cambiar de Comprado a En Bodega o Entregado

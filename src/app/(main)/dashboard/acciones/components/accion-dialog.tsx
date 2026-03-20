@@ -15,7 +15,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { createAccion, updateAccion } from "@/services/acciones.service";
 import { getDimensiones, getSubdimenciones } from "@/services/dimensiones.service";
@@ -32,16 +31,6 @@ const formSchema = z.object({
   monto_subvencion_general: z.coerce.number().min(0),
   monto_sep: z.coerce.number().min(0),
   valor_accion: z.coerce.number().min(0).optional(),
-  objetivo_estrategico: z.string().optional(),
-  estrategia: z.string().optional(),
-  metodo_verificacion: z.string().optional(),
-  descripcion: z.string().optional(),
-  recursos_necesarios: z.string().optional(),
-  programa_asociado: z.string().optional(),
-  ate: z.string().optional(),
-  responsable: z.string().optional(),
-  tic: z.string().optional(),
-  planes: z.string().optional(),
 });
 
 interface AccionDialogProps {
@@ -81,16 +70,6 @@ export function AccionDialog({ open, onOpenChange, onSuccess, accionToEdit }: Ac
       monto_subvencion_general: 0,
       monto_sep: 0,
       valor_accion: 0,
-      objetivo_estrategico: "",
-      estrategia: "",
-      metodo_verificacion: "",
-      descripcion: "",
-      recursos_necesarios: "",
-      programa_asociado: "",
-      ate: "",
-      responsable: "",
-      tic: "",
-      planes: "",
     },
   });
 
@@ -147,16 +126,6 @@ export function AccionDialog({ open, onOpenChange, onSuccess, accionToEdit }: Ac
           monto_subvencion_general: accionToEdit.monto_subvencion_general,
           monto_sep: accionToEdit.monto_sep,
           valor_accion: accionToEdit.valor_accion || 0,
-          objetivo_estrategico: accionToEdit.objetivo_estrategico,
-          estrategia: accionToEdit.estrategia,
-          metodo_verificacion: accionToEdit.metodo_verificacion,
-          descripcion: accionToEdit.descripcion || "",
-          recursos_necesarios: accionToEdit.recursos_necesarios || "",
-          programa_asociado: accionToEdit.programa_asociado || "",
-          ate: accionToEdit.ate || "",
-          responsable: accionToEdit.responsable || "",
-          tic: accionToEdit.tic || "",
-          planes: accionToEdit.planes || "",
         });
       } else {
         form.reset({
@@ -167,16 +136,6 @@ export function AccionDialog({ open, onOpenChange, onSuccess, accionToEdit }: Ac
           monto_subvencion_general: 0,
           monto_sep: 0,
           valor_accion: 0,
-          objetivo_estrategico: "",
-          estrategia: "",
-          metodo_verificacion: "",
-          descripcion: "",
-          recursos_necesarios: "",
-          programa_asociado: "",
-          ate: "",
-          responsable: "",
-          tic: "",
-          planes: "",
         });
       }
     }
@@ -392,139 +351,6 @@ export function AccionDialog({ open, onOpenChange, onSuccess, accionToEdit }: Ac
                           field.onChange(rawValue);
                         }}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="objetivo_estrategico"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Objetivo Estratégico</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="estrategia"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Estrategia</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="descripcion"
-                render={({ field }) => (
-                  <FormItem className="col-span-2">
-                    <FormLabel>Descripción</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="metodo_verificacion"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Método Verificación</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="recursos_necesarios"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Recursos Necesarios</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="programa_asociado"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Programa Asociado</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="ate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ATE</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="responsable"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Responsable</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="tic"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>TIC</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="planes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Planes</FormLabel>
-                    <FormControl>
-                      <Input {...field} value={field.value || ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

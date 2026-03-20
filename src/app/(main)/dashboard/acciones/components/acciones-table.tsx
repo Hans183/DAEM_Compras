@@ -1,15 +1,17 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useContext, useState } from "react";
 
 import { ChevronDown, ChevronRight, Edit, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AuthContext } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import type { Accion } from "@/types/accion";
 import type { Compra } from "@/types/compra";
 
+import { CompraDialog } from "../../compras/components/compra-dialog";
 import { AccionDialog } from "./accion-dialog";
 import { DeleteAccionDialog } from "./delete-accion-dialog";
 import { ManualSepCompraDialog } from "./manual-sep-compra-dialog";
@@ -26,6 +28,10 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
   const [deletingAccion, setDeletingAccion] = useState<Accion | null>(null);
   const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
   const [addingSepTo, setAddingSepTo] = useState<Accion | null>(null);
+  const [editingCompra, setEditingCompra] = useState<Compra | null>(null);
+
+  const authContext = useContext(AuthContext);
+  const currentUser = authContext?.user || null;
 
   const toggleExpand = (id: string) => {
     setExpandedActionId(expandedActionId === id ? null : id);
@@ -154,6 +160,7 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                                       <TableHead className="text-xs">OC</TableHead>
                                       <TableHead className="text-xs">Comprador</TableHead>
                                       <TableHead className="text-right text-xs">Monto</TableHead>
+                                      <TableHead className="w-[50px] text-xs">Acción</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
@@ -175,6 +182,16 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                                         </TableCell>
                                         <TableCell className="text-right font-medium text-xs">
                                           ${compra.presupuesto?.toLocaleString("es-CL")}
+                                        </TableCell>
+                                        <TableCell>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7"
+                                            onClick={() => setEditingCompra(compra)}
+                                          >
+                                            <Edit className="h-3.5 w-3.5" />
+                                          </Button>
                                         </TableCell>
                                       </TableRow>
                                     ))}
@@ -221,6 +238,19 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
           accion={addingSepTo}
           onSuccess={() => {
             setAddingSepTo(null);
+            onDataChanged();
+          }}
+        />
+      )}
+
+      {editingCompra && (
+        <CompraDialog
+          open={!!editingCompra}
+          onOpenChange={(open) => !open && setEditingCompra(null)}
+          compra={editingCompra}
+          currentUser={currentUser}
+          onSuccess={() => {
+            setEditingCompra(null);
             onDataChanged();
           }}
         />

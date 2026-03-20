@@ -84,6 +84,9 @@ export function createCompraFormSchema(roles: UserRole[], context: { isCreating:
         })
       : z.enum(ESTADOS_COMPRA).optional(),
 
+    decreto_pago: z.string().optional(),
+    fecha_pago: z.string().optional(),
+
     observacion: z.string().optional(),
   });
 }

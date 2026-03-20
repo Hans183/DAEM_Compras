@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 
-import { ArrowDown, ArrowUp, ArrowUpDown, Settings2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, FileSpreadsheet, Settings2 } from "lucide-react";
+import * as XLSX from "xlsx";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -177,6 +178,44 @@ export function ProyeccionSepTable({
     return sortDirection === "asc" ? <ArrowUp className="ml-2 h-3 w-3" /> : <ArrowDown className="ml-2 h-3 w-3" />;
   };
 
+  const handleExportExcel = () => {
+    const exportData = sortedData.map((row) => ({
+      Establecimiento: row.nombre,
+      Presupuesto: row.presupuesto,
+      "Total Utilizado": row.total_utilizado,
+      "Por Gastar": row.por_gastar,
+      "% Utilizado": `${row.porcentaje_utilizado.toFixed(1)}%`,
+      "% Pagado": `${row.porcentaje_pagado.toFixed(1)}%`,
+      "Compras Facturadas": row.compras_facturadas,
+      "Compras Obligadas": row.compras_obligadas,
+      RRHH: row.rrhh,
+      "RRHH Proyectado": row.rrhh_proyectado,
+      "Facturado + RRHH": row.suma_facturado_rrhh,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Proyección SEP");
+
+    // Adjust column widths
+    const maxWidths = [
+      { wch: 30 }, // Establecimiento
+      { wch: 15 }, // Presupuesto
+      { wch: 15 }, // Total Utilizado
+      { wch: 15 }, // Por Gastar
+      { wch: 10 }, // % Utilizado
+      { wch: 10 }, // % Pagado
+      { wch: 15 }, // Compras Facturadas
+      { wch: 15 }, // Compras Obligadas
+      { wch: 15 }, // RRHH
+      { wch: 15 }, // RRHH Proyectado
+      { wch: 15 }, // Facturado + RRHH
+    ];
+    worksheet["!cols"] = maxWidths;
+
+    XLSX.writeFile(workbook, `Proyeccion_SEP_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
   const renderHeader = (label: string | React.ReactNode, key: SortKey) => {
     if (!visibleColumns[key]) return null;
 
@@ -241,10 +280,14 @@ export function ProyeccionSepTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={handleExportExcel} className="h-8">
+          <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-600" />
+          Descargar Excel
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="ml-auto flex h-8">
+            <Button variant="outline" size="sm" className="flex h-8">
               <Settings2 className="mr-2 h-4 w-4" />
               Columnas
             </Button>

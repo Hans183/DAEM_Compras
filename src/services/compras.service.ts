@@ -138,6 +138,8 @@ export async function createCompra(data: CompraFormData): Promise<Compra> {
     formData.append("presupuesto", String(data.presupuesto ?? 0));
     formData.append("estado", data.estado ?? "Asignado");
     if (data.usuario_modificador) formData.append("usuario_modificador", data.usuario_modificador);
+    if (data.decreto_pago) formData.append("decreto_pago", data.decreto_pago);
+    if (data.fecha_pago) formData.append("fecha_pago", data.fecha_pago);
 
     if (data.adjunta_ordinario) {
       formData.append("adjunta_ordinario", data.adjunta_ordinario);
@@ -192,6 +194,8 @@ export async function updateCompra(id: string, data: Partial<CompraFormData>): P
     if (data.estado) formData.append("estado", data.estado);
     if (data.usuario_modificador) formData.append("usuario_modificador", data.usuario_modificador);
     if (data.motivo_anula) formData.append("motivo_anula", data.motivo_anula);
+    if (data.decreto_pago) formData.append("decreto_pago", data.decreto_pago);
+    if (data.fecha_pago) formData.append("fecha_pago", data.fecha_pago);
 
     if (data.adjunta_ordinario) {
       formData.append("adjunta_ordinario", data.adjunta_ordinario);

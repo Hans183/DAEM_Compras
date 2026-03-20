@@ -25,6 +25,8 @@ export interface Compra extends RecordModel {
   es_duplicada?: boolean;
   observacion?: string;
   accion?: string; // Relation ID to acciones
+  decreto_pago?: string;
+  fecha_pago?: string;
   expand?: {
     unidad_requirente?: Requirente;
     comprador?: User;
@@ -54,6 +56,8 @@ export interface CompraFormData {
   es_duplicada?: boolean;
   observacion?: string;
   accion?: string;
+  decreto_pago?: string;
+  fecha_pago?: string;
 }
 
 /**
@@ -87,6 +91,7 @@ export const ESTADOS_COMPRA = [
   "Asignado",
   "En Proceso",
   "Comprado",
+  "Facturado",
   "Devuelto",
   "En Bodega",
   "Entregado",

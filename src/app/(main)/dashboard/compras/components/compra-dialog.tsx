@@ -95,6 +95,8 @@ export function CompraDialog({
       subvencion: compra?.subvencion || "",
       estado: compra?.estado || (currentUser?.role.includes("SEP") ? "Iniciado" : "Asignado"),
       observacion: compra?.observacion || "",
+      decreto_pago: compra?.decreto_pago || "",
+      fecha_pago: compra?.fecha_pago ? new Date(compra.fecha_pago).toISOString().split("T")[0] : "",
     },
   });
 
@@ -153,6 +155,8 @@ export function CompraDialog({
         estado: compra?.estado || (currentUser?.role.includes("SEP") ? "Iniciado" : "Asignado"),
         adjunta_ordinario: undefined,
         observacion: compra?.observacion || "",
+        decreto_pago: compra?.decreto_pago || "",
+        fecha_pago: compra?.fecha_pago ? new Date(compra.fecha_pago).toISOString().split("T")[0] : "",
       });
     }
   }, [open, compra, form, initialData, currentUser?.role.includes]);
@@ -175,6 +179,8 @@ export function CompraDialog({
           estado: data.estado,
           adjunta_ordinario: data.adjunta_ordinario,
           observacion: data.observacion,
+          decreto_pago: data.decreto_pago,
+          fecha_pago: data.fecha_pago,
           usuario_modificador: currentUser?.name || currentUser?.email || "Usuario desconocido",
         });
         toast.success("Compra actualizada exitosamente");
@@ -208,6 +214,8 @@ export function CompraDialog({
           estado: data.estado,
           adjunta_ordinario: data.adjunta_ordinario,
           observacion: data.observacion,
+          decreto_pago: data.decreto_pago,
+          fecha_pago: data.fecha_pago,
           usuario_modificador: currentUser?.name || currentUser?.email || "Usuario desconocido",
         });
         toast.success("Compra creada exitosamente");
@@ -520,11 +528,13 @@ export function CompraDialog({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {subvenciones.map((subvencion) => (
-                            <SelectItem key={subvencion.id} value={subvencion.id}>
-                              {subvencion.nombre}
-                            </SelectItem>
-                          ))}
+                          {subvenciones
+                            .filter((s) => !currentUser?.role.includes("SEP") || s.nombre.toLowerCase().includes("sep"))
+                            .map((subvencion) => (
+                              <SelectItem key={subvencion.id} value={subvencion.id}>
+                                {subvencion.nombre}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -553,6 +563,49 @@ export function CompraDialog({
                               field.onChange(rawValue === "" ? 0 : Number(rawValue));
                             }
                           }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="decreto_pago"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Decreto de Pago
+                        {isRequired("decreto_pago") && <span className="ml-1 text-red-500">*</span>}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Ej: 1234"
+                          disabled={!isFieldEditable("decreto_pago", currentUser?.role || ["Observador"])}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="fecha_pago"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Fecha de Pago
+                        {isRequired("fecha_pago") && <span className="ml-1 text-red-500">*</span>}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          disabled={!isFieldEditable("fecha_pago", currentUser?.role || ["Observador"])}
+                          {...field}
+                          value={field.value ? new Date(field.value as string).toISOString().split("T")[0] : ""}
                         />
                       </FormControl>
                       <FormMessage />

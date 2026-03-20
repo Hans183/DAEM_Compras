@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { AuthContext } from "@/contexts/auth-context";
 import pb from "@/lib/pocketbase";
 import { createCompra } from "@/services/compras.service";
 import { createOrdenCompra } from "@/services/ordenes-compra.service";
@@ -27,12 +28,14 @@ const formSchema = z.object({
   numero_ordinario: z.coerce.number().min(1, "El número ordinario es requerido"),
   adjunta_ordinario: z.any().optional(),
   unidad_requirente: z.string().min(1, "La unidad requirente es requerida"),
-  estado: z.enum(["Entregado", "Comprado"]),
+  estado: z.enum(["Entregado", "Comprado", "Facturado"]),
   // Orden de Compra fields
   oc: z.string().min(1, "El número de OC es requerido"),
   oc_adjunto: z.any().optional(),
   oc_fecha: z.string().min(1, "La fecha de OC es requerida"),
   oc_valor: z.coerce.number().min(1, "El valor de la OC es requerido"),
+  decreto_pago: z.string().optional(),
+  fecha_pago: z.string().optional(),
 });
 
 interface ManualSepCompraDialogProps {
@@ -47,6 +50,9 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
   const [requirentes, setRequirentes] = useState<Requirente[]>([]);
   const [sepSubvencionId, setSepSubvencionId] = useState<string | null>(null);
   const [loadingInitial, setLoadingInitial] = useState(false);
+  const authContext = useContext(AuthContext);
+  const user = authContext?.user;
+  const isSep = user?.role.includes("SEP");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -58,6 +64,8 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
       oc: "",
       oc_fecha: new Date().toISOString().split("T")[0],
       oc_valor: 0,
+      decreto_pago: "",
+      fecha_pago: "",
     },
   });
 
@@ -99,6 +107,8 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
         oc: "",
         oc_fecha: new Date().toISOString().split("T")[0],
         oc_valor: 0,
+        decreto_pago: "",
+        fecha_pago: "",
       });
     }
   }, [open, accion, form]);
@@ -125,6 +135,8 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
         comprador: currentUserId,
         presupuesto: values.oc_valor, // Using OC value as budget for manual entry
         fecha_inicio: values.oc_fecha,
+        decreto_pago: values.decreto_pago,
+        fecha_pago: values.fecha_pago,
       });
 
       // 2. Create OrdenCompra
@@ -149,7 +161,7 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Agregar Compra SEP Manual</DialogTitle>
         </DialogHeader>
@@ -161,7 +173,7 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
         ) : (
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="col-span-2 space-y-4 border-b pb-4">
                   <h3 className="font-semibold text-sm">Información de la Compra</h3>
 
@@ -258,8 +270,17 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Comprado">Comprado</SelectItem>
-                          <SelectItem value="Entregado">Entregado</SelectItem>
+                          {isSep ? (
+                            <>
+                              <SelectItem value="Comprado">Comprado</SelectItem>
+                              <SelectItem value="Facturado">Facturado</SelectItem>
+                            </>
+                          ) : (
+                            <>
+                              <SelectItem value="Comprado">Comprado</SelectItem>
+                              <SelectItem value="Entregado">Entregado</SelectItem>
+                            </>
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -326,6 +347,38 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
                           onChange={(e) => onChange(e.target.files)}
                           {...field}
                         />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="col-span-2 space-y-4 border-t pt-4">
+                  <h3 className="font-semibold text-sm">Información de Pago</h3>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="decreto_pago"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Decreto de Pago</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ej: 1234" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="fecha_pago"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fecha de Pago</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
