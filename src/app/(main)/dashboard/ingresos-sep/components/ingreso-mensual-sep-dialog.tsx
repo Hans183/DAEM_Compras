@@ -220,7 +220,7 @@ export function IngresoMensualSepDialog({ open, onOpenChange, ingreso, onSuccess
                     <FormLabel>Prioritarios</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <span className="absolute left-3 top-2.5 text-xs text-muted-foreground">$</span>
+                        <span className="absolute top-2.5 left-3 text-muted-foreground text-xs">$</span>
                         <Input
                           type="text"
                           className="pl-6"
@@ -268,7 +268,7 @@ export function IngresoMensualSepDialog({ open, onOpenChange, ingreso, onSuccess
                     <FormLabel>Preferentes</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <span className="absolute left-3 top-2.5 text-xs text-muted-foreground">$</span>
+                        <span className="absolute top-2.5 left-3 text-muted-foreground text-xs">$</span>
                         <Input
                           type="text"
                           className="pl-6"

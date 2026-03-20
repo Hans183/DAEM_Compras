@@ -39,12 +39,12 @@ export function IngresosMensualesSepTable({ data, onEdit, onRefresh }: IngresosM
             <TableHead className="text-right">Preferentes</TableHead>
             <TableHead className="text-right">10% Prio.</TableHead>
             <TableHead className="text-right">10% Pref.</TableHead>
-            <TableHead className="text-center leading-tight min-w-[120px]">
+            <TableHead className="min-w-[120px] text-center leading-tight">
               Total a Reflejar
               <br />
               Mensual prioritarios
             </TableHead>
-            <TableHead className="text-center leading-tight min-w-[120px]">
+            <TableHead className="min-w-[120px] text-center leading-tight">
               Total a Reflejar
               <br />
               Mensual Preferentes
