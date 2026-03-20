@@ -310,156 +310,151 @@ export function OrdenesCompraList({ compraId, onUpdate, canEdit }: OrdenesCompra
             )}
           </div>
           <Form {...form}>
-            <div className="flex items-end gap-4">
-              <div className="grid w-full grid-cols-12 gap-2">
-                <div className="col-span-3">
-                  <FormField
-                    control={form.control}
-                    name="oc"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">N° OC</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="OC-123"
-                            className="h-8 text-xs"
-                            onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="col-span-3">
-                  <FormField
-                    control={form.control}
-                    name="oc_fecha"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Fecha</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="date" className="h-8 text-xs" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="plazo_entrega"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel className="text-xs">Fecha Entrega (Días Hábiles)</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "h-8 w-full pl-3 text-left font-normal text-xs",
-                                  !field.value && "text-muted-foreground",
-                                )}
-                              >
-                                {field.value ? format(field.value, "dd/MM/yyyy") : <span>Seleccionar fecha</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value}
-                              onSelect={field.onChange}
-                              disabled={(date) => {
-                                // Disable weekends (Sunday=0, Saturday=6)
-                                if (date.getDay() === 0 || date.getDay() === 6) return true;
-                                // Disable holidays
-                                const dateStr = format(date, "yyyy-MM-dd");
-                                return holidays.some((h) => h.date === dateStr);
-                              }}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="oc_valor"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">Valor</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            className="h-8 text-xs"
-                            placeholder="0"
-                            {...field}
-                            value={field.value ? new Intl.NumberFormat("es-CL").format(field.value) : ""}
-                            onChange={(e) => {
-                              const rawValue = e.target.value.replace(/\./g, "");
-                              if (rawValue === "" || /^\d+$/.test(rawValue)) {
-                                field.onChange(rawValue === "" ? 0 : Number(rawValue));
-                              }
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="oc_adjunto"
-                    render={({ field: { value, onChange, ...field } }) => (
-                      <FormItem>
-                        <FormLabel className="text-xs">
-                          {editingOc?.oc_adjunto ? "Cambiar Adjunto" : "Adjunto"}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="file"
-                            accept=".pdf,.jpg,.png"
-                            className="h-8 text-xs"
-                            onChange={(e) => onChange(e.target.files?.[0])}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <FormField
+                  control={form.control}
+                  name="oc"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">N° OC</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="OC-123"
+                          className="h-9 text-xs"
+                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="oc_fecha"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Fecha</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="date" className="h-9 text-xs" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="oc_valor"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Valor</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          className="h-9 text-xs"
+                          placeholder="0"
+                          {...field}
+                          value={field.value ? new Intl.NumberFormat("es-CL").format(field.value) : ""}
+                          onChange={(e) => {
+                            const rawValue = e.target.value.replace(/\./g, "");
+                            if (rawValue === "" || /^\d+$/.test(rawValue)) {
+                              field.onChange(rawValue === "" ? 0 : Number(rawValue));
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-              <Button
-                type="button"
-                size="sm"
-                disabled={isCreating}
-                className="mb-0.5 h-8"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  form.handleSubmit(onSubmit)(e);
-                }}
-              >
-                {isCreating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : editingOc ? (
-                  <Pencil className="h-4 w-4" />
-                ) : (
-                  <Plus className="h-4 w-4" />
-                )}
-              </Button>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="plazo_entrega"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel className="text-xs">Fecha Entrega (Días Hábiles)</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "h-9 w-full pl-3 text-left font-normal text-xs",
+                                !field.value && "text-muted-foreground",
+                              )}
+                            >
+                              {field.value ? format(field.value, "dd/MM/yyyy") : <span>Seleccionar fecha</span>}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => {
+                              // Disable weekends (Sunday=0, Saturday=6)
+                              if (date.getDay() === 0 || date.getDay() === 6) return true;
+                              // Disable holidays
+                              const dateStr = format(date, "yyyy-MM-dd");
+                              return holidays.some((h) => h.date === dateStr);
+                            }}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="oc_adjunto"
+                  render={({ field: { value, onChange, ...field } }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">{editingOc?.oc_adjunto ? "Cambiar Adjunto" : "Adjunto"}</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="file"
+                          accept=".pdf,.jpg,.png"
+                          className="h-9 text-xs"
+                          onChange={(e) => onChange(e.target.files?.[0])}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={isCreating}
+                  className="h-9 px-8"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    form.handleSubmit(onSubmit)(e);
+                  }}
+                >
+                  {isCreating ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : editingOc ? (
+                    <Pencil className="mr-2 h-4 w-4" />
+                  ) : (
+                    <Plus className="mr-2 h-4 w-4" />
+                  )}
+                  {editingOc ? "Actualizar OC" : "Agregar OC"}
+                </Button>
+              </div>
             </div>
           </Form>
         </div>

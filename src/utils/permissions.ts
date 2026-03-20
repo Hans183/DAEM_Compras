@@ -130,6 +130,8 @@ export function getEditableFields(roles: UserRole[], estadoCompra?: EstadoCompra
       "adjunta_ordinario",
       "decreto_pago",
       "fecha_pago",
+      "presupuesto",
+      "observacion",
     ];
     for (const f of sepFields) {
       fields.add(f);

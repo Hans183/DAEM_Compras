@@ -252,7 +252,7 @@ export function CompraDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* ... Content ... */}
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[700px]">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[1000px]">
         <DialogHeader>
           {/* ... Header ... */}
           <DialogTitle>{isEditing ? "Editar Compra" : "Crear Nueva Compra"}</DialogTitle>
@@ -634,6 +634,7 @@ export function CompraDialog({
                     canEdit={
                       currentUser?.role.includes("Encargado compras") ||
                       currentUser?.role.includes("Comprador") ||
+                      currentUser?.role.includes("SEP") ||
                       false
                     }
                     onUpdate={() => {
