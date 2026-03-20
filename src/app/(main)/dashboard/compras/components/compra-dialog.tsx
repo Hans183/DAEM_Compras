@@ -252,7 +252,7 @@ export function CompraDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* ... Content ... */}
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[1000px]">
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-7xl">
         <DialogHeader>
           {/* ... Header ... */}
           <DialogTitle>{isEditing ? "Editar Compra" : "Crear Nueva Compra"}</DialogTitle>

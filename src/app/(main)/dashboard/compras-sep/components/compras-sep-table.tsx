@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { Check, ChevronsUpDown } from "lucide-react";
+import { Check, ChevronsUpDown, Edit } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,8 @@ import { updateCompra } from "@/services/compras.service";
 import type { Accion } from "@/types/accion";
 import type { Compra } from "@/types/compra";
 
+import { EditSepCompraDialog } from "./edit-sep-compra-dialog";
+
 interface ComprasSepTableProps {
   data: Compra[];
   onDataChanged: () => void;
@@ -24,6 +26,7 @@ interface ComprasSepTableProps {
 export function ComprasSepTable({ data, onDataChanged }: ComprasSepTableProps) {
   const [acciones, setAcciones] = useState<Accion[]>([]);
   const [_loadingAcciones, setLoadingAcciones] = useState(false);
+  const [editingCompra, setEditingCompra] = useState<Compra | null>(null);
 
   // Initial load of actions
   useEffect(() => {
@@ -84,6 +87,7 @@ export function ComprasSepTable({ data, onDataChanged }: ComprasSepTableProps) {
             <TableHead>Estado</TableHead>
             <TableHead>Total OC's</TableHead>
             <TableHead className="w-[300px]">Acción SEP</TableHead>
+            <TableHead className="w-[80px] text-right">Acción</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -119,11 +123,34 @@ export function ComprasSepTable({ data, onDataChanged }: ComprasSepTableProps) {
                     onSelect={(actionId) => handleActionChange(item.id, actionId)}
                   />
                 </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setEditingCompra(item)}
+                    title="Editar y gestionar facturas"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </TableCell>
               </TableRow>
             ))
           )}
         </TableBody>
       </Table>
+
+      {editingCompra && (
+        <EditSepCompraDialog
+          open={!!editingCompra}
+          onOpenChange={(open) => !open && setEditingCompra(null)}
+          compra={editingCompra}
+          onSuccess={() => {
+            // onDataChanged will refresh the table, which includes expanded OCs
+            onDataChanged();
+          }}
+        />
+      )}
     </div>
   );
 }
