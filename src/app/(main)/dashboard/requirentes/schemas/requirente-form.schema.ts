@@ -14,6 +14,7 @@ export const requirenteFormSchema = z.object({
     }),
   active: z.boolean().default(true),
   sep: z.boolean().default(false),
+  red_trumao: z.boolean().default(false),
 });
 
 export type RequirenteFormValues = z.infer<typeof requirenteFormSchema>;

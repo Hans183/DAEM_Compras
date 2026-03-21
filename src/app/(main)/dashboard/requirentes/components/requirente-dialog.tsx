@@ -40,6 +40,7 @@ export function RequirenteDialog({ requirente, open, onOpenChange, onSuccess }: 
       nombre: requirente?.nombre || "",
       active: requirente?.active ?? true,
       sep: requirente?.sep ?? false,
+      red_trumao: requirente?.red_trumao ?? false,
     },
   });
 
@@ -118,6 +119,24 @@ export function RequirenteDialog({ requirente, open, onOpenChange, onSuccess }: 
                   <div className="space-y-0.5">
                     <FormLabel>SEP</FormLabel>
                     <FormDescription>Marcar si es una unidad SEP</FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="red_trumao"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 border-emerald-100 bg-emerald-50/30">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-emerald-800">Red Trumao</FormLabel>
+                    <FormDescription className="text-emerald-600/80 font-medium">
+                      Eximir del cargo de administración (10%)
+                    </FormDescription>
                   </div>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
