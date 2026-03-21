@@ -22,6 +22,11 @@ export interface IngresoMensualSep extends RecordModel {
   anio: number;
   prioritarios: number;
   preferentes: number;
+  prio_10: number;
+  pref_10: number;
+  prio_reflejar: number;
+  pref_reflejar: number;
+  total_reflejar: number;
   expand?: {
     requirente: Requirente;
   };

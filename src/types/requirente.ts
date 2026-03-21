@@ -7,6 +7,7 @@ export interface Requirente extends RecordModel {
   nombre: string;
   active: boolean;
   sep: boolean;
+  red_trumao: boolean;
 }
 
 /**
@@ -16,6 +17,7 @@ export interface RequirenteFormData {
   nombre: string;
   active: boolean;
   sep: boolean;
+  red_trumao: boolean;
 }
 
 /**

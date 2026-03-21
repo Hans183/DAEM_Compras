@@ -45,6 +45,7 @@ export default function IngresosSepPage() {
   const [page, setPage] = useState(1);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedIngreso, setSelectedIngreso] = useState<IngresoMensualSep | null>(null);
+  const [sort, setSort] = useState("requirente.nombre");
 
   // Filters state
   const currentMonthIndex = new Date().getMonth();
@@ -58,7 +59,7 @@ export default function IngresosSepPage() {
       const result = await getIngresosMensualesSep({
         page,
         perPage: 20,
-        sort: "-created",
+        sort,
         mes: selectedMes === "all" ? undefined : selectedMes,
         anio: selectedAnio,
       });
@@ -73,11 +74,19 @@ export default function IngresosSepPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, selectedMes, selectedAnio]);
+  }, [page, selectedMes, selectedAnio, sort]);
 
   useEffect(() => {
     loadIngresos();
   }, [loadIngresos]);
+
+  const handleSort = (field: string) => {
+    if (sort === field) {
+      setSort(`-${field}`);
+    } else {
+      setSort(field);
+    }
+  };
 
   const handleEdit = (ingreso: IngresoMensualSep) => {
     setSelectedIngreso(ingreso);
@@ -162,7 +171,13 @@ export default function IngresosSepPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          <IngresosMensualesSepTable data={data?.items || []} onEdit={handleEdit} onRefresh={loadIngresos} />
+          <IngresosMensualesSepTable
+            data={data?.items || []}
+            onEdit={handleEdit}
+            onRefresh={loadIngresos}
+            sort={sort}
+            onSort={handleSort}
+          />
 
           {data && data.totalPages > 1 && (
             <div className="mt-4 flex justify-center">
