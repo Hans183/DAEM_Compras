@@ -21,6 +21,7 @@ import { IngresoMensualSepDialog } from "./components/ingreso-mensual-sep-dialog
 import { IngresosMensualesSepTable } from "./components/ingresos-mensuales-sep-table";
 
 const MESES: Mes[] = [
+  "Saldo Inicial",
   "Enero",
   "Febrero",
   "Marzo",
@@ -50,7 +51,7 @@ export default function IngresosSepPage() {
   // Filters state
   const currentMonthIndex = new Date().getMonth();
   const currentYear = new Date().getFullYear();
-  const [selectedMes, setSelectedMes] = useState<Mes | "all">(MESES[currentMonthIndex]);
+  const [selectedMes, setSelectedMes] = useState<Mes | "all">(MESES[currentMonthIndex + 1]);
   const [selectedAnio, setSelectedAnio] = useState<number>(currentYear);
 
   const loadIngresos = useCallback(async () => {

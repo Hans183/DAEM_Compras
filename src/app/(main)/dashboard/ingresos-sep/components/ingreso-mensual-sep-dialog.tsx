@@ -19,6 +19,7 @@ import type { IngresoMensualSep, Mes } from "@/types/ingreso-mensual-sep";
 import type { Requirente } from "@/types/requirente";
 
 const MESES: Mes[] = [
+  "Saldo Inicial",
   "Enero",
   "Febrero",
   "Marzo",
@@ -37,6 +38,7 @@ const formSchema = z.object({
   requirente: z.string().min(1, "El establecimiento es requerido"),
   mes: z.enum(
     [
+      "Saldo Inicial",
       "Enero",
       "Febrero",
       "Marzo",
@@ -110,7 +112,7 @@ export function IngresoMensualSepDialog({ open, onOpenChange, ingreso, onSuccess
       } else {
         form.reset({
           requirente: "",
-          mes: MESES[new Date().getMonth()] || "Enero",
+          mes: MESES[new Date().getMonth() + 1] || "Enero",
           anio: currentYear,
           prioritarios: 0,
           preferentes: 0,

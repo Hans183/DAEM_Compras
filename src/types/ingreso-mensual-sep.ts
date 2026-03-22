@@ -3,6 +3,7 @@ import type { RecordModel } from "pocketbase";
 import type { Requirente } from "./requirente";
 
 export type Mes =
+  | "Saldo Inicial"
   | "Enero"
   | "Febrero"
   | "Marzo"

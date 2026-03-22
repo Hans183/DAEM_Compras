@@ -57,18 +57,22 @@ export async function createIngresoMensualSep(data: IngresoMensualSepFormData) {
 
 export async function updateIngresoMensualSep(id: string, data: Partial<IngresoMensualSepFormData>) {
   // If numeric fields or requirente are provided, re-calculate everything to keep consistency
+  const existing = await pb.collection(INGRESOS_MENSUALES_SEP_COLLECTION).getOne<IngresoMensualSep>(id);
   const updateData: Partial<IngresoMensualSep> = { ...data };
 
-  if (data.prioritarios !== undefined || data.preferentes !== undefined || data.requirente !== undefined) {
+  if (
+    data.prioritarios !== undefined ||
+    data.preferentes !== undefined ||
+    data.requirente !== undefined ||
+    data.mes !== undefined
+  ) {
     // We need the requirente info to check Red Trumao status
-    const requirenteId =
-      data.requirente ||
-      (await pb.collection(INGRESOS_MENSUALES_SEP_COLLECTION).getOne<IngresoMensualSep>(id)).requirente;
+    const requirenteId = data.requirente || existing.requirente;
     const requirente = await pb.collection("requirente").getOne<Requirente>(requirenteId);
     const isRedTrumao = requirente.red_trumao;
 
-    const prioritarios = data.prioritarios ?? 0;
-    const preferentes = data.preferentes ?? 0;
+    const prioritarios = data.prioritarios ?? existing.prioritarios;
+    const preferentes = data.preferentes ?? existing.preferentes;
 
     updateData.prio_10 = isRedTrumao ? 0 : prioritarios * 0.1;
     updateData.pref_10 = isRedTrumao ? 0 : preferentes * 0.1;

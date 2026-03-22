@@ -33,14 +33,14 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
   try {
     const filters: string[] = [];
 
-    // Búsqueda general (busca en múltiples campos)
+    // Búsqueda por número ordinario (únicamente)
     if (search) {
-      const searchFilters = [`descripcion ~ "${search}"`, `unidad_requirente.nombre ~ "${search}"`];
-      // Si el término de búsqueda es un número, buscamos también por número ordinario
       if (!Number.isNaN(Number(search))) {
-        searchFilters.push(`numero_ordinario = ${search}`);
+        filters.push(`numero_ordinario = ${search}`);
+      } else {
+        // Si no es un número, forzamos un filtro que no devuelva resultados (ordinario -1 no existe)
+        filters.push(`numero_ordinario = -1`);
       }
-      filters.push(`(${searchFilters.join(" || ")})`);
     }
 
     // Filtros específicos por columna
