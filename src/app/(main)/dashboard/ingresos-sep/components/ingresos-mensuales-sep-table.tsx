@@ -34,11 +34,13 @@ export function IngresosMensualesSepTable({ data, onEdit, onRefresh, sort, onSor
 
   const totals = data.reduce(
     (acc, item) => {
+      acc.prio10 += item.prio_10 || 0;
+      acc.pref10 += item.pref_10 || 0;
       acc.prioReflejar += item.prio_reflejar || 0;
       acc.prefReflejar += item.pref_reflejar || 0;
       return acc;
     },
-    { prioReflejar: 0, prefReflejar: 0 },
+    { prio10: 0, pref10: 0, prioReflejar: 0, prefReflejar: 0 },
   );
 
   const grandTotal = totals.prioReflejar + totals.prefReflejar;
@@ -134,6 +136,8 @@ export function IngresosMensualesSepTable({ data, onEdit, onRefresh, sort, onSor
           ) : (
             data.map((item) => {
               const isRedTrumao = item.expand?.requirente?.red_trumao;
+              const isSaldoInicial = item.mes === "Saldo Inicial";
+              const isExento = isRedTrumao || isSaldoInicial;
               const nombreEstablecimiento = item.expand?.requirente?.nombre || "N/A";
               const nombreTruncado =
                 nombreEstablecimiento.length > 40
@@ -161,15 +165,15 @@ export function IngresosMensualesSepTable({ data, onEdit, onRefresh, sort, onSor
                     {formatCurrency(item.preferentes, { currency: "CLP", locale: "es-CL", noDecimals: true })}
                   </TableCell>
                   <TableCell className="text-right text-emerald-700">
-                    {isRedTrumao ? (
-                      <span className="text-muted-foreground text-xs italic">Exento</span>
+                    {isExento ? (
+                      <span className="text-muted-foreground text-xs italic">{isSaldoInicial ? "S.I." : "Exento"}</span>
                     ) : (
                       formatCurrency(item.prio_10 || 0, { currency: "CLP", locale: "es-CL", noDecimals: true })
                     )}
                   </TableCell>
                   <TableCell className="text-right text-emerald-700">
-                    {isRedTrumao ? (
-                      <span className="text-muted-foreground text-xs italic">Exento</span>
+                    {isExento ? (
+                      <span className="text-muted-foreground text-xs italic">{isSaldoInicial ? "S.I." : "Exento"}</span>
                     ) : (
                       formatCurrency(item.pref_10 || 0, { currency: "CLP", locale: "es-CL", noDecimals: true })
                     )}
@@ -208,8 +212,14 @@ export function IngresosMensualesSepTable({ data, onEdit, onRefresh, sort, onSor
         {data.length > 0 && (
           <TableFooter className="bg-emerald-50/50">
             <TableRow className="bg-transparent hover:bg-transparent">
-              <TableCell colSpan={5} className="h-12 border-emerald-100 border-t-2 font-bold text-emerald-900">
+              <TableCell colSpan={3} className="h-12 border-emerald-100 border-t-2 font-bold text-emerald-900">
                 TOTAL GENERAL A REFLEJAR
+              </TableCell>
+              <TableCell className="h-12 border-emerald-100 border-t-2 bg-emerald-50/20 text-right font-bold text-emerald-700">
+                {formatCurrency(totals.prio10, { currency: "CLP", locale: "es-CL", noDecimals: true })}
+              </TableCell>
+              <TableCell className="h-12 border-emerald-100 border-t-2 bg-emerald-50/20 text-right font-bold text-emerald-700">
+                {formatCurrency(totals.pref10, { currency: "CLP", locale: "es-CL", noDecimals: true })}
               </TableCell>
               <TableCell className="h-12 border-emerald-100 border-t-2 bg-blue-50/20 text-right font-bold text-blue-900">
                 {formatCurrency(totals.prioReflejar, { currency: "CLP", locale: "es-CL", noDecimals: true })}

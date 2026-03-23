@@ -39,10 +39,11 @@ export async function createIngresoMensualSep(data: IngresoMensualSepFormData) {
   const requirente = await pb.collection("requirente").getOne<Requirente>(data.requirente);
   const isRedTrumao = requirente.red_trumao;
 
-  const prio_10 = isRedTrumao ? 0 : data.prioritarios * 0.1;
-  const pref_10 = isRedTrumao ? 0 : data.preferentes * 0.1;
-  const prio_reflejar = isRedTrumao ? data.prioritarios : data.prioritarios * 0.9;
-  const pref_reflejar = isRedTrumao ? data.preferentes : data.preferentes * 0.9;
+  const isExento = isRedTrumao || data.mes === "Saldo Inicial";
+  const prio_10 = isExento ? 0 : data.prioritarios * 0.1;
+  const pref_10 = isExento ? 0 : data.preferentes * 0.1;
+  const prio_reflejar = isExento ? data.prioritarios : data.prioritarios * 0.9;
+  const pref_reflejar = isExento ? data.preferentes : data.preferentes * 0.9;
   const total_reflejar = prio_reflejar + pref_reflejar;
 
   return await pb.collection(INGRESOS_MENSUALES_SEP_COLLECTION).create<IngresoMensualSep>({
@@ -69,15 +70,14 @@ export async function updateIngresoMensualSep(id: string, data: Partial<IngresoM
     // We need the requirente info to check Red Trumao status
     const requirenteId = data.requirente || existing.requirente;
     const requirente = await pb.collection("requirente").getOne<Requirente>(requirenteId);
-    const isRedTrumao = requirente.red_trumao;
-
+    const isExento = requirente.red_trumao || (data.mes || existing.mes) === "Saldo Inicial";
     const prioritarios = data.prioritarios ?? existing.prioritarios;
     const preferentes = data.preferentes ?? existing.preferentes;
 
-    updateData.prio_10 = isRedTrumao ? 0 : prioritarios * 0.1;
-    updateData.pref_10 = isRedTrumao ? 0 : preferentes * 0.1;
-    updateData.prio_reflejar = isRedTrumao ? prioritarios : prioritarios * 0.9;
-    updateData.pref_reflejar = isRedTrumao ? preferentes : preferentes * 0.9;
+    updateData.prio_10 = isExento ? 0 : prioritarios * 0.1;
+    updateData.pref_10 = isExento ? 0 : preferentes * 0.1;
+    updateData.prio_reflejar = isExento ? prioritarios : prioritarios * 0.9;
+    updateData.pref_reflejar = isExento ? preferentes : preferentes * 0.9;
     updateData.total_reflejar = (updateData.prio_reflejar || 0) + (updateData.pref_reflejar || 0);
   }
 
