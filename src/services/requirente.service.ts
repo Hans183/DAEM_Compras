@@ -12,7 +12,9 @@ export async function getRequirentes(params: GetRequirentesParams = {}): Promise
   const { page = 1, perPage = 30, search = "", sort = "+nombre" } = params;
 
   try {
-    const filter = search ? `nombre ~ "${search}"` : "";
+    const filterParts = [`active = true`];
+    if (search) filterParts.push(`nombre ~ "${search}"`);
+    const filter = filterParts.join(" && ");
 
     return await pb.collection(REQUIRENTE_COLLECTION).getList<Requirente>(page, perPage, {
       filter,

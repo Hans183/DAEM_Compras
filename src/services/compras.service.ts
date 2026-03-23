@@ -31,7 +31,7 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
   } = params;
 
   try {
-    const filters: string[] = [];
+    const filters: string[] = ["unidad_requirente.active = true"];
 
     // Búsqueda por número ordinario (únicamente)
     if (search) {
