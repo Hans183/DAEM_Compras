@@ -102,13 +102,24 @@ export function IngresoMensualSepDialog({ open, onOpenChange, ingreso, onSuccess
   useEffect(() => {
     if (open) {
       if (ingreso) {
-        form.reset({
-          requirente: ingreso.requirente,
-          mes: ingreso.mes,
-          anio: ingreso.anio || currentYear,
-          prioritarios: ingreso.prioritarios,
-          preferentes: ingreso.preferentes,
-        });
+        if (ingreso.id.startsWith("new-")) {
+          // Placeholder row for creation
+          form.reset({
+            requirente: ingreso.requirente,
+            mes: ingreso.mes,
+            anio: ingreso.anio || currentYear,
+            prioritarios: 0,
+            preferentes: 0,
+          });
+        } else {
+          form.reset({
+            requirente: ingreso.requirente,
+            mes: ingreso.mes,
+            anio: ingreso.anio || currentYear,
+            prioritarios: ingreso.prioritarios,
+            preferentes: ingreso.preferentes,
+          });
+        }
       } else {
         form.reset({
           requirente: "",
@@ -124,7 +135,7 @@ export function IngresoMensualSepDialog({ open, onOpenChange, ingreso, onSuccess
   const onSubmit = async (values: FormValues) => {
     setLoading(true);
     try {
-      if (ingreso) {
+      if (ingreso && !ingreso.id.startsWith("new-")) {
         await updateIngresoMensualSep(ingreso.id, values);
         toast.success("Ingreso actualizado correctamente");
       } else {

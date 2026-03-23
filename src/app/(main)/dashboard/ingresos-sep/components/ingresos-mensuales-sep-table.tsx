@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronsUpDown, ChevronUp, Edit, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronsUpDown, ChevronUp, Edit, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -190,18 +190,24 @@ export function IngresosMensualesSepTable({ data, onEdit, onRefresh, sort, onSor
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => onEdit(item)} className="h-8 w-8 p-0">
-                        <span className="sr-only">Editar</span>
-                        <Edit className="h-4 w-4" />
+                        <span className="sr-only">{item.id.startsWith("new-") ? "Agregar" : "Editar"}</span>
+                        {item.id.startsWith("new-") ? (
+                          <Plus className="h-4 w-4 text-emerald-600" />
+                        ) : (
+                          <Edit className="h-4 w-4" />
+                        )}
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(item.id)}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                      >
-                        <span className="sr-only">Eliminar</span>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {!item.id.startsWith("new-") && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(item.id)}
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                        >
+                          <span className="sr-only">Eliminar</span>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

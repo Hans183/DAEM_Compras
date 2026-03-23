@@ -5,17 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2, Plus, Wallet } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getIngresosMensualesSep } from "@/services/ingresos-mensuales-sep.service";
+import { getRequirentes } from "@/services/requirentes.service";
 import type { IngresoMensualSep, Mes } from "@/types/ingreso-mensual-sep";
+import type { Requirente } from "@/types/requirente";
 
 import { IngresoMensualSepDialog } from "./components/ingreso-mensual-sep-dialog";
 import { IngresosMensualesSepTable } from "./components/ingresos-mensuales-sep-table";
@@ -35,6 +29,32 @@ const MESES: Mes[] = [
   "Noviembre",
   "Diciembre",
 ];
+const CUSTOM_ORDER = [
+  "Colegio de Cultura y Difusión Artistica",
+  "Liceo RAAC",
+  "Escuela La Unión",
+  "Escuela J.A.R.",
+  "Escuela Radimadi",
+  "Colegio Técnico Profesional H.O.V.",
+  "Escuela Rural Catamutún",
+  "Escuela Rural Choroico",
+  "Escuela Rural Puerto Nuevo",
+  "Escuela Rural Los Esteros",
+  "Escuela Rural Folleco",
+  "Escuela Rural Cuinco",
+  "Escuela Rural Huillinco",
+  "Escuela Rural Traiguén",
+  "Escuela Rural Carimanca",
+  "Escuela Rural Flor María Luisa M.",
+  "Escuela Aldea Campesina",
+  "Escuela Rural Llancacura",
+  "Escuela Rural Mashue",
+  "Escuela Rural Pilpilcahuin",
+  "Escuela Rural El Huape",
+  "Escuela Rural Los Chilcos",
+  "Escuela Rural Huacahue",
+  "Escuela El Maitén",
+];
 
 export default function IngresosSepPage() {
   const [data, setData] = useState<{
@@ -43,10 +63,10 @@ export default function IngresosSepPage() {
     totalPages: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedIngreso, setSelectedIngreso] = useState<IngresoMensualSep | null>(null);
   const [sort, setSort] = useState("requirente.nombre");
+  const [allRequirentes, setAllRequirentes] = useState<Requirente[]>([]);
 
   // Filters state
   const currentMonthIndex = new Date().getMonth();
@@ -54,20 +74,83 @@ export default function IngresosSepPage() {
   const [selectedMes, setSelectedMes] = useState<Mes | "all">(MESES[currentMonthIndex + 1]);
   const [selectedAnio, setSelectedAnio] = useState<number>(currentYear);
 
+  useEffect(() => {
+    const fetchRequirentes = async () => {
+      try {
+        const result = await getRequirentes({ perPage: 200, sort: "nombre", sep_filter: true });
+
+        // Sort by custom order
+        const getOrderIndex = (name: string) => {
+          const lowerName = name.toLowerCase();
+          const targetIndex = CUSTOM_ORDER.findIndex((ordered) => {
+            const lowerOrdered = ordered.toLowerCase().replace(/\./g, ""); // Remove dots for better acronym matching
+            const cleanName = lowerName.replace(/\./g, "");
+
+            if (cleanName.includes(lowerOrdered) || lowerOrdered.includes(cleanName)) return true;
+
+            // Handle common acronyms like RAAC or JAR
+            const acronym = lowerOrdered.split(" ").pop() || "";
+            if (acronym.length >= 3 && cleanName.includes(acronym)) return true;
+
+            return false;
+          });
+          return targetIndex === -1 ? 999 : targetIndex;
+        };
+
+        const sortedItems = [...result.items].sort((a, b) => {
+          return getOrderIndex(a.nombre) - getOrderIndex(b.nombre);
+        });
+
+        setAllRequirentes(sortedItems);
+      } catch (error) {
+        console.error("Error fetching requirentes:", error);
+      }
+    };
+    fetchRequirentes();
+  }, []);
+
   const loadIngresos = useCallback(async () => {
+    if (allRequirentes.length === 0) return;
     setLoading(true);
     try {
       const result = await getIngresosMensualesSep({
-        page,
-        perPage: 20,
+        page: 1,
+        perPage: 500, // Fetch all to merge
         sort,
         mes: selectedMes === "all" ? undefined : selectedMes,
         anio: selectedAnio,
       });
+
+      // Merge allRequirentes with result.items
+      const mergedItems: IngresoMensualSep[] = allRequirentes.map((req) => {
+        const existing = result.items.find((item) => item.requirente === req.id);
+        if (existing) return existing;
+
+        // Return a placeholder for missing ones
+        return {
+          id: `new-${req.id}`,
+          requirente: req.id,
+          mes: selectedMes === "all" ? "Enero" : selectedMes,
+          anio: selectedAnio,
+          prioritarios: 0,
+          preferentes: 0,
+          prio_10: 0,
+          pref_10: 0,
+          prio_reflejar: 0,
+          pref_reflejar: 0,
+          total_reflejar: 0,
+          expand: { requirente: req },
+          created: "",
+          updated: "",
+          collectionId: "",
+          collectionName: "",
+        } as IngresoMensualSep;
+      });
+
       setData({
-        items: result.items,
-        totalItems: result.totalItems,
-        totalPages: result.totalPages,
+        items: mergedItems,
+        totalItems: mergedItems.length,
+        totalPages: 1,
       });
     } catch (err) {
       const error = err as Error;
@@ -75,11 +158,13 @@ export default function IngresosSepPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, selectedMes, selectedAnio, sort]);
+  }, [allRequirentes, selectedMes, selectedAnio, sort]);
 
   useEffect(() => {
-    loadIngresos();
-  }, [loadIngresos]);
+    if (allRequirentes.length > 0) {
+      loadIngresos();
+    }
+  }, [loadIngresos, allRequirentes]);
 
   const handleSort = (field: string) => {
     if (sort === field) {
@@ -126,7 +211,6 @@ export default function IngresosSepPage() {
             value={selectedMes}
             onValueChange={(val) => {
               setSelectedMes(val as Mes | "all");
-              setPage(1);
             }}
           >
             <SelectTrigger className="h-9">
@@ -149,7 +233,6 @@ export default function IngresosSepPage() {
             value={selectedAnio.toString()}
             onValueChange={(val) => {
               setSelectedAnio(Number(val));
-              setPage(1);
             }}
           >
             <SelectTrigger className="h-9">
@@ -179,32 +262,6 @@ export default function IngresosSepPage() {
             sort={sort}
             onSort={handleSort}
           />
-
-          {data && data.totalPages > 1 && (
-            <div className="mt-4 flex justify-center">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      className={page === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationLink isActive className="border-emerald-200 bg-emerald-50 text-emerald-700">
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() => setPage((p) => Math.min(data.totalPages, p + 1))}
-                      className={page === data.totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            </div>
-          )}
         </div>
       )}
 
