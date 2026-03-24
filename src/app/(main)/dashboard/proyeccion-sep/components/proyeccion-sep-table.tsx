@@ -18,14 +18,11 @@ import { formatCurrency } from "@/lib/utils";
 import type { ProyeccionSep } from "@/types/proyeccion-sep";
 import type { Requirente } from "@/types/requirente";
 
-import { EditableCell } from "./editable-cell";
-
 interface ProyeccionSepTableProps {
   schools: Requirente[];
   projections: ProyeccionSep[];
   rrhhSums: Record<string, number>;
   rrhhProjectedSums: Record<string, number>;
-  onUpdate: (schoolId: string, field: keyof ProyeccionSep, value: number) => void;
 }
 
 type SortKey =
@@ -42,13 +39,7 @@ type SortKey =
   | "rrhh_proyectado";
 type SortDirection = "asc" | "desc";
 
-export function ProyeccionSepTable({
-  schools,
-  projections,
-  rrhhSums,
-  rrhhProjectedSums,
-  onUpdate,
-}: ProyeccionSepTableProps) {
+export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProjectedSums }: ProyeccionSepTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("nombre");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
@@ -434,24 +425,26 @@ export function ProyeccionSepTable({
                   )}
                   {visibleColumns.compras_facturadas && (
                     <TableCell
-                      className="border-r p-1 px-0 text-right"
+                      className="truncate border-r px-0 py-1 text-right font-medium text-xs text-muted-foreground"
                       style={{ width: columnWidths.compras_facturadas }}
                     >
-                      <EditableCell
-                        value={row.compras_facturadas}
-                        onSave={(val) => onUpdate(row.id, "compras_facturadas", val)}
-                      />
+                      {formatCurrency(row.compras_facturadas, {
+                        locale: "es-CL",
+                        currency: "CLP",
+                        minimumFractionDigits: 0,
+                      })}
                     </TableCell>
                   )}
                   {visibleColumns.compras_obligadas && (
                     <TableCell
-                      className="border-r p-1 px-0 text-right"
+                      className="truncate border-r px-0 py-1 text-right font-medium text-xs text-muted-foreground"
                       style={{ width: columnWidths.compras_obligadas }}
                     >
-                      <EditableCell
-                        value={row.compras_obligadas}
-                        onSave={(val) => onUpdate(row.id, "compras_obligadas", val)}
-                      />
+                      {formatCurrency(row.compras_obligadas, {
+                        locale: "es-CL",
+                        currency: "CLP",
+                        minimumFractionDigits: 0,
+                      })}
                     </TableCell>
                   )}
                   {visibleColumns.rrhh && (

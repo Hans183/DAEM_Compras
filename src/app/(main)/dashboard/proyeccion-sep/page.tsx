@@ -16,7 +16,7 @@ import { getRequirentes } from "@/services/requirentes.service";
 import { getRrhhSepList } from "@/services/rrhh-sep.service";
 import type { Factura } from "@/types/factura";
 import type { OrdenCompra } from "@/types/orden-compra";
-import type { ProyeccionSep, ProyeccionSepFormData } from "@/types/proyeccion-sep";
+import type { ProyeccionSep } from "@/types/proyeccion-sep";
 import type { Requirente } from "@/types/requirente";
 
 const CUSTOM_ORDER = [
@@ -123,11 +123,15 @@ export default function ProyeccionSepPage() {
       }
 
       // Persist calculated budget to proyeccion_sep.presupuesto and compras_facturadas
-      // Step 5: Fetch all facturas with compra.unidad_requirente expand
+      // Step 5: Fetch all facturas with filters for Selected Year and SEP
+      const startOfYear = `${selectedYear}-01-01 00:00:00`;
+      const endOfYear = `${selectedYear}-12-31 23:59:59`;
+
       const facturasResult = await pb
         .collection(FACTURAS_COLLECTION)
         .getFullList<Factura & { expand?: { compra?: { unidad_requirente: string } } }>({
           expand: "compra",
+          filter: `compra.subvencion.nombre = 'Ley SEP' && compra.fecha_inicio >= '${startOfYear}' && compra.fecha_inicio <= '${endOfYear}'`,
           sort: "-created",
         });
 
@@ -140,11 +144,12 @@ export default function ProyeccionSepPage() {
         }
       }
 
-      // Step 6: Fetch all OCs with compra.unidad_requirente expand
+      // Step 6: Fetch all OCs with filters for Selected Year and SEP
       const ordenesResult = await pb
         .collection(ORDENES_COMPRA_COLLECTION)
         .getFullList<OrdenCompra & { expand?: { compra?: { unidad_requirente: string } } }>({
           expand: "compra",
+          filter: `compra.subvencion.nombre = 'Ley SEP' && compra.fecha_inicio >= '${startOfYear}' && compra.fecha_inicio <= '${endOfYear}'`,
           sort: "-created",
         });
 
@@ -246,51 +251,6 @@ export default function ProyeccionSepPage() {
     loadData();
   }, [loadData]);
 
-  const handleUpdate = async (schoolId: string, field: keyof ProyeccionSep, value: number) => {
-    try {
-      // Find if record exists
-      const existing = projections.find((p) => p.establecimiento === schoolId);
-
-      if (existing) {
-        // Update
-        const updated = await updateProyeccionSep(existing.id, { [field]: value });
-
-        // Update state locally to reflect immediate change (optimistic or just sync)
-        setProjections((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
-        toast.success("Actualizado correctamente");
-      } else {
-        // Create new
-        // Need to initialize other fields to 0 or valid defaults if required
-        // Assuming schema fields allow default 0 or we explicitly set them
-        const payload: ProyeccionSepFormData = {
-          establecimiento: schoolId,
-          presupuesto: 0,
-          total_utilizado: 0,
-          compras_facturadas: 0,
-          compras_obligadas: 0,
-          rrhh: "", // Relation to RRHH record? Or is this unused/optional?
-          // The schema has 'rrhh' as a string relation.
-          // Based on separate 'sep_rrhh' collection, this field might be:
-          // 1. A link to a *summary* object?
-          // 2. Or maybe unused if we calculate from `sep_rrhh`?
-          // I'll send empty string if allowed, or if it fails I need to know what it expects.
-          // Given the user schema, it is `rrhh: "RELATION_RECORD_ID"`.
-          // If it's required, we might have an issue. If optional, "" is fine.
-          // I'll update the value for the specific field we are editing.
-          [field]: value,
-        } as ProyeccionSepFormData; // casting to bypass strict checks just for this partial fill
-
-        // Safe construction
-        const newItem = await createProyeccionSep(payload);
-        setProjections((prev) => [...prev, newItem]);
-        toast.success("Registro creado correctamente");
-      }
-    } catch (error) {
-      console.error("Error updating projection:", error);
-      toast.error("Error al guardar cambios");
-    }
-  };
-
   const filteredSchools = useMemo(() => {
     if (!search) return schools;
     const lowerSearch = search.toLowerCase();
@@ -336,7 +296,6 @@ export default function ProyeccionSepPage() {
           projections={projections}
           rrhhSums={rrhhSums}
           rrhhProjectedSums={rrhhProjectedSums}
-          onUpdate={handleUpdate}
         />
       )}
     </div>
