@@ -37,6 +37,7 @@ import type { User } from "@/types/user";
 import { getAvailableEstados, getEditableFields, isFieldEditable } from "@/utils/permissions";
 
 import { type CompraFormValues, createCompraFormSchema } from "../schemas/compra-form.schema";
+import { FacturasCompraList } from "./facturas-compra-list";
 import { OrdenesCompraList } from "./ordenes-compra-list";
 
 interface CompraDialogProps {
@@ -636,6 +637,19 @@ export function CompraDialog({
                       currentUser?.role.includes("Comprador") ||
                       currentUser?.role.includes("SEP") ||
                       false
+                    }
+                    onUpdate={() => {
+                      // No-op for this dialog context
+                    }}
+                  />
+
+                  <Separator className="my-2" />
+
+                  <h3 className="font-medium text-lg">Facturas</h3>
+                  <FacturasCompraList
+                    compraId={compra?.id}
+                    canEdit={
+                      currentUser?.role.includes("Encargado compras") || currentUser?.role.includes("SEP") || false
                     }
                     onUpdate={() => {
                       // No-op for this dialog context
