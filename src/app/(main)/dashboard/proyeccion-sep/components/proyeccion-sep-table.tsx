@@ -375,8 +375,15 @@ export function ProyeccionSepTable({
                     {row.nombre}
                   </TableCell>
                   {visibleColumns.presupuesto && (
-                    <TableCell className="border-r p-1 px-0 text-right" style={{ width: columnWidths.presupuesto }}>
-                      <EditableCell value={row.presupuesto} onSave={(val) => onUpdate(row.id, "presupuesto", val)} />
+                    <TableCell
+                      className="truncate border-r px-0 py-1 text-right font-semibold text-xs text-primary"
+                      style={{ width: columnWidths.presupuesto }}
+                    >
+                      {formatCurrency(row.presupuesto, {
+                        locale: "es-CL",
+                        currency: "CLP",
+                        minimumFractionDigits: 0,
+                      })}
                     </TableCell>
                   )}
                   {visibleColumns.total_utilizado && (

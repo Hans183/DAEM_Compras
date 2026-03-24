@@ -7,11 +7,44 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import pb from "@/lib/pocketbase";
+import { FACTURAS_COLLECTION } from "@/services/facturas.service";
+import { getIngresosMensualesSep } from "@/services/ingresos-mensuales-sep.service";
+import { ORDENES_COMPRA_COLLECTION } from "@/services/ordenes-compra.service";
 import { createProyeccionSep, getProyeccionSepList, updateProyeccionSep } from "@/services/proyeccion-sep.service";
 import { getRequirentes } from "@/services/requirentes.service";
 import { getRrhhSepList } from "@/services/rrhh-sep.service";
+import type { Factura } from "@/types/factura";
+import type { OrdenCompra } from "@/types/orden-compra";
 import type { ProyeccionSep, ProyeccionSepFormData } from "@/types/proyeccion-sep";
 import type { Requirente } from "@/types/requirente";
+
+const CUSTOM_ORDER = [
+  "Colegio de Cultura y Difusión Artistica",
+  "Liceo RAAC",
+  "Escuela La Unión",
+  "Escuela J.A.R.",
+  "Escuela Radimadi",
+  "Colegio Técnico Profesional H.O.V.",
+  "Escuela Rural Catamutún",
+  "Escuela Rural Choroico",
+  "Escuela Rural Puerto Nuevo",
+  "Escuela Rural Los Esteros",
+  "Escuela Rural Folleco",
+  "Escuela Rural Cuinco",
+  "Escuela Rural Huillinco",
+  "Escuela Rural Traiguén",
+  "Escuela Rural Carimanca",
+  "Escuela Rural Flor María Luisa M.",
+  "Escuela Aldea Campesina",
+  "Escuela Rural Llancacura",
+  "Escuela Rural Mashue",
+  "Escuela Rural Pilpilcahuin",
+  "Escuela Rural El Huape",
+  "Escuela Rural Los Chilcos",
+  "Escuela Rural Huacahue",
+  "Escuela El Maitén",
+];
 
 import { ProyeccionSepTable } from "./components/proyeccion-sep-table";
 
@@ -40,17 +73,113 @@ export default function ProyeccionSepPage() {
         active_filter: true,
         sort: "nombre",
       });
-      setSchools(schoolsResult.items);
+
+      // Sort by custom order
+      const getOrderIndex = (name: string) => {
+        const lowerName = name.toLowerCase();
+        const targetIndex = CUSTOM_ORDER.findIndex((ordered) => {
+          const lowerOrdered = ordered.toLowerCase().replace(/\./g, "");
+          const cleanName = lowerName.replace(/\./g, "");
+
+          if (cleanName.includes(lowerOrdered) || lowerOrdered.includes(cleanName)) return true;
+
+          const acronym = lowerOrdered.split(" ").pop() || "";
+          if (acronym.length >= 3 && cleanName.includes(acronym)) return true;
+
+          return false;
+        });
+        return targetIndex === -1 ? 999 : targetIndex;
+      };
+
+      const sortedSchools = [...schoolsResult.items].sort((a, b) => {
+        return getOrderIndex(a.nombre) - getOrderIndex(b.nombre);
+      });
+
+      setSchools(sortedSchools);
 
       // 2. Fetch existing projections
       const projectionResult = await getProyeccionSepList({ perPage: 500 });
-      setProjections(projectionResult.items);
+      const existingProjections = projectionResult.items;
 
       // 3. Fetch RRHH data for calculation (Filtered by Selected Year)
       const rrhhResult = await getRrhhSepList({
         perPage: 500,
         anio_filter: selectedYear,
       });
+
+      // 4. Fetch ALL Ingresos for selected year, calculate presupuesto and persist it
+      const ingresosResult = await getIngresosMensualesSep({
+        perPage: 2000,
+        anio: selectedYear,
+      });
+
+      // Sum total_reflejar per establishment
+      const iSums: Record<string, number> = {};
+      for (const item of ingresosResult.items) {
+        const schoolId = item.requirente;
+        if (schoolId) {
+          iSums[schoolId] = (iSums[schoolId] || 0) + (item.total_reflejar || 0);
+        }
+      }
+
+      // Persist calculated budget to proyeccion_sep.presupuesto and compras_facturadas
+      // Step 5: Fetch all facturas with compra.unidad_requirente expand
+      const facturasResult = await pb
+        .collection(FACTURAS_COLLECTION)
+        .getFullList<Factura & { expand?: { compra?: { unidad_requirente: string } } }>({
+          expand: "compra",
+          sort: "-created",
+        });
+
+      // Sum monto per unidad_requirente (school)
+      const fSums: Record<string, number> = {};
+      for (const factura of facturasResult) {
+        const requirenteId = factura.expand?.compra?.unidad_requirente;
+        if (requirenteId) {
+          fSums[requirenteId] = (fSums[requirenteId] || 0) + (factura.monto || 0);
+        }
+      }
+
+      // Step 6: Fetch all OCs with compra.unidad_requirente expand
+      const ordenesResult = await pb
+        .collection(ORDENES_COMPRA_COLLECTION)
+        .getFullList<OrdenCompra & { expand?: { compra?: { unidad_requirente: string } } }>({
+          expand: "compra",
+          sort: "-created",
+        });
+
+      // Sum oc_valor per unidad_requirente (school)
+      const ocSums: Record<string, number> = {};
+      for (const oc of ordenesResult) {
+        const requirenteId = oc.expand?.compra?.unidad_requirente;
+        if (requirenteId) {
+          ocSums[requirenteId] = (ocSums[requirenteId] || 0) + (oc.oc_valor || 0);
+        }
+      }
+
+      const savePromises = sortedSchools.map(async (school) => {
+        const presupuesto = iSums[school.id] || 0;
+        const comprasFacturadas = fSums[school.id] || 0;
+        const comprasObligadas = ocSums[school.id] || 0;
+        const existing = existingProjections.find((p) => p.establecimiento === school.id);
+        if (existing) {
+          return updateProyeccionSep(existing.id, {
+            presupuesto,
+            compras_facturadas: comprasFacturadas,
+            compras_obligadas: comprasObligadas,
+          });
+        }
+        return createProyeccionSep({
+          establecimiento: school.id,
+          presupuesto,
+          total_utilizado: 0,
+          compras_facturadas: comprasFacturadas,
+          compras_obligadas: comprasObligadas,
+          rrhh: "",
+        });
+      });
+      const updatedProjections = await Promise.all(savePromises);
+      setProjections(updatedProjections);
 
       const sums: Record<string, number> = {};
 
