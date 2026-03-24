@@ -5,7 +5,7 @@ import { useContext, useEffect, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarIcon, Loader2, Plus, Trash2 } from "lucide-react";
+import { CalendarIcon, Loader2, Plus, Receipt, ShoppingCart, Trash2 } from "lucide-react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
@@ -23,6 +23,7 @@ import { AuthContext } from "@/contexts/auth-context";
 import pb from "@/lib/pocketbase";
 import { cn } from "@/lib/utils";
 import { createCompra } from "@/services/compras.service";
+import { createFactura } from "@/services/facturas.service";
 import { createOrdenCompra } from "@/services/ordenes-compra.service";
 import { getRequirentes } from "@/services/requirentes.service";
 import { getSubvenciones } from "@/services/subvenciones.service";
@@ -48,6 +49,16 @@ const formSchema = z.object({
       }),
     )
     .min(1, "Debe agregar al menos una Orden de Compra"),
+  facturas: z
+    .array(
+      z.object({
+        factura: z.string().min(1, "El número de factura es requerido"),
+        monto: z.coerce.number().min(0, "El valor debe ser positivo"),
+        fecha: z.string().min(1, "La fecha es requerida"),
+        documento: z.any().optional(),
+      }),
+    )
+    .optional(),
 });
 
 interface ManualSepCompraDialogProps {
@@ -75,19 +86,27 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
       estado: "Comprado",
       decreto_pago: "",
       fecha_pago: "",
-      ordenes: [
-        {
-          oc: "",
-          oc_fecha: new Date().toISOString().split("T")[0],
-          oc_valor: 0,
-        },
-      ],
+      ordenes: [],
+      facturas: [],
     },
   });
 
-  const { fields, append, remove } = useFieldArray({
+  const {
+    fields: ocFields,
+    append: appendOc,
+    remove: removeOc,
+  } = useFieldArray({
     control: form.control,
     name: "ordenes",
+  });
+
+  const {
+    fields: facturaFields,
+    append: appendFactura,
+    remove: removeFactura,
+  } = useFieldArray({
+    control: form.control,
+    name: "facturas",
   });
 
   useEffect(() => {
@@ -102,7 +121,7 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
         setRequirentes(reqsResult.items);
 
         const foundSep = subsResult.items.find(
-          (s) => s.nombre.toLowerCase().includes("sep") || s.descripcion?.toLowerCase().includes("sep"),
+          (s: any) => s.nombre.toLowerCase().includes("sep") || s.descripcion?.toLowerCase().includes("sep"),
         );
 
         if (foundSep) {
@@ -127,13 +146,8 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
         estado: "Comprado",
         decreto_pago: "",
         fecha_pago: "",
-        ordenes: [
-          {
-            oc: "",
-            oc_fecha: new Date().toISOString().split("T")[0],
-            oc_valor: 0,
-          },
-        ],
+        ordenes: [],
+        facturas: [],
       });
     }
   }, [open, accion, form]);
@@ -149,7 +163,7 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
       const currentUserId = pb.authStore.model?.id;
 
       // 1. Calculate total values for budget (optional but good practice)
-      const totalOcValor = values.ordenes.reduce((acc, current) => acc + current.oc_valor, 0);
+      const totalOcValor = values.ordenes.reduce((acc: number, current: any) => acc + current.oc_valor, 0);
 
       // 2. Create Compra
       const compraRecord = await createCompra({
@@ -180,6 +194,21 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
           }),
         ),
       );
+
+      // 4. Create Facturas
+      if (values.facturas && values.facturas.length > 0) {
+        await Promise.all(
+          values.facturas.map((f: any) =>
+            createFactura({
+              compra: compraRecord.id,
+              factura: f.factura,
+              monto: f.monto,
+              fecha: f.fecha,
+              documento: f.documento?.[0],
+            }),
+          ),
+        );
+      }
 
       toast.success("Compra SEP y OCs agregadas correctamente");
       onSuccess();
@@ -321,15 +350,20 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
                   )}
                 />
 
-                <div className="col-span-2 py-4">
-                  <div className="flex items-center justify-between border-b pb-2">
-                    <h3 className="font-semibold text-sm">Órdenes de Compra</h3>
+                {/* SECCIÓN: ÓRDENES DE COMPRA */}
+                <div className="col-span-2 space-y-4 rounded-lg border-l-4 border-blue-400 bg-blue-50/30 p-4">
+                  <div className="flex items-center justify-between border-b border-blue-200 pb-2">
+                    <div className="flex items-center gap-2 text-blue-700">
+                      <ShoppingCart className="h-5 w-5" />
+                      <h3 className="font-bold text-lg uppercase tracking-tight">Órdenes de Compra</h3>
+                    </div>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
+                      className="border-blue-400 text-blue-700 hover:bg-blue-100"
                       onClick={() =>
-                        append({
+                        appendOc({
                           oc: "",
                           oc_fecha: new Date().toISOString().split("T")[0],
                           oc_valor: 0,
@@ -341,16 +375,21 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
                     </Button>
                   </div>
 
-                  <div className="mt-4 space-y-4">
-                    {fields.map((field, index) => (
-                      <div key={field.id} className="relative rounded-md border bg-muted/30 p-4 pt-8">
-                        {fields.length > 1 && (
+                  <div className="space-y-4">
+                    {ocFields.length === 0 && (
+                      <div className="rounded-md border border-blue-200 border-dashed py-4 text-center text-blue-700 text-xs italic">
+                        No se han agregado órdenes de compra.
+                      </div>
+                    )}
+                    {ocFields.map((field, index) => (
+                      <div key={field.id} className="relative rounded-md border border-blue-200 bg-white/50 p-4 pt-8">
+                        {ocFields.length > 1 && (
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="absolute top-2 right-2 h-8 w-8 text-destructive"
-                            onClick={() => remove(index)}
+                            className="absolute top-2 right-2 h-8 w-8 text-destructive hover:bg-destructive/10"
+                            onClick={() => removeOc(index)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -416,7 +455,7 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
                             render={({ field }) => (
                               <FormItem className="flex flex-col">
                                 <FormLabel className="text-xs">Plazo Entrega</FormLabel>
-                                <Popover>
+                                <Popover modal={true}>
                                   <PopoverTrigger asChild>
                                     <FormControl>
                                       <Button
@@ -460,6 +499,128 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
                                   <Input
                                     type="file"
                                     accept=".pdf,.doc,.docx,image/*"
+                                    className="h-9 text-xs"
+                                    onChange={(e) => onChange(e.target.files)}
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* SECCIÓN: FACTURAS */}
+                <div className="col-span-2 space-y-4 rounded-lg border-l-4 border-amber-400 bg-amber-50/30 p-4">
+                  <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+                    <div className="flex items-center gap-2 text-amber-700">
+                      <Receipt className="h-5 w-5" />
+                      <h3 className="font-bold text-lg uppercase tracking-tight">Facturas</h3>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="border-amber-400 text-amber-700 hover:bg-amber-100"
+                      onClick={() =>
+                        appendFactura({
+                          factura: "",
+                          monto: 0,
+                          fecha: new Date().toISOString().split("T")[0],
+                        })
+                      }
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Agregar Factura
+                    </Button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {facturaFields.length === 0 && (
+                      <div className="rounded-md border border-amber-200 border-dashed py-4 text-center text-amber-700 text-xs italic">
+                        No se han agregado facturas.
+                      </div>
+                    )}
+                    {facturaFields.map((field, index) => (
+                      <div key={field.id} className="relative rounded-md border border-amber-200 bg-white/50 p-4 pt-8">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2 h-8 w-8 text-destructive hover:bg-destructive/10"
+                          onClick={() => removeFactura(index)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                          <FormField
+                            control={form.control}
+                            name={`facturas.${index}.factura`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">N° Factura</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="FAC-123" className="h-9 text-xs" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`facturas.${index}.monto`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">Monto</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="text"
+                                    className="h-9 text-xs"
+                                    placeholder="0"
+                                    {...field}
+                                    value={field.value ? new Intl.NumberFormat("es-CL").format(field.value) : ""}
+                                    onChange={(e) => {
+                                      const rawValue = e.target.value.replace(/\./g, "");
+                                      if (rawValue === "" || /^\d+$/.test(rawValue)) {
+                                        field.onChange(rawValue === "" ? 0 : Number(rawValue));
+                                      }
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`facturas.${index}.fecha`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs">Fecha</FormLabel>
+                                <FormControl>
+                                  <Input type="date" className="h-9 text-xs" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name={`facturas.${index}.documento`}
+                            render={({ field: { onChange, value, ...field } }) => (
+                              <FormItem className="col-span-1 md:col-span-3">
+                                <FormLabel className="text-xs">Documento Factura (Adjunto)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="file"
+                                    accept=".pdf,image/*"
                                     className="h-9 text-xs"
                                     onChange={(e) => onChange(e.target.files)}
                                     {...field}

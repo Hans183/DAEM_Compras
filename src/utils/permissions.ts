@@ -85,7 +85,8 @@ export type CompraField =
   | "presupuesto"
   | "observacion"
   | "decreto_pago"
-  | "fecha_pago";
+  | "fecha_pago"
+  | "accion";
 
 /**
  * Obtiene los campos que un rol puede editar
@@ -115,6 +116,7 @@ export function getEditableFields(roles: UserRole[], estadoCompra?: EstadoCompra
       "observacion",
       "decreto_pago",
       "fecha_pago",
+      "accion",
     ];
   }
 
@@ -132,6 +134,7 @@ export function getEditableFields(roles: UserRole[], estadoCompra?: EstadoCompra
       "fecha_pago",
       "presupuesto",
       "observacion",
+      "accion",
     ];
     for (const f of sepFields) {
       fields.add(f);

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, Receipt, ShoppingCart } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -26,10 +26,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { getAcciones } from "@/services/acciones.service";
 import { createCompra, updateCompra } from "@/services/compras.service";
 import { getRequirentes } from "@/services/requirente.service";
 import { getSubvenciones } from "@/services/subvenciones.service";
 import { getUsers } from "@/services/users.service";
+import type { Accion } from "@/types/accion";
 import type { Compra, EstadoCompra } from "@/types/compra";
 import type { Requirente } from "@/types/requirente";
 import type { Subvencion } from "@/types/subvencion";
@@ -63,8 +65,11 @@ export function CompraDialog({
   const [subvenciones, setSubvenciones] = useState<Subvencion[]>([]);
   const [usuarios, setUsuarios] = useState<User[]>([]);
   const [requirentes, setRequirentes] = useState<Requirente[]>([]);
+  const [acciones, setAcciones] = useState<Accion[]>([]);
   const [openRequirente, setOpenRequirente] = useState(false);
+  const [openAccion, setOpenAccion] = useState(false);
   const [_loadingData, setLoadingData] = useState(true);
+  const [_loadingAcciones, setLoadingAcciones] = useState(false);
   const isEditing = !!compra;
 
   // Determine available estados based on user role and current estado
@@ -98,6 +103,7 @@ export function CompraDialog({
       observacion: compra?.observacion || "",
       decreto_pago: compra?.decreto_pago || "",
       fecha_pago: compra?.fecha_pago ? new Date(compra.fecha_pago).toISOString().split("T")[0] : "",
+      accion: compra?.accion || "",
     },
   });
 
@@ -142,6 +148,39 @@ export function CompraDialog({
 
     if (open) {
       loadData();
+    }
+  }, [open]);
+
+  // Watch for unidad_requirente to fetch related actions
+  const selectedUnit = form.watch("unidad_requirente");
+
+  useEffect(() => {
+    const loadAcciones = async () => {
+      if (!selectedUnit) {
+        setAcciones([]);
+        return;
+      }
+      setLoadingAcciones(true);
+      try {
+        const result = await getAcciones({
+          establecimiento_filter: selectedUnit,
+          perPage: 200,
+        });
+        setAcciones(result.items);
+      } catch (error) {
+        console.error("Error loading acciones:", error);
+      } finally {
+        setLoadingAcciones(false);
+      }
+    };
+
+    if (open) {
+      loadAcciones();
+    }
+  }, [open, selectedUnit]);
+
+  useEffect(() => {
+    if (open) {
       form.reset({
         numero_ordinario: compra?.numero_ordinario || initialData?.numero_ordinario || 0,
         unidad_requirente: compra?.unidad_requirente || initialData?.unidad_requirente || "",
@@ -158,9 +197,10 @@ export function CompraDialog({
         observacion: compra?.observacion || "",
         decreto_pago: compra?.decreto_pago || "",
         fecha_pago: compra?.fecha_pago ? new Date(compra.fecha_pago).toISOString().split("T")[0] : "",
+        accion: compra?.accion || initialData?.accion || "",
       });
     }
-  }, [open, compra, form, initialData, currentUser?.role.includes]);
+  }, [open, compra, form, initialData, currentUser?.role]);
 
   const onSubmit = async (data: CompraFormValues) => {
     setIsSubmitting(true);
@@ -182,6 +222,7 @@ export function CompraDialog({
           observacion: data.observacion,
           decreto_pago: data.decreto_pago,
           fecha_pago: data.fecha_pago,
+          accion: data.accion,
           usuario_modificador: currentUser?.name || currentUser?.email || "Usuario desconocido",
         });
         toast.success("Compra actualizada exitosamente");
@@ -217,6 +258,7 @@ export function CompraDialog({
           observacion: data.observacion,
           decreto_pago: data.decreto_pago,
           fecha_pago: data.fecha_pago,
+          accion: data.accion,
           usuario_modificador: currentUser?.name || currentUser?.email || "Usuario desconocido",
         });
         toast.success("Compra creada exitosamente");
@@ -446,6 +488,64 @@ export function CompraDialog({
 
                 <FormField
                   control={form.control}
+                  name="accion"
+                  render={({ field }) => (
+                    <FormItem
+                      className={cn(!isFieldEditable("accion", currentUser?.role || ["Observador"]) && "hidden")}
+                    >
+                      <FormLabel>Acción (Solo SEP)</FormLabel>
+                      <Popover open={openAccion} onOpenChange={setOpenAccion}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={openAccion}
+                              className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
+                              disabled={
+                                !isFieldEditable("accion", currentUser?.role || ["Observador"]) || !selectedUnit
+                              }
+                            >
+                              {field.value
+                                ? acciones.find((a) => a.id === field.value)?.nombre
+                                : "Relacionar con una acción..."}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                          <Command>
+                            <CommandInput placeholder="Buscar acción..." />
+                            <CommandList>
+                              <CommandEmpty>No se encontraron acciones para este establecimiento.</CommandEmpty>
+                              <CommandGroup>
+                                {acciones.map((a) => (
+                                  <CommandItem
+                                    value={a.nombre}
+                                    key={a.id}
+                                    onSelect={() => {
+                                      form.setValue("accion", a.id);
+                                      setOpenAccion(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn("mr-2 h-4 w-4", a.id === field.value ? "opacity-100" : "opacity-0")}
+                                    />
+                                    {a.nombre}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="adjunta_ordinario"
                   render={({ field: { value, onChange, ...field } }) => (
                     <FormItem>
@@ -619,64 +719,80 @@ export function CompraDialog({
             <Separator className="my-4" />
 
             {/* SECCIÓN: ÓRDENES DE COMPRA */}
-            <div className="space-y-4">
-              <h3 className="font-medium text-lg">Órdenes de Compra</h3>
+            <div className="space-y-4 rounded-lg border-l-4 border-blue-400 bg-blue-50/30 p-4">
+              <div className="flex items-center gap-2 text-blue-700">
+                <ShoppingCart className="h-5 w-5" />
+                <h3 className="font-bold text-lg uppercase tracking-tight">Órdenes de Compra</h3>
+              </div>
 
               {!isEditing ? (
-                <Alert className="bg-muted/50">
+                <Alert className="bg-muted/50 text-blue-900 border-blue-200">
                   <AlertDescription>
                     Para adjuntar órdenes de compra, primero debes crear y guardar la solicitud básica.
                   </AlertDescription>
                 </Alert>
               ) : (
-                <>
-                  <OrdenesCompraList
-                    compraId={compra?.id}
-                    canEdit={
-                      currentUser?.role.includes("Encargado compras") ||
-                      currentUser?.role.includes("Comprador") ||
-                      currentUser?.role.includes("SEP") ||
-                      false
-                    }
-                    onUpdate={() => {
-                      // No-op for this dialog context
-                    }}
-                  />
-
-                  <Separator className="my-2" />
-
-                  <h3 className="font-medium text-lg">Facturas</h3>
-                  <FacturasCompraList
-                    compraId={compra?.id}
-                    canEdit={
-                      currentUser?.role.includes("Encargado compras") || currentUser?.role.includes("SEP") || false
-                    }
-                    onUpdate={() => {
-                      // No-op for this dialog context
-                    }}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="observacion"
-                    render={({ field }) => (
-                      <FormItem className="col-span-2">
-                        <FormLabel>Observación Comprador</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="Observaciones adicionales del proceso de compra..."
-                            className="resize-none"
-                            {...field}
-                            disabled={!isFieldEditable("observacion", currentUser?.role || ["Observador"])}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
+                <OrdenesCompraList
+                  compraId={compra?.id}
+                  canEdit={
+                    currentUser?.role.includes("Encargado compras") ||
+                    currentUser?.role.includes("Comprador") ||
+                    currentUser?.role.includes("SEP") ||
+                    false
+                  }
+                  onUpdate={() => {
+                    // No-op for this dialog context
+                  }}
+                />
               )}
             </div>
+
+            <Separator className="my-4" />
+
+            {/* SECCIÓN: FACTURAS */}
+            <div className="space-y-4 rounded-lg border-l-4 border-amber-400 bg-amber-50/30 p-4">
+              <div className="flex items-center gap-2 text-amber-700">
+                <Receipt className="h-5 w-5" />
+                <h3 className="font-bold text-lg uppercase tracking-tight">Facturas</h3>
+              </div>
+
+              {!isEditing ? (
+                <Alert className="bg-muted/50 text-amber-900 border-amber-200">
+                  <AlertDescription>
+                    Para adjuntar facturas, primero debes crear y guardar la solicitud básica.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <FacturasCompraList
+                  compraId={compra?.id}
+                  canEdit={
+                    currentUser?.role.includes("Encargado compras") || currentUser?.role.includes("SEP") || false
+                  }
+                  onUpdate={() => {
+                    // No-op for this dialog context
+                  }}
+                />
+              )}
+            </div>
+
+            <FormField
+              control={form.control}
+              name="observacion"
+              render={({ field }) => (
+                <FormItem className="col-span-2">
+                  <FormLabel>Observación Comprador</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Observaciones adicionales del proceso de compra..."
+                      className="resize-none"
+                      {...field}
+                      disabled={!isFieldEditable("observacion", currentUser?.role || ["Observador"])}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>

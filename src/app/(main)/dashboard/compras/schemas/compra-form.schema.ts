@@ -88,6 +88,7 @@ export function createCompraFormSchema(roles: UserRole[], context: { isCreating:
     fecha_pago: z.string().optional(),
 
     observacion: z.string().optional(),
+    accion: z.string().optional(),
   });
 }
 

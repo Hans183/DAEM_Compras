@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { ExternalLink, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
+import { ExternalLink, Loader2, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
@@ -152,8 +152,11 @@ export function FacturasList({ compraId, onUpdate, canEdit }: FacturasListProps)
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h4 className="font-medium text-sm">Facturas Asociadas</h4>
+      <div className="flex items-center justify-between border-b pb-2">
+        <div className="flex items-center gap-2 text-amber-700">
+          <Receipt className="h-4 w-4" />
+          <h4 className="font-bold text-sm uppercase tracking-tight">Facturas Asociadas</h4>
+        </div>
         <Badge variant="outline" className="text-xs">
           Total Facturado: $ {new Intl.NumberFormat("es-CL").format(totalMonto)}
         </Badge>
@@ -241,9 +244,9 @@ export function FacturasList({ compraId, onUpdate, canEdit }: FacturasListProps)
       </div>
 
       {canEdit && (
-        <div className="rounded-md border bg-muted/30 p-4">
+        <div className="rounded-md border border-amber-200 bg-amber-50/50 p-4">
           <div className="mb-3 flex items-center justify-between">
-            <h5 className="font-semibold text-muted-foreground text-[10px] uppercase">
+            <h5 className="font-semibold text-amber-700 text-[10px] uppercase">
               {editingFactura ? "Editar Factura" : "Agregar Nueva Factura"}
             </h5>
             {editingFactura && (
@@ -340,7 +343,7 @@ export function FacturasList({ compraId, onUpdate, canEdit }: FacturasListProps)
                   type="button"
                   size="sm"
                   disabled={isSubmitting}
-                  className="h-8 px-6 text-xs"
+                  className="h-8 px-6 text-xs bg-amber-600 hover:bg-amber-700"
                   onClick={form.handleSubmit(onSubmit)}
                 >
                   {isSubmitting ? (

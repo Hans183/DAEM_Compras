@@ -218,7 +218,7 @@ export function FacturasCompraList({ compraId, onUpdate, canEdit }: FacturasComp
       </div>
 
       {canEdit && (
-        <div className="rounded-md border bg-muted/30 p-4">
+        <div className="rounded-md border border-amber-200 bg-amber-50/50 p-4">
           <div className="mb-3 flex items-center justify-between">
             <h5 className="font-semibold text-muted-foreground text-xs uppercase">
               {editingFactura ? "Editar Factura" : "Agregar Nueva Factura"}
