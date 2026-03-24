@@ -54,17 +54,17 @@ export function ProyeccionSepTable({
 
   // Column width state
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
-    nombre: 80,
-    presupuesto: 100,
-    total_utilizado: 100,
-    por_gastar: 100,
-    porcentaje_utilizado: 80,
-    porcentaje_pagado: 80,
-    compras_facturadas: 100,
-    compras_obligadas: 100,
-    rrhh: 100,
-    rrhh_proyectado: 110,
-    suma_facturado_rrhh: 100,
+    nombre: 160,
+    presupuesto: 120,
+    total_utilizado: 120,
+    por_gastar: 120,
+    porcentaje_utilizado: 90,
+    porcentaje_pagado: 90,
+    compras_facturadas: 120,
+    compras_obligadas: 120,
+    rrhh: 120,
+    rrhh_proyectado: 130,
+    suma_facturado_rrhh: 130,
   });
 
   const [visibleColumns, setVisibleColumns] = useState<Record<SortKey, boolean>>({
@@ -310,7 +310,7 @@ export function ProyeccionSepTable({
         </DropdownMenu>
       </div>
       <div className="overflow-x-auto rounded-md border">
-        <Table className="w-full table-fixed">
+        <Table className="w-full min-w-max">
           <TableHeader>
             <TableRow>
               <TableHead className="relative px-0 py-0" style={{ width: columnWidths.nombre }}>
