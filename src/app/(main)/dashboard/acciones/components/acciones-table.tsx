@@ -2,9 +2,16 @@
 
 import { Fragment, useContext, useState } from "react";
 
-import { ChevronDown, ChevronRight, Edit, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Edit, MoreHorizontal, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AuthContext } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
@@ -12,6 +19,7 @@ import type { Accion } from "@/types/accion";
 import type { Compra } from "@/types/compra";
 
 import { CompraDialog } from "../../compras/components/compra-dialog";
+import { DeleteCompraDialog } from "../../compras/components/delete-compra-dialog";
 import { AccionDialog } from "./accion-dialog";
 import { DeleteAccionDialog } from "./delete-accion-dialog";
 import { ManualSepCompraDialog } from "./manual-sep-compra-dialog";
@@ -29,6 +37,7 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
   const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
   const [addingSepTo, setAddingSepTo] = useState<Accion | null>(null);
   const [editingCompra, setEditingCompra] = useState<Compra | null>(null);
+  const [deletingCompra, setDeletingCompra] = useState<Compra | null>(null);
 
   const authContext = useContext(AuthContext);
   const currentUser = authContext?.user || null;
@@ -184,14 +193,30 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                                             .toLocaleString("es-CL") || 0}
                                         </TableCell>
                                         <TableCell>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-7 w-7"
-                                            onClick={() => setEditingCompra(compra)}
-                                          >
-                                            <Edit className="h-3.5 w-3.5" />
-                                          </Button>
+                                          <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                              <Button variant="ghost" className="h-7 w-7 p-0">
+                                                <span className="sr-only">Abrir menú</span>
+                                                <MoreHorizontal className="h-4 w-4" />
+                                              </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                              <DropdownMenuItem onClick={() => setEditingCompra(compra)}>
+                                                <Edit className="mr-2 h-4 w-4" />
+                                                Editar
+                                              </DropdownMenuItem>
+                                              {currentUser?.role?.includes("SEP") && (
+                                                <DropdownMenuItem
+                                                  onClick={() => setDeletingCompra(compra)}
+                                                  className="text-destructive"
+                                                >
+                                                  <Trash2 className="mr-2 h-4 w-4" />
+                                                  Eliminar
+                                                </DropdownMenuItem>
+                                              )}
+                                            </DropdownMenuContent>
+                                          </DropdownMenu>
                                         </TableCell>
                                       </TableRow>
                                     ))}
@@ -251,6 +276,18 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
           currentUser={currentUser}
           onSuccess={() => {
             setEditingCompra(null);
+            onDataChanged();
+          }}
+        />
+      )}
+
+      {deletingCompra && (
+        <DeleteCompraDialog
+          open={!!deletingCompra}
+          onOpenChange={(open) => !open && setDeletingCompra(null)}
+          compra={deletingCompra}
+          onSuccess={() => {
+            setDeletingCompra(null);
             onDataChanged();
           }}
         />
