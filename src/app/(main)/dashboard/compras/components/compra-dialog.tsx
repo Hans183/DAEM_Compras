@@ -9,6 +9,15 @@ import { toast } from "sonner";
 
 import { notifyBuyer } from "@/actions/send-email";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import {
@@ -27,7 +36,7 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { getAcciones } from "@/services/acciones.service";
-import { createCompra, updateCompra } from "@/services/compras.service";
+import { createCompra, getCompras, updateCompra } from "@/services/compras.service";
 import { getRequirentes } from "@/services/requirente.service";
 import { getSubvenciones } from "@/services/subvenciones.service";
 import { getUsers } from "@/services/users.service";
@@ -70,6 +79,7 @@ export function CompraDialog({
   const [openAccion, setOpenAccion] = useState(false);
   const [_loadingData, setLoadingData] = useState(true);
   const [_loadingAcciones, setLoadingAcciones] = useState(false);
+  const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
   const isEditing = !!compra;
 
   // Determine available estados based on user role and current estado
@@ -206,6 +216,24 @@ export function CompraDialog({
     setIsSubmitting(true);
 
     try {
+      // Validar que el número de ordinario no esté duplicado por unidad requirente
+      if (data.numero_ordinario && data.unidad_requirente) {
+        const existingCompras = await getCompras({
+          numero_ordinario: data.numero_ordinario,
+          unidad_requirente_id: data.unidad_requirente,
+          perPage: 1,
+        });
+
+        // Si estamos editando, ignoramos el registro actual
+        const isDuplicate = existingCompras.items.some((c) => c.id !== compra?.id);
+
+        if (isDuplicate) {
+          setShowDuplicateWarning(true);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       let result: Compra;
       if (isEditing) {
         result = await updateCompra(compra.id, {
@@ -814,6 +842,33 @@ export function CompraDialog({
           </form>
         </Form>
       </DialogContent>
+
+      <AlertDialog open={showDuplicateWarning} onOpenChange={setShowDuplicateWarning}>
+        <AlertDialogContent className="border-red-500 max-w-md text-center">
+          <AlertDialogHeader>
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-4">
+              <span className="text-3xl">⚠️</span>
+            </div>
+            <AlertDialogTitle className="text-2xl text-red-600 font-bold">¡Oficio Duplicado!</AlertDialogTitle>
+            <AlertDialogDescription className="text-base text-gray-700">
+              El número de ordinario <strong>{form.getValues("numero_ordinario")}</strong> ya existe para el
+              establecimiento requirente seleccionado.
+              <br />
+              <br />
+              Esto indica una posible duplicidad en la compra. Por favor, revisa el número de ordinario o el
+              establecimiento antes de continuar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogAction
+              onClick={() => setShowDuplicateWarning(false)}
+              className="bg-red-600 hover:bg-red-700 w-full sm:w-auto mt-4 px-8 text-white"
+            >
+              Entendido
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
