@@ -23,6 +23,9 @@ interface ProyeccionSepTableProps {
   projections: ProyeccionSep[];
   rrhhSums: Record<string, number>;
   rrhhProjectedSums: Record<string, number>;
+  presupuestoProyectadoSums: Record<string, number>;
+  schoolLatestMonthNames: Record<string, string>;
+  schoolLatestRrhhMonthNames: Record<string, string>;
 }
 
 type SortKey =
@@ -36,10 +39,22 @@ type SortKey =
   | "por_gastar"
   | "porcentaje_utilizado"
   | "porcentaje_pagado"
-  | "rrhh_proyectado";
+  | "rrhh_proyectado"
+  | "presupuesto_proyectado"
+  | "presupuesto_proyectado"
+  | "porcentaje_factura_anual"
+  | "porcentaje_aprox_utilizado";
 type SortDirection = "asc" | "desc";
 
-export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProjectedSums }: ProyeccionSepTableProps) {
+export function ProyeccionSepTable({
+  schools,
+  projections,
+  rrhhSums,
+  rrhhProjectedSums,
+  presupuestoProyectadoSums,
+  schoolLatestMonthNames,
+  schoolLatestRrhhMonthNames,
+}: ProyeccionSepTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("nombre");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
@@ -56,6 +71,9 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
     rrhh: 120,
     rrhh_proyectado: 130,
     suma_facturado_rrhh: 130,
+    presupuesto_proyectado: 140,
+    porcentaje_factura_anual: 110,
+    porcentaje_aprox_utilizado: 110,
   });
 
   const [visibleColumns, setVisibleColumns] = useState<Record<SortKey, boolean>>({
@@ -70,6 +88,9 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
     rrhh: true,
     rrhh_proyectado: true,
     suma_facturado_rrhh: true,
+    presupuesto_proyectado: true,
+    porcentaje_factura_anual: true,
+    porcentaje_aprox_utilizado: true,
   });
 
   const handleSort = (key: SortKey) => {
@@ -109,6 +130,9 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
       const projection = projections.find((p) => p.establecimiento === school.id);
       const rrhhSum = rrhhSums[school.id] || 0;
       const rrhhProjected = rrhhProjectedSums[school.id] || 0;
+      const presupuestoProyectado = presupuestoProyectadoSums[school.id] || 0;
+      const mesProyectado = schoolLatestMonthNames[school.id] || "";
+      const mesBaseRrhh = schoolLatestRrhhMonthNames[school.id] || "";
 
       const presupuesto = projection?.presupuesto || 0;
       const comprasFacturadas = projection?.compras_facturadas || 0;
@@ -121,6 +145,12 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
       const porGastar = presupuesto - totalUtilizado;
       const porcentajeUtilizado = presupuesto > 0 ? (totalUtilizado / presupuesto) * 100 : 0;
       const porcentajePagado = presupuesto > 0 ? (sumaFacturadoRrhh / presupuesto) * 100 : 0;
+
+      const totalIngresoProyectado = presupuesto + presupuestoProyectado;
+      const porcentajeFacturaAnual =
+        totalIngresoProyectado > 0 ? (sumaFacturadoRrhh / totalIngresoProyectado) * 100 : 0;
+      const porcentajeAproxUtilizado =
+        totalIngresoProyectado > 0 ? ((rrhhSum + comprasObligadas) / totalIngresoProyectado) * 100 : 0;
 
       const shortName = school.nombre
         .replace(/Escuela/g, "Esc.")
@@ -145,9 +175,22 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
         rrhh: rrhhSum,
         rrhh_proyectado: rrhhProjected,
         suma_facturado_rrhh: sumaFacturadoRrhh,
+        presupuesto_proyectado: presupuestoProyectado,
+        mes_proyectado: mesProyectado,
+        mes_base_rrhh: mesBaseRrhh,
+        porcentaje_factura_anual: porcentajeFacturaAnual,
+        porcentaje_aprox_utilizado: porcentajeAproxUtilizado,
       };
     });
-  }, [schools, projections, rrhhSums, rrhhProjectedSums]);
+  }, [
+    schools,
+    projections,
+    rrhhSums,
+    rrhhProjectedSums,
+    presupuestoProyectadoSums,
+    schoolLatestMonthNames,
+    schoolLatestRrhhMonthNames,
+  ]);
 
   const sortedData = useMemo(() => {
     return [...mergedData].sort((a, b) => {
@@ -182,6 +225,9 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
       RRHH: row.rrhh,
       "RRHH Proyectado": row.rrhh_proyectado,
       "Facturado + RRHH": row.suma_facturado_rrhh,
+      "% Factura Anual": `${row.porcentaje_factura_anual.toFixed(1)}%`,
+      "% APROX utilizado": `${row.porcentaje_aprox_utilizado.toFixed(1)}%`,
+      "Presupuesto Proyectado": row.presupuesto_proyectado,
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -201,6 +247,9 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
       { wch: 15 }, // RRHH
       { wch: 15 }, // RRHH Proyectado
       { wch: 15 }, // Facturado + RRHH
+      { wch: 15 }, // % Factura Anual
+      { wch: 15 }, // % APROX utilizado
+      { wch: 20 }, // Presupuesto Proyectado
     ];
     worksheet["!cols"] = maxWidths;
 
@@ -256,6 +305,9 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
     rrhh: "RRHH",
     rrhh_proyectado: "RRHH Proyectado",
     suma_facturado_rrhh: "Facturado + RRHH",
+    presupuesto_proyectado: "Presupuesto Proyectado",
+    porcentaje_factura_anual: "% Factura Anual",
+    porcentaje_aprox_utilizado: "% APROX utilizado",
   };
 
   const getPercentageColor = (percentage: number) => {
@@ -344,6 +396,9 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
               {renderHeader(`RRHH Total`, "rrhh")}
               {renderHeader("RRHH Proyectado", "rrhh_proyectado")}
               {renderHeader("Facturado + RRHH", "suma_facturado_rrhh")}
+              {renderHeader("% Factura Anual", "porcentaje_factura_anual")}
+              {renderHeader("% APROX utilizado", "porcentaje_aprox_utilizado")}
+              {renderHeader("Presupuesto Proyectado", "presupuesto_proyectado")}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -367,7 +422,7 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
                   </TableCell>
                   {visibleColumns.presupuesto && (
                     <TableCell
-                      className="truncate border-r px-0 py-1 text-right font-semibold text-xs text-primary"
+                      className="truncate border-r px-0 py-1 text-right font-semibold text-primary text-xs"
                       style={{ width: columnWidths.presupuesto }}
                     >
                       {formatCurrency(row.presupuesto, {
@@ -425,7 +480,7 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
                   )}
                   {visibleColumns.compras_facturadas && (
                     <TableCell
-                      className="truncate border-r px-0 py-1 text-right font-medium text-xs text-muted-foreground"
+                      className="truncate border-r px-0 py-1 text-right font-medium text-muted-foreground text-xs"
                       style={{ width: columnWidths.compras_facturadas }}
                     >
                       {formatCurrency(row.compras_facturadas, {
@@ -437,7 +492,7 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
                   )}
                   {visibleColumns.compras_obligadas && (
                     <TableCell
-                      className="truncate border-r px-0 py-1 text-right font-medium text-xs text-muted-foreground"
+                      className="truncate border-r px-0 py-1 text-right font-medium text-muted-foreground text-xs"
                       style={{ width: columnWidths.compras_obligadas }}
                     >
                       {formatCurrency(row.compras_obligadas, {
@@ -460,11 +515,23 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
                       className="truncate border-r bg-amber-500/10 px-0 py-1 text-right text-muted-foreground text-xs"
                       style={{ width: columnWidths.rrhh_proyectado }}
                     >
-                      {formatCurrency(row.rrhh_proyectado, {
-                        locale: "es-CL",
-                        currency: "CLP",
-                        minimumFractionDigits: 0,
-                      })}
+                      <div className="flex flex-col items-end gap-0.5 px-2">
+                        <span>
+                          {formatCurrency(row.rrhh_proyectado, {
+                            locale: "es-CL",
+                            currency: "CLP",
+                            minimumFractionDigits: 0,
+                          })}
+                        </span>
+                        {row.mes_base_rrhh && (
+                          <Badge
+                            variant="outline"
+                            className="h-4 border-amber-500/30 px-1 text-[10px] text-amber-600/70"
+                          >
+                            Base: {row.mes_base_rrhh}
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                   )}
                   {visibleColumns.suma_facturado_rrhh && (
@@ -477,6 +544,53 @@ export function ProyeccionSepTable({ schools, projections, rrhhSums, rrhhProject
                         currency: "CLP",
                         minimumFractionDigits: 0,
                       })}
+                    </TableCell>
+                  )}
+                  {visibleColumns.porcentaje_factura_anual && (
+                    <TableCell
+                      className="truncate border-r px-1 py-1 text-right font-semibold text-xs"
+                      style={{ width: columnWidths.porcentaje_factura_anual }}
+                    >
+                      <Badge
+                        variant="outline"
+                        className={`w-full justify-center ${getPercentageColor(row.porcentaje_factura_anual)}`}
+                      >
+                        {row.porcentaje_factura_anual.toFixed(1)}%
+                      </Badge>
+                    </TableCell>
+                  )}
+                  {visibleColumns.porcentaje_aprox_utilizado && (
+                    <TableCell
+                      className="truncate border-r px-1 py-1 text-right font-semibold text-xs"
+                      style={{ width: columnWidths.porcentaje_aprox_utilizado }}
+                    >
+                      <Badge
+                        variant="outline"
+                        className={`w-full justify-center ${getPercentageColor(row.porcentaje_aprox_utilizado)}`}
+                      >
+                        {row.porcentaje_aprox_utilizado.toFixed(1)}%
+                      </Badge>
+                    </TableCell>
+                  )}
+                  {visibleColumns.presupuesto_proyectado && (
+                    <TableCell
+                      className="truncate bg-blue-500/10 px-0 py-1 text-right font-semibold text-primary text-xs"
+                      style={{ width: columnWidths.presupuesto_proyectado }}
+                    >
+                      <div className="flex flex-col items-end gap-0.5 px-2">
+                        <span>
+                          {formatCurrency(row.presupuesto_proyectado, {
+                            locale: "es-CL",
+                            currency: "CLP",
+                            minimumFractionDigits: 0,
+                          })}
+                        </span>
+                        {row.mes_proyectado && (
+                          <Badge variant="outline" className="h-4 border-primary/30 px-1 text-[10px] text-primary/70">
+                            Base: {row.mes_proyectado}
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>

@@ -747,14 +747,14 @@ export function CompraDialog({
             <Separator className="my-4" />
 
             {/* SECCIÓN: ÓRDENES DE COMPRA */}
-            <div className="space-y-4 rounded-lg border-l-4 border-blue-400 bg-blue-50/30 p-4">
+            <div className="space-y-4 rounded-lg border-blue-400 border-l-4 bg-blue-50/30 p-4">
               <div className="flex items-center gap-2 text-blue-700">
                 <ShoppingCart className="h-5 w-5" />
                 <h3 className="font-bold text-lg uppercase tracking-tight">Órdenes de Compra</h3>
               </div>
 
               {!isEditing ? (
-                <Alert className="bg-muted/50 text-blue-900 border-blue-200">
+                <Alert className="border-blue-200 bg-muted/50 text-blue-900">
                   <AlertDescription>
                     Para adjuntar órdenes de compra, primero debes crear y guardar la solicitud básica.
                   </AlertDescription>
@@ -778,14 +778,14 @@ export function CompraDialog({
             <Separator className="my-4" />
 
             {/* SECCIÓN: FACTURAS */}
-            <div className="space-y-4 rounded-lg border-l-4 border-amber-400 bg-amber-50/30 p-4">
+            <div className="space-y-4 rounded-lg border-amber-400 border-l-4 bg-amber-50/30 p-4">
               <div className="flex items-center gap-2 text-amber-700">
                 <Receipt className="h-5 w-5" />
                 <h3 className="font-bold text-lg uppercase tracking-tight">Facturas</h3>
               </div>
 
               {!isEditing ? (
-                <Alert className="bg-muted/50 text-amber-900 border-amber-200">
+                <Alert className="border-amber-200 bg-muted/50 text-amber-900">
                   <AlertDescription>
                     Para adjuntar facturas, primero debes crear y guardar la solicitud básica.
                   </AlertDescription>
@@ -844,12 +844,12 @@ export function CompraDialog({
       </DialogContent>
 
       <AlertDialog open={showDuplicateWarning} onOpenChange={setShowDuplicateWarning}>
-        <AlertDialogContent className="border-red-500 max-w-md text-center">
+        <AlertDialogContent className="max-w-md border-red-500 text-center">
           <AlertDialogHeader>
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-4">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
               <span className="text-3xl">⚠️</span>
             </div>
-            <AlertDialogTitle className="text-2xl text-red-600 font-bold">¡Oficio Duplicado!</AlertDialogTitle>
+            <AlertDialogTitle className="font-bold text-2xl text-red-600">¡Oficio Duplicado!</AlertDialogTitle>
             <AlertDialogDescription className="text-base text-gray-700">
               El número de ordinario <strong>{form.getValues("numero_ordinario")}</strong> ya existe para el
               establecimiento requirente seleccionado.
@@ -862,7 +862,7 @@ export function CompraDialog({
           <AlertDialogFooter className="sm:justify-center">
             <AlertDialogAction
               onClick={() => setShowDuplicateWarning(false)}
-              className="bg-red-600 hover:bg-red-700 w-full sm:w-auto mt-4 px-8 text-white"
+              className="mt-4 w-full bg-red-600 px-8 text-white hover:bg-red-700 sm:w-auto"
             >
               Entendido
             </AlertDialogAction>

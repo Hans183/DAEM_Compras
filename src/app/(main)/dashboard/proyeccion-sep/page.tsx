@@ -59,6 +59,9 @@ export default function ProyeccionSepPage() {
   // Auxiliary data
   const [rrhhSums, setRrhhSums] = useState<Record<string, number>>({});
   const [rrhhProjectedSums, setRrhhProjectedSums] = useState<Record<string, number>>({});
+  const [presupuestoProyectadoSums, setPresupuestoProyectadoSums] = useState<Record<string, number>>({});
+  const [schoolLatestMonthNames, setSchoolLatestMonthNames] = useState<Record<string, string>>({});
+  const [schoolLatestRrhhMonthNames, setSchoolLatestRrhhMonthNames] = useState<Record<string, string>>({});
 
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -186,11 +189,58 @@ export default function ProyeccionSepPage() {
       const updatedProjections = await Promise.all(savePromises);
       setProjections(updatedProjections);
 
+      // 7. Calculate Presupuesto Proyectado
+      const MONTH_ORDER = [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
+      ];
+      const pSums: Record<string, number> = {};
+      const monthNames: Record<string, string> = {};
+      const schoolLatestIngreso: Record<string, { total: number; monthIndex: number }> = {};
+
+      ingresosResult.items.forEach((item) => {
+        const schoolId = item.requirente;
+        const monthIndex = MONTH_ORDER.indexOf(item.mes);
+        if (monthIndex === -1) return; // Skip "Saldo Inicial"
+
+        if (!schoolLatestIngreso[schoolId] || monthIndex >= schoolLatestIngreso[schoolId].monthIndex) {
+          schoolLatestIngreso[schoolId] = {
+            total: item.total_reflejar || 0,
+            monthIndex: monthIndex,
+          };
+        }
+      });
+
+      schoolsResult.items.forEach((school) => {
+        const latest = schoolLatestIngreso[school.id];
+        if (latest) {
+          const remainingMonths = 11 - latest.monthIndex;
+          pSums[school.id] = (latest.total || 0) * remainingMonths;
+          monthNames[school.id] = MONTH_ORDER[latest.monthIndex];
+        } else {
+          pSums[school.id] = 0;
+          monthNames[school.id] = "";
+        }
+      });
+      setPresupuestoProyectadoSums(pSums);
+      setSchoolLatestMonthNames(monthNames);
+
       const sums: Record<string, number> = {};
 
       // Logic for RRHH Projected: Fill forward 0 values
       const schoolMonthlyData: Record<string, Record<string, number>> = {};
       const projectedSums: Record<string, number> = {};
+      const rrhhMonthNames: Record<string, string> = {};
 
       // First pass: Organize real data by school and month
       rrhhResult.items.forEach((item) => {
@@ -225,11 +275,13 @@ export default function ProyeccionSepPage() {
 
         let projectedSum = 0;
         let lastNonZero = 0;
+        let lastMonthName = "";
 
         MONTHS.forEach((month) => {
           const val = monthlyData[month] || 0;
           if (val > 0) {
             lastNonZero = val;
+            lastMonthName = month;
           }
           // If current is 0, use lastNonZero (projected), otherwise use actual
           const effectiveVal = val > 0 ? val : lastNonZero;
@@ -237,8 +289,10 @@ export default function ProyeccionSepPage() {
         });
 
         projectedSums[schoolId] = projectedSum;
+        rrhhMonthNames[schoolId] = lastMonthName;
       });
       setRrhhProjectedSums(projectedSums);
+      setSchoolLatestRrhhMonthNames(rrhhMonthNames);
     } catch (error) {
       console.error("Error loading Proyeccion SEP data:", error);
       toast.error("Error al cargar datos");
@@ -296,6 +350,9 @@ export default function ProyeccionSepPage() {
           projections={projections}
           rrhhSums={rrhhSums}
           rrhhProjectedSums={rrhhProjectedSums}
+          presupuestoProyectadoSums={presupuestoProyectadoSums}
+          schoolLatestMonthNames={schoolLatestMonthNames}
+          schoolLatestRrhhMonthNames={schoolLatestRrhhMonthNames}
         />
       )}
     </div>

@@ -57,7 +57,7 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
               <TableHead>Establecimiento</TableHead>
               <TableHead>Dimensión</TableHead>
               <TableHead>Monto SEP</TableHead>
-              <TableHead className="w-[150px]">% Uso</TableHead>
+              <TableHead className="w-[180px]">% Uso / Disp.</TableHead>
               <TableHead className="w-[100px]">Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -72,6 +72,7 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
               data.map((item) => {
                 const used = usageMap[item.id] || 0;
                 const percentage = item.monto_sep > 0 ? (used / item.monto_sep) * 100 : 0;
+                const disponible = (item.monto_sep || 0) - used;
                 const isExpanded = expandedActionId === item.id;
 
                 // Filter compras related to this action
@@ -109,7 +110,17 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                       <TableCell>${item.monto_sep?.toLocaleString("es-CL")}</TableCell>
                       <TableCell>
                         <div className="flex w-full flex-col gap-1">
-                          <span className="text-right text-muted-foreground text-xs">{percentage.toFixed(1)}%</span>
+                          <div className="flex w-full items-center justify-between gap-2">
+                            <span
+                              className="text-muted-foreground text-xs whitespace-nowrap"
+                              title={`Disponible: $${disponible.toLocaleString("es-CL")}`}
+                            >
+                              ${disponible.toLocaleString("es-CL")} disp.
+                            </span>
+                            <span className="text-right text-muted-foreground text-xs font-medium whitespace-nowrap">
+                              {percentage.toFixed(1)}%
+                            </span>
+                          </div>
                           <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
                             <div
                               className={`h-full ${progressColor} transition-all duration-300`}

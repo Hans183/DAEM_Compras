@@ -169,8 +169,8 @@ export function FacturasList({ compraId, onUpdate, canEdit }: FacturasListProps)
               <TableHead className="text-xs">N° Factura</TableHead>
               <TableHead className="text-xs">Fecha</TableHead>
               <TableHead className="text-xs">Monto</TableHead>
-              <TableHead className="w-[80px] text-xs text-center">Adjunto</TableHead>
-              {canEdit && <TableHead className="w-[100px] text-xs text-right" />}
+              <TableHead className="w-[80px] text-center text-xs">Adjunto</TableHead>
+              {canEdit && <TableHead className="w-[100px] text-right text-xs" />}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -183,7 +183,7 @@ export function FacturasList({ compraId, onUpdate, canEdit }: FacturasListProps)
             ) : (
               facturas.map((f) => (
                 <TableRow key={f.id} className={editingFactura?.id === f.id ? "bg-muted/50" : ""}>
-                  <TableCell className="text-xs font-medium">{f.factura}</TableCell>
+                  <TableCell className="font-medium text-xs">{f.factura}</TableCell>
                   <TableCell className="text-xs">
                     {f.fecha ? format(parseToLocalDate(f.fecha) || new Date(), "dd/MM/yyyy") : "-"}
                   </TableCell>
@@ -204,16 +204,16 @@ export function FacturasList({ compraId, onUpdate, canEdit }: FacturasListProps)
                         <ExternalLink className="h-4 w-4 text-blue-500" />
                       </Button>
                     ) : (
-                      <span className="text-muted-foreground text-[10px]">-</span>
+                      <span className="text-[10px] text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   {canEdit && (
-                    <TableCell className="text-right whitespace-nowrap">
+                    <TableCell className="whitespace-nowrap text-right">
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 mr-1"
+                        className="mr-1 h-8 w-8"
                         onClick={() => handleEditClick(f)}
                         title="Editar"
                       >
@@ -246,7 +246,7 @@ export function FacturasList({ compraId, onUpdate, canEdit }: FacturasListProps)
       {canEdit && (
         <div className="rounded-md border border-amber-200 bg-amber-50/50 p-4">
           <div className="mb-3 flex items-center justify-between">
-            <h5 className="font-semibold text-amber-700 text-[10px] uppercase">
+            <h5 className="font-semibold text-[10px] text-amber-700 uppercase">
               {editingFactura ? "Editar Factura" : "Agregar Nueva Factura"}
             </h5>
             {editingFactura && (
@@ -255,7 +255,7 @@ export function FacturasList({ compraId, onUpdate, canEdit }: FacturasListProps)
                 variant="ghost"
                 size="sm"
                 onClick={handleCancelEdit}
-                className="h-6 text-muted-foreground text-[10px] hover:text-foreground"
+                className="h-6 text-[10px] text-muted-foreground hover:text-foreground"
               >
                 Cancelar Edición
               </Button>
@@ -317,7 +317,7 @@ export function FacturasList({ compraId, onUpdate, canEdit }: FacturasListProps)
                 />
               </div>
 
-              <div className="flex items-end gap-4 justify-between">
+              <div className="flex items-end justify-between gap-4">
                 <div className="flex-1">
                   <FormField
                     control={form.control}
@@ -343,7 +343,7 @@ export function FacturasList({ compraId, onUpdate, canEdit }: FacturasListProps)
                   type="button"
                   size="sm"
                   disabled={isSubmitting}
-                  className="h-8 px-6 text-xs bg-amber-600 hover:bg-amber-700"
+                  className="h-8 bg-amber-600 px-6 text-xs hover:bg-amber-700"
                   onClick={form.handleSubmit(onSubmit)}
                 >
                   {isSubmitting ? (

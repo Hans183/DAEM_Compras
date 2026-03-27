@@ -55,13 +55,13 @@ export function EditSepCompraDialog({ open, onOpenChange, compra, onSuccess }: E
             </TabsList>
 
             <TabsContent value="facturas" className="mt-0 outline-none">
-              <div className="rounded-lg border-l-4 border-amber-400 bg-amber-50/20 p-4">
+              <div className="rounded-lg border-amber-400 border-l-4 bg-amber-50/20 p-4">
                 <FacturasList compraId={compra.id} canEdit={true} onUpdate={onSuccess} />
               </div>
             </TabsContent>
 
             <TabsContent value="ordenes" className="mt-0 outline-none">
-              <div className="rounded-lg border-l-4 border-blue-400 bg-blue-50/20 p-4">
+              <div className="rounded-lg border-blue-400 border-l-4 bg-blue-50/20 p-4">
                 <OrdenesCompraList compraId={compra.id} canEdit={true} onUpdate={onSuccess} />
               </div>
             </TabsContent>

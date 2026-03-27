@@ -351,8 +351,8 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
                 />
 
                 {/* SECCIÓN: ÓRDENES DE COMPRA */}
-                <div className="col-span-2 space-y-4 rounded-lg border-l-4 border-blue-400 bg-blue-50/30 p-4">
-                  <div className="flex items-center justify-between border-b border-blue-200 pb-2">
+                <div className="col-span-2 space-y-4 rounded-lg border-blue-400 border-l-4 bg-blue-50/30 p-4">
+                  <div className="flex items-center justify-between border-blue-200 border-b pb-2">
                     <div className="flex items-center gap-2 text-blue-700">
                       <ShoppingCart className="h-5 w-5" />
                       <h3 className="font-bold text-lg uppercase tracking-tight">Órdenes de Compra</h3>
@@ -515,8 +515,8 @@ export function ManualSepCompraDialog({ open, onOpenChange, onSuccess, accion }:
                 </div>
 
                 {/* SECCIÓN: FACTURAS */}
-                <div className="col-span-2 space-y-4 rounded-lg border-l-4 border-amber-400 bg-amber-50/30 p-4">
-                  <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+                <div className="col-span-2 space-y-4 rounded-lg border-amber-400 border-l-4 bg-amber-50/30 p-4">
+                  <div className="flex items-center justify-between border-amber-200 border-b pb-2">
                     <div className="flex items-center gap-2 text-amber-700">
                       <Receipt className="h-5 w-5" />
                       <h3 className="font-bold text-lg uppercase tracking-tight">Facturas</h3>
