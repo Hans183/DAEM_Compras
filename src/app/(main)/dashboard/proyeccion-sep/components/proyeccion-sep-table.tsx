@@ -313,9 +313,10 @@ export function ProyeccionSepTable({
   };
 
   const getPercentageColor = (percentage: number) => {
-    if (percentage >= 70) return "bg-green-100 text-green-800 border-green-200 hover:bg-green-100";
-    if (percentage >= 40) return "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100";
-    return "bg-red-100 text-red-800 border-red-200 hover:bg-red-100";
+    if (percentage > 100) return "bg-black text-white border-black hover:bg-black";
+    if (percentage >= 85) return "bg-red-100 text-red-800 border-red-200 hover:bg-red-100";
+    if (percentage >= 60) return "bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100";
+    return "bg-green-100 text-green-800 border-green-200 hover:bg-green-100";
   };
 
   const getPorGastarStyle = (amount: number) => {
