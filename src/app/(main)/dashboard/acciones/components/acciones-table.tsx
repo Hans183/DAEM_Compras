@@ -112,12 +112,12 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                         <div className="flex w-full flex-col gap-1">
                           <div className="flex w-full items-center justify-between gap-2">
                             <span
-                              className="text-muted-foreground text-xs whitespace-nowrap"
+                              className="whitespace-nowrap text-muted-foreground text-xs"
                               title={`Disponible: $${disponible.toLocaleString("es-CL")}`}
                             >
                               ${disponible.toLocaleString("es-CL")} disp.
                             </span>
-                            <span className="text-right text-muted-foreground text-xs font-medium whitespace-nowrap">
+                            <span className="whitespace-nowrap text-right font-medium text-muted-foreground text-xs">
                               {percentage.toFixed(1)}%
                             </span>
                           </div>
