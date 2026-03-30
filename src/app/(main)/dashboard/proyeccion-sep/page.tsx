@@ -14,6 +14,7 @@ import { ORDENES_COMPRA_COLLECTION } from "@/services/ordenes-compra.service";
 import { createProyeccionSep, getProyeccionSepList, updateProyeccionSep } from "@/services/proyeccion-sep.service";
 import { getRequirentes } from "@/services/requirentes.service";
 import { getRrhhSepList } from "@/services/rrhh-sep.service";
+import type { Compra } from "@/types/compra";
 import type { Factura } from "@/types/factura";
 import type { OrdenCompra } from "@/types/orden-compra";
 import type { ProyeccionSep } from "@/types/proyeccion-sep";
@@ -126,43 +127,93 @@ export default function ProyeccionSepPage() {
       }
 
       // Persist calculated budget to proyeccion_sep.presupuesto and compras_facturadas
-      // Step 5: Fetch all facturas with filters for Selected Year and SEP
+      // Step 5: Fetch all compras with subvencion 'Ley SEP' for the selected year
       const startOfYear = `${selectedYear}-01-01 00:00:00`;
       const endOfYear = `${selectedYear}-12-31 23:59:59`;
 
-      const facturasResult = await pb
-        .collection(FACTURAS_COLLECTION)
-        .getFullList<Factura & { expand?: { compra?: { unidad_requirente: string } } }>({
-          expand: "compra",
-          filter: `compra.subvencion.nombre = 'Ley SEP' && compra.fecha_inicio >= '${startOfYear}' && compra.fecha_inicio <= '${endOfYear}'`,
-          sort: "-created",
-        });
+      // First: get ALL compras that are Ley SEP (filter on compras table directly)
+      const comprasResult = await pb.collection("compras").getFullList<Compra>({
+        filter: `subvencion.nombre = 'Ley SEP' && ((fecha_inicio >= '${startOfYear}' && fecha_inicio <= '${endOfYear}') || (fecha_inicio = '' && created >= '${startOfYear}' && created <= '${endOfYear}'))`,
+        sort: "-created",
+      });
 
-      // Sum monto per unidad_requirente (school)
-      const fSums: Record<string, number> = {};
-      for (const factura of facturasResult) {
-        const requirenteId = factura.expand?.compra?.unidad_requirente;
-        if (requirenteId) {
-          fSums[requirenteId] = (fSums[requirenteId] || 0) + (factura.monto || 0);
+      // Build a map of compraId -> unidad_requirente
+      const compraSchoolMap: Record<string, string> = {};
+      for (const compra of comprasResult) {
+        compraSchoolMap[compra.id] = compra.unidad_requirente;
+      }
+      const compraIds = Object.keys(compraSchoolMap);
+
+      console.log("[DEBUG] Total compras SEP encontradas:", compraIds.length);
+
+      // Step 6: Fetch all facturas for those compras (in batches if needed)
+      let allFacturas: Factura[] = [];
+      if (compraIds.length > 0) {
+        // Build filter: compra = 'id1' || compra = 'id2' || ...
+        const batchSize = 50;
+        for (let i = 0; i < compraIds.length; i += batchSize) {
+          const batch = compraIds.slice(i, i + batchSize);
+          const compraFilter = batch.map((id) => `compra = '${id}'`).join(" || ");
+          const facturasResult = await pb.collection(FACTURAS_COLLECTION).getFullList<Factura>({
+            filter: compraFilter,
+          });
+          allFacturas = allFacturas.concat(facturasResult);
         }
       }
 
-      // Step 6: Fetch all OCs with filters for Selected Year and SEP
-      const ordenesResult = await pb
-        .collection(ORDENES_COMPRA_COLLECTION)
-        .getFullList<OrdenCompra & { expand?: { compra?: { unidad_requirente: string } } }>({
-          expand: "compra",
-          filter: `compra.subvencion.nombre = 'Ley SEP' && compra.fecha_inicio >= '${startOfYear}' && compra.fecha_inicio <= '${endOfYear}'`,
-          sort: "-created",
-        });
-
-      // Sum oc_valor per unidad_requirente (school)
-      const ocSums: Record<string, number> = {};
-      for (const oc of ordenesResult) {
-        const requirenteId = oc.expand?.compra?.unidad_requirente;
-        if (requirenteId) {
-          ocSums[requirenteId] = (ocSums[requirenteId] || 0) + (oc.oc_valor || 0);
+      // Sum monto per school using compraSchoolMap
+      const fSums: Record<string, number> = {};
+      for (const factura of allFacturas) {
+        const schoolId = compraSchoolMap[factura.compra];
+        if (schoolId) {
+          fSums[schoolId] = (fSums[schoolId] || 0) + (factura.monto || 0);
         }
+      }
+
+      console.log("[DEBUG] Total facturas encontradas:", allFacturas.length);
+      console.log("[DEBUG] fSums (facturadas por escuela):", fSums);
+
+      // Step 7: Fetch all OCs for those compras (in batches if needed)
+      let allOCs: OrdenCompra[] = [];
+      if (compraIds.length > 0) {
+        const batchSize = 50;
+        for (let i = 0; i < compraIds.length; i += batchSize) {
+          const batch = compraIds.slice(i, i + batchSize);
+          const compraFilter = batch.map((id) => `compra = '${id}'`).join(" || ");
+          const ocsResult = await pb.collection(ORDENES_COMPRA_COLLECTION).getFullList<OrdenCompra>({
+            filter: compraFilter,
+          });
+          allOCs = allOCs.concat(ocsResult);
+        }
+      }
+
+      // Sum oc_valor per school using compraSchoolMap
+      const ocSums: Record<string, number> = {};
+      for (const oc of allOCs) {
+        const schoolId = compraSchoolMap[oc.compra];
+        if (schoolId) {
+          ocSums[schoolId] = (ocSums[schoolId] || 0) + (oc.oc_valor || 0);
+        }
+      }
+
+      // Subtract facturas from OCs to get the real "committed" amount (Saldo por facturar)
+      for (const schoolId in ocSums) {
+        ocSums[schoolId] = Math.max(0, ocSums[schoolId] - (fSums[schoolId] || 0));
+      }
+
+      console.log("[DEBUG] Total OCs encontradas:", allOCs.length);
+      console.log("[DEBUG] ocSums (obligadas/pendientes por escuela):", ocSums);
+
+      // DEBUG: Check Liceo RAAC specifically
+      const raacSchool = sortedSchools.find((s) => s.nombre.includes("RAAC"));
+      if (raacSchool) {
+        console.log("[DEBUG] Liceo RAAC id:", raacSchool.id);
+        console.log(
+          "[DEBUG] RAAC compras SEP:",
+          comprasResult.filter((c) => c.unidad_requirente === raacSchool.id).length,
+        );
+        console.log("[DEBUG] RAAC facturadas:", fSums[raacSchool.id] || 0);
+        console.log("[DEBUG] RAAC obligadas (Saldo OC - Fact):", ocSums[raacSchool.id] || 0);
       }
 
       const savePromises = sortedSchools.map(async (school) => {
@@ -312,7 +363,7 @@ export default function ProyeccionSepPage() {
   }, [schools, search]);
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex min-w-0 max-w-full flex-col gap-6 overflow-hidden">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-bold text-3xl tracking-tight">Proyección SEP</h1>

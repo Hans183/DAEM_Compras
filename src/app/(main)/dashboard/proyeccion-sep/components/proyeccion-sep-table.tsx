@@ -41,9 +41,9 @@ type SortKey =
   | "porcentaje_pagado"
   | "rrhh_proyectado"
   | "presupuesto_proyectado"
-  | "presupuesto_proyectado"
   | "porcentaje_factura_anual"
-  | "porcentaje_aprox_utilizado";
+  | "porcentaje_aprox_utilizado"
+  | "disponible_proyectado";
 type SortDirection = "asc" | "desc";
 
 export function ProyeccionSepTable({
@@ -60,20 +60,21 @@ export function ProyeccionSepTable({
 
   // Column width state
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({
-    nombre: 160,
-    presupuesto: 120,
-    total_utilizado: 120,
-    por_gastar: 120,
-    porcentaje_utilizado: 90,
-    porcentaje_pagado: 90,
-    compras_facturadas: 120,
-    compras_obligadas: 120,
-    rrhh: 120,
-    rrhh_proyectado: 130,
-    suma_facturado_rrhh: 130,
-    presupuesto_proyectado: 140,
-    porcentaje_factura_anual: 110,
-    porcentaje_aprox_utilizado: 110,
+    nombre: 130,
+    presupuesto: 100,
+    total_utilizado: 100,
+    por_gastar: 100,
+    porcentaje_utilizado: 75,
+    porcentaje_pagado: 75,
+    compras_facturadas: 100,
+    compras_obligadas: 100,
+    rrhh: 100,
+    rrhh_proyectado: 110,
+    suma_facturado_rrhh: 110,
+    presupuesto_proyectado: 115,
+    porcentaje_factura_anual: 80,
+    porcentaje_aprox_utilizado: 80,
+    disponible_proyectado: 110,
   });
 
   const [visibleColumns, setVisibleColumns] = useState<Record<SortKey, boolean>>({
@@ -91,6 +92,7 @@ export function ProyeccionSepTable({
     presupuesto_proyectado: true,
     porcentaje_factura_anual: true,
     porcentaje_aprox_utilizado: true,
+    disponible_proyectado: true,
   });
 
   const handleSort = (key: SortKey) => {
@@ -149,6 +151,8 @@ export function ProyeccionSepTable({
       const totalIngresoProyectado = presupuesto + presupuestoProyectado;
       const porcentajeFacturaAnual =
         totalIngresoProyectado > 0 ? (sumaFacturadoRrhh / totalIngresoProyectado) * 100 : 0;
+      const disponibleProyectado = presupuesto + presupuestoProyectado - totalUtilizado - sumaFacturadoRrhh;
+
       const porcentajeAproxUtilizado =
         totalIngresoProyectado > 0
           ? ((rrhhProjected + comprasObligadas + comprasFacturadas) / totalIngresoProyectado) * 100
@@ -182,6 +186,7 @@ export function ProyeccionSepTable({
         mes_base_rrhh: mesBaseRrhh,
         porcentaje_factura_anual: porcentajeFacturaAnual,
         porcentaje_aprox_utilizado: porcentajeAproxUtilizado,
+        disponible_proyectado: disponibleProyectado,
       };
     });
   }, [
@@ -230,6 +235,7 @@ export function ProyeccionSepTable({
       "% Factura Anual": `${row.porcentaje_factura_anual.toFixed(1)}%`,
       "% APROX utilizado": `${row.porcentaje_aprox_utilizado.toFixed(1)}%`,
       "Presupuesto Proyectado": row.presupuesto_proyectado,
+      "Disponible Proyectado": row.disponible_proyectado,
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -252,6 +258,7 @@ export function ProyeccionSepTable({
       { wch: 15 }, // % Factura Anual
       { wch: 15 }, // % APROX utilizado
       { wch: 20 }, // Presupuesto Proyectado
+      { wch: 20 }, // Disponible Proyectado
     ];
     worksheet["!cols"] = maxWidths;
 
@@ -310,6 +317,7 @@ export function ProyeccionSepTable({
     presupuesto_proyectado: "Presupuesto Proyectado",
     porcentaje_factura_anual: "% Factura Anual",
     porcentaje_aprox_utilizado: "% APROX utilizado",
+    disponible_proyectado: "Disponible Proyectado",
   };
 
   const getPercentageColor = (percentage: number) => {
@@ -325,7 +333,7 @@ export function ProyeccionSepTable({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 max-w-full space-y-4">
       <div className="flex justify-end gap-2">
         <Button variant="outline" size="sm" onClick={handleExportExcel} className="h-8">
           <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-600" />
@@ -402,6 +410,7 @@ export function ProyeccionSepTable({
               {renderHeader("% Factura Anual", "porcentaje_factura_anual")}
               {renderHeader("% APROX utilizado", "porcentaje_aprox_utilizado")}
               {renderHeader("Presupuesto Proyectado", "presupuesto_proyectado")}
+              {renderHeader("Disponible Proyectado", "disponible_proyectado")}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -425,7 +434,7 @@ export function ProyeccionSepTable({
                   </TableCell>
                   {visibleColumns.presupuesto && (
                     <TableCell
-                      className="truncate border-r px-0 py-1 text-right font-semibold text-primary text-xs"
+                      className="truncate border-r px-2 py-1 text-right font-semibold text-primary text-xs"
                       style={{ width: columnWidths.presupuesto }}
                     >
                       {formatCurrency(row.presupuesto, {
@@ -437,7 +446,7 @@ export function ProyeccionSepTable({
                   )}
                   {visibleColumns.total_utilizado && (
                     <TableCell
-                      className="truncate border-r px-0 py-1 text-right font-semibold text-xs"
+                      className="truncate border-r px-2 py-1 text-right font-semibold text-xs"
                       style={{ width: columnWidths.total_utilizado }}
                     >
                       {formatCurrency(row.total_utilizado, {
@@ -449,7 +458,7 @@ export function ProyeccionSepTable({
                   )}
                   {visibleColumns.por_gastar && (
                     <TableCell
-                      className={`truncate border-r px-0 py-1 text-right text-xs ${getPorGastarStyle(row.por_gastar)}`}
+                      className={`truncate border-r px-2 py-1 text-right text-xs ${getPorGastarStyle(row.por_gastar)}`}
                       style={{ width: columnWidths.por_gastar }}
                     >
                       {formatCurrency(row.por_gastar, { locale: "es-CL", currency: "CLP", minimumFractionDigits: 0 })}
@@ -483,7 +492,7 @@ export function ProyeccionSepTable({
                   )}
                   {visibleColumns.compras_facturadas && (
                     <TableCell
-                      className="truncate border-r px-0 py-1 text-right font-medium text-muted-foreground text-xs"
+                      className="truncate border-r px-2 py-1 text-right font-medium text-muted-foreground text-xs"
                       style={{ width: columnWidths.compras_facturadas }}
                     >
                       {formatCurrency(row.compras_facturadas, {
@@ -495,7 +504,7 @@ export function ProyeccionSepTable({
                   )}
                   {visibleColumns.compras_obligadas && (
                     <TableCell
-                      className="truncate border-r px-0 py-1 text-right font-medium text-muted-foreground text-xs"
+                      className="truncate border-r px-2 py-1 text-right font-medium text-muted-foreground text-xs"
                       style={{ width: columnWidths.compras_obligadas }}
                     >
                       {formatCurrency(row.compras_obligadas, {
@@ -507,7 +516,7 @@ export function ProyeccionSepTable({
                   )}
                   {visibleColumns.rrhh && (
                     <TableCell
-                      className="truncate border-r bg-muted/20 px-0 py-1 text-right text-muted-foreground text-xs"
+                      className="truncate border-r bg-muted/20 px-2 py-1 text-right text-muted-foreground text-xs"
                       style={{ width: columnWidths.rrhh }}
                     >
                       {formatCurrency(row.rrhh, { locale: "es-CL", currency: "CLP", minimumFractionDigits: 0 })}
@@ -515,7 +524,7 @@ export function ProyeccionSepTable({
                   )}
                   {visibleColumns.rrhh_proyectado && (
                     <TableCell
-                      className="truncate border-r bg-amber-500/10 px-0 py-1 text-right text-muted-foreground text-xs"
+                      className="truncate border-r bg-amber-500/10 px-2 py-1 text-right text-muted-foreground text-xs"
                       style={{ width: columnWidths.rrhh_proyectado }}
                     >
                       <div className="flex flex-col items-end gap-0.5 px-2">
@@ -539,7 +548,7 @@ export function ProyeccionSepTable({
                   )}
                   {visibleColumns.suma_facturado_rrhh && (
                     <TableCell
-                      className="truncate bg-muted/20 px-0 py-1 text-right font-semibold text-muted-foreground text-xs"
+                      className="truncate border-r bg-muted/20 px-2 py-1 text-right font-semibold text-muted-foreground text-xs"
                       style={{ width: columnWidths.suma_facturado_rrhh }}
                     >
                       {formatCurrency(row.suma_facturado_rrhh, {
@@ -577,7 +586,7 @@ export function ProyeccionSepTable({
                   )}
                   {visibleColumns.presupuesto_proyectado && (
                     <TableCell
-                      className="truncate bg-blue-500/10 px-0 py-1 text-right font-semibold text-primary text-xs"
+                      className="truncate border-r bg-blue-500/10 px-2 py-1 text-right font-semibold text-primary text-xs"
                       style={{ width: columnWidths.presupuesto_proyectado }}
                     >
                       <div className="flex flex-col items-end gap-0.5 px-2">
@@ -594,6 +603,18 @@ export function ProyeccionSepTable({
                           </Badge>
                         )}
                       </div>
+                    </TableCell>
+                  )}
+                  {visibleColumns.disponible_proyectado && (
+                    <TableCell
+                      className={`truncate border-r px-2 py-1 text-right text-xs ${getPorGastarStyle(row.disponible_proyectado)}`}
+                      style={{ width: columnWidths.disponible_proyectado }}
+                    >
+                      {formatCurrency(row.disponible_proyectado, {
+                        locale: "es-CL",
+                        currency: "CLP",
+                        minimumFractionDigits: 0,
+                      })}
                     </TableCell>
                   )}
                 </TableRow>
