@@ -104,6 +104,12 @@ export const sidebarItems: NavGroup[] = [
         icon: DollarSign,
         allowedRoles: ["Admin", "SEP"],
       },
+      {
+        title: "Porcentaje Gasto RRHH",
+        url: "/dashboard/porcentaje-gasto-rrhh",
+        icon: Users,
+        allowedRoles: ["Admin", "SEP"],
+      },
     ],
   },
 ];
