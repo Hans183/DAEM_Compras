@@ -150,7 +150,7 @@ export function ProyeccionSepTable({
 
       const totalIngresoProyectado = presupuesto + presupuestoProyectado;
       const porcentajeFacturaAnual =
-        totalIngresoProyectado > 0 ? (sumaFacturadoRrhh / totalIngresoProyectado) * 100 : 0;
+        totalIngresoProyectado > 0 ? ((comprasFacturadas + rrhhSum + rrhhProjected) / totalIngresoProyectado) * 100 : 0;
       const disponibleProyectado =
         totalIngresoProyectado - (comprasFacturadas + comprasObligadas + rrhhSum + rrhhProjected);
 
