@@ -7,6 +7,8 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/use-auth";
+import { getLocalStorageValue, setLocalStorageValue } from "@/lib/local-storage.client";
 import pb from "@/lib/pocketbase";
 import { FACTURAS_COLLECTION } from "@/services/facturas.service";
 import { getIngresosMensualesSep } from "@/services/ingresos-mensuales-sep.service";
@@ -63,6 +65,50 @@ export default function ProyeccionSepPage() {
   const [presupuestoProyectadoSums, setPresupuestoProyectadoSums] = useState<Record<string, number>>({});
   const [schoolLatestMonthNames, setSchoolLatestMonthNames] = useState<Record<string, string>>({});
   const [schoolLatestRrhhMonthNames, setSchoolLatestRrhhMonthNames] = useState<Record<string, string>>({});
+
+  // Column visibility state and persistence
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
+    nombre: true,
+    presupuesto: true,
+    total_utilizado: true,
+    por_gastar: true,
+    porcentaje_utilizado: true,
+    porcentaje_pagado: true,
+    compras_facturadas: true,
+    compras_obligadas: true,
+    rrhh: true,
+    rrhh_proyectado: true,
+    suma_facturado_rrhh: true,
+    presupuesto_proyectado: true,
+    porcentaje_factura_anual: true,
+    porcentaje_aprox_utilizado: true,
+    disponible_proyectado: true,
+  });
+
+  const { user } = useAuth();
+  const storageKey = user ? `proyeccion-sep-columns-${user.id}` : null;
+
+  // Load preferences
+  useEffect(() => {
+    if (storageKey) {
+      const saved = getLocalStorageValue(storageKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setVisibleColumns((prev) => ({ ...prev, ...parsed }));
+        } catch (err) {
+          console.error("Error loading column preferences:", err);
+        }
+      }
+    }
+  }, [storageKey]);
+
+  const handleVisibleColumnsChange = (newColumns: Record<string, boolean>) => {
+    setVisibleColumns(newColumns);
+    if (storageKey) {
+      setLocalStorageValue(storageKey, JSON.stringify(newColumns));
+    }
+  };
 
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -405,6 +451,8 @@ export default function ProyeccionSepPage() {
           presupuestoProyectadoSums={presupuestoProyectadoSums}
           schoolLatestMonthNames={schoolLatestMonthNames}
           schoolLatestRrhhMonthNames={schoolLatestRrhhMonthNames}
+          visibleColumns={visibleColumns}
+          onVisibleColumnsChange={handleVisibleColumnsChange}
         />
       )}
     </div>

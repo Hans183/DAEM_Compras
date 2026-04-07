@@ -26,6 +26,8 @@ interface ProyeccionSepTableProps {
   presupuestoProyectadoSums: Record<string, number>;
   schoolLatestMonthNames: Record<string, string>;
   schoolLatestRrhhMonthNames: Record<string, string>;
+  visibleColumns: Record<string, boolean>;
+  onVisibleColumnsChange: (columns: Record<string, boolean>) => void;
 }
 
 type SortKey =
@@ -54,6 +56,8 @@ export function ProyeccionSepTable({
   presupuestoProyectadoSums,
   schoolLatestMonthNames,
   schoolLatestRrhhMonthNames,
+  visibleColumns,
+  onVisibleColumnsChange,
 }: ProyeccionSepTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>("nombre");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -75,24 +79,6 @@ export function ProyeccionSepTable({
     porcentaje_factura_anual: 80,
     porcentaje_aprox_utilizado: 80,
     disponible_proyectado: 110,
-  });
-
-  const [visibleColumns, setVisibleColumns] = useState<Record<SortKey, boolean>>({
-    nombre: true,
-    presupuesto: true,
-    total_utilizado: true,
-    por_gastar: true,
-    porcentaje_utilizado: true,
-    porcentaje_pagado: true,
-    compras_facturadas: true,
-    compras_obligadas: true,
-    rrhh: true,
-    rrhh_proyectado: true,
-    suma_facturado_rrhh: true,
-    presupuesto_proyectado: true,
-    porcentaje_factura_anual: true,
-    porcentaje_aprox_utilizado: true,
-    disponible_proyectado: true,
   });
 
   const handleSort = (key: SortKey) => {
@@ -354,8 +340,8 @@ export function ProyeccionSepTable({
                 <DropdownMenuCheckboxItem
                   key={key}
                   className="capitalize"
-                  checked={visibleColumns[key as SortKey]}
-                  onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, [key as SortKey]: !!checked }))}
+                  checked={visibleColumns[key]}
+                  onCheckedChange={(checked) => onVisibleColumnsChange({ ...visibleColumns, [key]: !!checked })}
                 >
                   {columnLabels[key as SortKey]}
                 </DropdownMenuCheckboxItem>
