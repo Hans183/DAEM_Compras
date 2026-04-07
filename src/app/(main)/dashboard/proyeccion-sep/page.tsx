@@ -334,9 +334,10 @@ export default function ProyeccionSepPage() {
             lastNonZero = val;
             lastMonthName = month;
           }
-          // If current is 0, use lastNonZero (projected), otherwise use actual
-          const effectiveVal = val > 0 ? val : lastNonZero;
-          projectedSum += effectiveVal;
+          // Only sum the future part (where val is 0 but we have a base value)
+          if (val === 0 && lastNonZero > 0) {
+            projectedSum += lastNonZero;
+          }
         });
 
         projectedSums[schoolId] = projectedSum;

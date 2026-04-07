@@ -151,11 +151,12 @@ export function ProyeccionSepTable({
       const totalIngresoProyectado = presupuesto + presupuestoProyectado;
       const porcentajeFacturaAnual =
         totalIngresoProyectado > 0 ? (sumaFacturadoRrhh / totalIngresoProyectado) * 100 : 0;
-      const disponibleProyectado = totalIngresoProyectado - (comprasFacturadas + comprasObligadas + rrhhProjected);
+      const disponibleProyectado =
+        totalIngresoProyectado - (comprasFacturadas + comprasObligadas + rrhhSum + rrhhProjected);
 
       const porcentajeAproxUtilizado =
         totalIngresoProyectado > 0
-          ? ((rrhhProjected + comprasObligadas + comprasFacturadas) / totalIngresoProyectado) * 100
+          ? ((rrhhSum + rrhhProjected + comprasObligadas + comprasFacturadas) / totalIngresoProyectado) * 100
           : 0;
 
       const shortName = school.nombre
