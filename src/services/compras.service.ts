@@ -33,13 +33,61 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
   try {
     const filters: string[] = ["unidad_requirente.active = true"];
 
-    // Búsqueda por número ordinario (únicamente)
-    if (search) {
-      if (!Number.isNaN(Number(search))) {
-        filters.push(`numero_ordinario = ${search}`);
-      } else {
-        // Si no es un número, forzamos un filtro que no devuelva resultados (ordinario -1 no existe)
-        filters.push(`numero_ordinario = -1`);
+    // Búsqueda global (parámetros de URL ?search=) e identificador (Ord / OC / Fac)
+    const activeSearch = search.trim();
+    const activeOrdSearch = numero_ordinario !== undefined ? String(numero_ordinario).trim() : "";
+
+    if (activeSearch || activeOrdSearch) {
+      const val = activeSearch || activeOrdSearch;
+      const searchParts = [];
+
+      // 1. IDs de Compras desde OCs y Facturas (vía pre-fetch)
+      const relatedIds = new Set<string>();
+
+      try {
+        // Buscar en OCs
+        const ocs = await pb.collection("ordenes_compra").getFullList({
+          filter: `oc ~ "${val}"`,
+          fields: "compra",
+        });
+        ocs.forEach((oc) => {
+          if (oc.compra) relatedIds.add(oc.compra);
+        });
+
+        // Buscar en Facturas
+        const facturas = await pb.collection("facturas").getFullList({
+          filter: `factura ~ "${val}"`,
+          fields: "compra",
+        });
+        facturas.forEach((f) => {
+          if (f.compra) relatedIds.add(f.compra);
+        });
+      } catch (e) {
+        console.error("Error pre-fetching related IDs:", e);
+      }
+
+      // 2. Construir filtro
+      if (!Number.isNaN(Number(val))) {
+        searchParts.push(`numero_ordinario = ${val}`);
+      }
+
+      if (relatedIds.size > 0) {
+        // Limitamos a 25 IDs para evitar filtros extremadamente largos que causen Error 400
+        const idList = Array.from(relatedIds).slice(0, 25);
+        idList.forEach((id) => {
+          searchParts.push(`id = "${id}"`);
+        });
+      }
+
+      if (activeSearch) {
+        searchParts.push(`descripcion ~ "${val}"`);
+      }
+
+      if (searchParts.length > 0) {
+        filters.push(`(${searchParts.join(" || ")})`);
+      } else if (val) {
+        // Si hay búsqueda pero no hay coincidencias de número ni IDs, forzar vacío
+        filters.push(`id = "non-existent"`);
       }
     }
 
@@ -51,10 +99,6 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
     // Filtro estricto por ID de unidad requirente (para permisos)
     if (unidad_requirente_id) {
       filters.push(`unidad_requirente = "${unidad_requirente_id}"`);
-    }
-
-    if (numero_ordinario !== undefined) {
-      filters.push(`numero_ordinario = ${numero_ordinario}`);
     }
 
     if (descripcion_filter) {
@@ -96,7 +140,7 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
     return await pb.collection(COMPRAS_COLLECTION).getList<Compra>(page, perPage, {
       filter,
       sort,
-      expand: "unidad_requirente,comprador,subvencion,ordenes_compra(compra),accion",
+      expand: "unidad_requirente,comprador,subvencion,ordenes_compra(compra),facturas(compra),accion",
     });
   } catch (error) {
     console.error("Error fetching compras:", error);

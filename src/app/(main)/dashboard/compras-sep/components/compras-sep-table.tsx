@@ -21,9 +21,11 @@ import { EditSepCompraDialog } from "./edit-sep-compra-dialog";
 interface ComprasSepTableProps {
   data: Compra[];
   onDataChanged: () => void;
+  showOC?: boolean;
+  showFacturas?: boolean;
 }
 
-export function ComprasSepTable({ data, onDataChanged }: ComprasSepTableProps) {
+export function ComprasSepTable({ data, onDataChanged, showOC = true, showFacturas = true }: ComprasSepTableProps) {
   const [acciones, setAcciones] = useState<Accion[]>([]);
   const [_loadingAcciones, setLoadingAcciones] = useState(false);
   const [editingCompra, setEditingCompra] = useState<Compra | null>(null);
@@ -85,7 +87,9 @@ export function ComprasSepTable({ data, onDataChanged }: ComprasSepTableProps) {
             <TableHead>Descripción</TableHead>
             <TableHead>Establecimiento</TableHead>
             <TableHead>Estado</TableHead>
-            <TableHead>Total OC's</TableHead>
+            {showOC && <TableHead>OC(s)</TableHead>}
+            {showFacturas && <TableHead>Factura(s)</TableHead>}
+            {showOC && <TableHead>Total OC's</TableHead>}
             <TableHead className="w-[300px]">Acción SEP</TableHead>
             <TableHead className="w-[80px] text-right">Acción</TableHead>
           </TableRow>
@@ -93,7 +97,7 @@ export function ComprasSepTable({ data, onDataChanged }: ComprasSepTableProps) {
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={6 + (showOC ? 2 : 0) + (showFacturas ? 1 : 0)} className="h-24 text-center">
                 No se encontraron compras SEP.
               </TableCell>
             </TableRow>
@@ -110,12 +114,34 @@ export function ComprasSepTable({ data, onDataChanged }: ComprasSepTableProps) {
                     {item.estado}
                   </Badge>
                 </TableCell>
-                <TableCell className="font-medium text-blue-700">
-                  $
-                  {item.expand?.["ordenes_compra(compra)"]
-                    ?.reduce((acc, current) => acc + (current.oc_valor || 0), 0)
-                    .toLocaleString("es-CL") || 0}
-                </TableCell>
+                {showOC && (
+                  <TableCell
+                    className="max-w-[150px] truncate"
+                    title={item.expand?.["ordenes_compra(compra)"]?.map((oc) => oc.oc).join(", ")}
+                  >
+                    {item.expand?.["ordenes_compra(compra)"]?.map((oc) => oc.oc).join(", ") || (
+                      <span className="text-muted-foreground italic text-xs">Sin OC</span>
+                    )}
+                  </TableCell>
+                )}
+                {showFacturas && (
+                  <TableCell
+                    className="max-w-[150px] truncate"
+                    title={item.expand?.["facturas(compra)"]?.map((f) => f.factura).join(", ")}
+                  >
+                    {item.expand?.["facturas(compra)"]?.map((f) => f.factura).join(", ") || (
+                      <span className="text-muted-foreground italic text-xs">Sin Factura</span>
+                    )}
+                  </TableCell>
+                )}
+                {showOC && (
+                  <TableCell className="font-medium text-blue-700">
+                    $
+                    {item.expand?.["ordenes_compra(compra)"]
+                      ?.reduce((acc, current) => acc + (current.oc_valor || 0), 0)
+                      .toLocaleString("es-CL") || 0}
+                  </TableCell>
+                )}
                 <TableCell>
                   <ActionSelector
                     compra={item}

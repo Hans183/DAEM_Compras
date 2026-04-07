@@ -10,6 +10,7 @@ import type { ListResult } from "pocketbase";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Pagination,
   PaginationContent,
@@ -19,6 +20,9 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { useAuth } from "@/hooks/use-auth";
+import { getLocalStorageValue, setLocalStorageValue } from "@/lib/local-storage.client";
 import { getCompras } from "@/services/compras.service";
 import { getRequirentes } from "@/services/requirentes.service";
 import { getSubvenciones } from "@/services/subvenciones.service";
@@ -41,6 +45,43 @@ export default function ComprasSepPage() {
   const [establecimientos, setEstablecimientos] = useState<Requirente[]>([]);
   const [selectedEstablecimientoId, setSelectedEstablecimientoId] = useState<string>("all");
   const [ordinarioSearch, setOrdinarioSearch] = useState<string>("");
+
+  // States for column visibility
+  const [showOC, setShowOC] = useState(true);
+  const [showFacturas, setShowFacturas] = useState(true);
+
+  const { user } = useAuth();
+  const storageKey = user ? `compras-sep-preferences-${user.id}` : null;
+
+  // Load preferences from localStorage
+  useEffect(() => {
+    if (storageKey) {
+      const savedPrefs = getLocalStorageValue(storageKey);
+      if (savedPrefs) {
+        try {
+          const { showOC: savedOC, showFacturas: savedFacturas } = JSON.parse(savedPrefs);
+          if (typeof savedOC === "boolean") setShowOC(savedOC);
+          if (typeof savedFacturas === "boolean") setShowFacturas(savedFacturas);
+        } catch (err) {
+          console.error("Error parsing saved preferences:", err);
+        }
+      }
+    }
+  }, [storageKey]);
+
+  // Helper to update and save preferences
+  const updatePreference = (key: "showOC" | "showFacturas", value: boolean) => {
+    if (key === "showOC") setShowOC(value);
+    else setShowFacturas(value);
+
+    if (storageKey) {
+      const currentPrefs = {
+        showOC: key === "showOC" ? value : showOC,
+        showFacturas: key === "showFacturas" ? value : showFacturas,
+      };
+      setLocalStorageValue(storageKey, JSON.stringify(currentPrefs));
+    }
+  };
 
   // Initial load: Find the "Ley SEP" subvencion ID using a robust search
   useEffect(() => {
@@ -94,7 +135,7 @@ export default function ComprasSepPage() {
         subvencion_filter: sepSubvencionId,
         search: search,
         unidad_requirente_id: selectedEstablecimientoId === "all" ? undefined : selectedEstablecimientoId,
-        numero_ordinario: ordinarioSearch ? Number(ordinarioSearch) : undefined,
+        numero_ordinario: ordinarioSearch || undefined,
       });
       setData(result);
     } catch (err) {
@@ -172,13 +213,13 @@ export default function ComprasSepPage() {
             htmlFor="ordinario-filter"
             className="text-xs font-medium mb-1.5 block text-muted-foreground uppercase tracking-wider"
           >
-            Número de Ordinario
+            Búsqueda (Ord / OC / Fac)
           </label>
           <div className="relative">
             <Input
               id="ordinario-filter"
-              placeholder="Buscar por N° Ord..."
-              type="number"
+              placeholder="Buscar por N° Ord, OC o Factura..."
+              type="text"
               value={ordinarioSearch}
               onChange={(e) => {
                 setOrdinarioSearch(e.target.value);
@@ -201,6 +242,31 @@ export default function ComprasSepPage() {
             )}
           </div>
         </div>
+
+        <div className="flex items-center gap-6 px-4 border-l ml-2 h-10 self-end mb-1">
+          <div className="flex items-center space-x-2">
+            <Switch id="show-oc" checked={showOC} onCheckedChange={(val) => updatePreference("showOC", val)} />
+            <Label
+              htmlFor="show-oc"
+              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer"
+            >
+              Mostrar OC
+            </Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="show-facturas"
+              checked={showFacturas}
+              onCheckedChange={(val) => updatePreference("showFacturas", val)}
+            />
+            <Label
+              htmlFor="show-facturas"
+              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer"
+            >
+              Mostrar Facturas
+            </Label>
+          </div>
+        </div>
       </div>
 
       {loading && !data ? (
@@ -209,7 +275,12 @@ export default function ComprasSepPage() {
         </div>
       ) : (
         <>
-          <ComprasSepTable data={data?.items || []} onDataChanged={loadCompras} />
+          <ComprasSepTable
+            data={data?.items || []}
+            onDataChanged={loadCompras}
+            showOC={showOC}
+            showFacturas={showFacturas}
+          />
 
           {data && data.totalPages > 1 && (
             <div className="mt-4 flex justify-center">

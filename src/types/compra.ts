@@ -1,5 +1,6 @@
 import type { RecordModel } from "pocketbase";
 
+import type { Factura } from "./factura";
 import type { OrdenCompra } from "./orden-compra";
 import type { Requirente } from "./requirente";
 import type { Subvencion } from "./subvencion";
@@ -32,6 +33,7 @@ export interface Compra extends RecordModel {
     comprador?: User;
     subvencion?: Subvencion;
     "ordenes_compra(compra)"?: OrdenCompra[];
+    "facturas(compra)"?: Factura[];
   };
 }
 
@@ -70,7 +72,7 @@ export interface GetComprasParams {
   sort?: string;
   // Filtros específicos por columna
   unidad_requirente_filter?: string;
-  numero_ordinario?: number;
+  numero_ordinario?: string | number;
   descripcion_filter?: string;
   comprador_filter?: string;
   estado_filter?: string;
