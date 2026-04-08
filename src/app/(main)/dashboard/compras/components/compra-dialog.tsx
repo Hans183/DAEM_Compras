@@ -161,6 +161,23 @@ export function CompraDialog({
     }
   }, [open]);
 
+  // Pre-seleccionar subvención SEP para usuarios SEP en nuevas compras
+  useEffect(() => {
+    if (open && !isEditing && currentUser?.role.includes("SEP") && subvenciones.length > 0) {
+      const currentSubvencion = form.getValues("subvencion");
+      if (!currentSubvencion || currentSubvencion === "") {
+        // Priorizar coincidencia con "Ley SEP", luego cualquier cosa con "SEP"
+        const sepSub =
+          subvenciones.find((s) => s.nombre.toLowerCase().includes("ley sep")) ||
+          subvenciones.find((s) => s.nombre.toLowerCase().includes("sep"));
+
+        if (sepSub) {
+          form.setValue("subvencion", sepSub.id, { shouldValidate: true });
+        }
+      }
+    }
+  }, [open, isEditing, currentUser, subvenciones, form]);
+
   // Watch for unidad_requirente to fetch related actions
   const selectedUnit = form.watch("unidad_requirente");
 
@@ -406,7 +423,7 @@ export function CompraDialog({
                       </FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                         disabled={
                           !currentUser ||
                           !isFieldEditable("estado", currentUser.role, compra?.estado as EstadoCompra | undefined)
@@ -614,7 +631,7 @@ export function CompraDialog({
                       </FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                         disabled={!isFieldEditable("comprador", currentUser?.role || ["Observador"])}
                       >
                         <FormControl>
@@ -648,7 +665,7 @@ export function CompraDialog({
                       </FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                         disabled={!isFieldEditable("subvencion", currentUser?.role || ["Observador"])}
                       >
                         <FormControl>
