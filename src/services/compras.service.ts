@@ -33,62 +33,62 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
   try {
     const filters: string[] = ["unidad_requirente.active = true"];
 
-    // Búsqueda global (parámetros de URL ?search=) e identificador (Ord / OC / Fac)
+    // 1. Búsqueda global (fuzzy search en OCs, Facturas, descripción)
     const activeSearch = search.trim();
-    const activeOrdSearch = numero_ordinario !== undefined ? String(numero_ordinario).trim() : "";
-
-    if (activeSearch || activeOrdSearch) {
-      const val = activeSearch || activeOrdSearch;
+    if (activeSearch) {
       const searchParts = [];
+      const val = activeSearch;
 
-      // 1. IDs de Compras desde OCs y Facturas (vía pre-fetch)
+      // IDs de Compras desde OCs y Facturas (vía fuzzy match)
       const relatedIds = new Set<string>();
-
       try {
-        // Buscar en OCs
-        const ocs = await pb.collection("ordenes_compra").getFullList({
-          filter: `oc ~ "${val}"`,
-          fields: "compra",
-        });
+        const [ocs, facturas] = await Promise.all([
+          pb.collection("ordenes_compra").getFullList({
+            filter: `oc ~ "${val}"`,
+            fields: "compra",
+          }),
+          pb.collection("facturas").getFullList({
+            filter: `factura ~ "${val}"`,
+            fields: "compra",
+          }),
+        ]);
+
         ocs.forEach((oc) => {
           if (oc.compra) relatedIds.add(oc.compra);
-        });
-
-        // Buscar en Facturas
-        const facturas = await pb.collection("facturas").getFullList({
-          filter: `factura ~ "${val}"`,
-          fields: "compra",
         });
         facturas.forEach((f) => {
           if (f.compra) relatedIds.add(f.compra);
         });
       } catch (e) {
-        console.error("Error pre-fetching related IDs:", e);
+        console.error("Error fuzzy searching related IDs:", e);
       }
 
-      // 2. Construir filtro
-      if (!Number.isNaN(Number(val))) {
-        searchParts.push(`numero_ordinario = ${val}`);
-      }
-
+      // Añadir IDs encontrados al filtro
       if (relatedIds.size > 0) {
-        // Limitamos a 25 IDs para evitar filtros extremadamente largos que causen Error 400
         const idList = Array.from(relatedIds).slice(0, 25);
         idList.forEach((id) => {
           searchParts.push(`id = "${id}"`);
         });
       }
 
-      if (activeSearch) {
-        searchParts.push(`descripcion ~ "${val}"`);
+      // Coincidencia exacta de número si el valor es numérico
+      if (!Number.isNaN(Number(val))) {
+        searchParts.push(`numero_ordinario = ${val}`);
       }
+
+      // Coincidencia parcial en descripción
+      searchParts.push(`descripcion ~ "${val}"`);
 
       if (searchParts.length > 0) {
         filters.push(`(${searchParts.join(" || ")})`);
-      } else if (val) {
-        // Si hay búsqueda pero no hay coincidencias de número ni IDs, forzar vacío
-        filters.push(`id = "non-existent"`);
+      } else {
+        filters.push(`id = "none"`);
       }
+    }
+
+    // 2. Filtro estricto de Número Ordinario (usado en check de duplicados y filtros de columna)
+    if (numero_ordinario !== undefined && numero_ordinario !== "") {
+      filters.push(`numero_ordinario = ${numero_ordinario}`);
     }
 
     // Filtros específicos por columna
