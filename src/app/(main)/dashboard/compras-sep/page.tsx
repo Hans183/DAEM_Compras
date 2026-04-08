@@ -133,9 +133,8 @@ export default function ComprasSepPage() {
         perPage: 30,
         sort: "-created",
         subvencion_filter: sepSubvencionId,
-        search: search,
+        search: ordinarioSearch || search, // Pass to fuzzy search to match Ord/OC/Fac
         unidad_requirente_id: selectedEstablecimientoId === "all" ? undefined : selectedEstablecimientoId,
-        numero_ordinario: ordinarioSearch || undefined,
       });
       setData(result);
     } catch (err) {
