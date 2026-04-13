@@ -45,7 +45,8 @@ type SortKey =
   | "presupuesto_proyectado"
   | "porcentaje_factura_anual"
   | "porcentaje_aprox_utilizado"
-  | "disponible_proyectado";
+  | "disponible_proyectado"
+  | "total_proyectado";
 type SortDirection = "asc" | "desc";
 
 export function ProyeccionSepTable({
@@ -79,6 +80,7 @@ export function ProyeccionSepTable({
     porcentaje_factura_anual: 80,
     porcentaje_aprox_utilizado: 80,
     disponible_proyectado: 110,
+    total_proyectado: 110,
   });
 
   const handleSort = (key: SortKey) => {
@@ -174,6 +176,7 @@ export function ProyeccionSepTable({
         porcentaje_factura_anual: porcentajeFacturaAnual,
         porcentaje_aprox_utilizado: porcentajeAproxUtilizado,
         disponible_proyectado: disponibleProyectado,
+        total_proyectado: totalIngresoProyectado,
       };
     });
   }, [
@@ -223,6 +226,7 @@ export function ProyeccionSepTable({
       "% APROX utilizado": `${row.porcentaje_aprox_utilizado.toFixed(1)}%`,
       "Presupuesto Proyectado": row.presupuesto_proyectado,
       "Disponible Proyectado": row.disponible_proyectado,
+      "Total Proyectado": row.total_proyectado,
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -246,6 +250,7 @@ export function ProyeccionSepTable({
       { wch: 15 }, // % APROX utilizado
       { wch: 20 }, // Presupuesto Proyectado
       { wch: 20 }, // Disponible Proyectado
+      { wch: 15 }, // Total Proyectado
     ];
     worksheet["!cols"] = maxWidths;
 
@@ -305,6 +310,7 @@ export function ProyeccionSepTable({
     porcentaje_factura_anual: "% Factura Anual",
     porcentaje_aprox_utilizado: "% APROX utilizado",
     disponible_proyectado: "Disponible Proyectado",
+    total_proyectado: "Total Proyectado",
   };
 
   const getPercentageColor = (percentage: number) => {
@@ -398,6 +404,7 @@ export function ProyeccionSepTable({
               {renderHeader("% APROX utilizado", "porcentaje_aprox_utilizado")}
               {renderHeader("Presupuesto Proyectado", "presupuesto_proyectado")}
               {renderHeader("Disponible Proyectado", "disponible_proyectado")}
+              {renderHeader("Total Proyectado", "total_proyectado")}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -598,6 +605,18 @@ export function ProyeccionSepTable({
                       style={{ width: columnWidths.disponible_proyectado }}
                     >
                       {formatCurrency(row.disponible_proyectado, {
+                        locale: "es-CL",
+                        currency: "CLP",
+                        minimumFractionDigits: 0,
+                      })}
+                    </TableCell>
+                  )}
+                  {visibleColumns.total_proyectado && (
+                    <TableCell
+                      className="truncate border-r px-2 py-1 text-right font-bold text-xs"
+                      style={{ width: columnWidths.total_proyectado }}
+                    >
+                      {formatCurrency(row.total_proyectado, {
                         locale: "es-CL",
                         currency: "CLP",
                         minimumFractionDigits: 0,

@@ -83,6 +83,7 @@ export default function ProyeccionSepPage() {
     porcentaje_factura_anual: true,
     porcentaje_aprox_utilizado: true,
     disponible_proyectado: true,
+    total_proyectado: true,
   });
 
   const { user } = useAuth();
