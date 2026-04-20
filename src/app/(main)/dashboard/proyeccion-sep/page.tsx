@@ -372,18 +372,24 @@ export default function ProyeccionSepPage() {
         const monthlyData = schoolMonthlyData[schoolId] || {};
 
         let projectedSum = 0;
-        let lastNonZero = 0;
+        let lastValue = 0;
         let lastMonthName = "";
 
         MONTHS.forEach((month) => {
-          const val = monthlyData[month] || 0;
-          if (val > 0) {
-            lastNonZero = val;
+          const recordValue = monthlyData[month];
+          const hasRecord = recordValue !== undefined;
+          const val = recordValue || 0;
+
+          if (hasRecord) {
+            // Si el registro existe (sea 0 o mayor), se convierte en la nueva base para proyecciones
+            lastValue = val;
             lastMonthName = month;
-          }
-          // Only sum the future part (where val is 0 but we have a base value)
-          if (val === 0 && lastNonZero > 0) {
-            projectedSum += lastNonZero;
+          } else {
+            // Solo proyectamos en meses donde NO existe el registro (NULL)
+            // Si la última base conocida es > 0, sumamos a la proyección
+            if (lastValue > 0) {
+              projectedSum += lastValue;
+            }
           }
         });
 
