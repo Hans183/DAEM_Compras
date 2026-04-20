@@ -3,6 +3,7 @@ import type { ListResult } from "pocketbase";
 import pb from "@/lib/pocketbase";
 import type { Compra, CompraFormData, GetComprasParams } from "@/types/compra";
 import { detectarCambios, generarResumenCambios } from "@/utils/change-logger";
+import { normalizeString } from "@/utils/string-utils";
 
 import { createHistorialLog } from "./historial.service";
 
@@ -28,6 +29,7 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
     fecha_inicio_to,
     subvencion_filter,
     unidad_requirente_id,
+    search_fields,
   } = params;
 
   try {
@@ -42,22 +44,35 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
       // IDs de Compras desde OCs y Facturas (vía fuzzy match)
       const relatedIds = new Set<string>();
       try {
-        const [ocs, facturas] = await Promise.all([
-          pb.collection("ordenes_compra").getFullList({
-            filter: `oc ~ "${val}"`,
-            fields: "compra",
-          }),
-          pb.collection("facturas").getFullList({
-            filter: `factura ~ "${val}"`,
-            fields: "compra",
-          }),
-        ]);
+        const promises = [];
 
-        ocs.forEach((oc) => {
-          if (oc.compra) relatedIds.add(oc.compra);
-        });
-        facturas.forEach((f) => {
-          if (f.compra) relatedIds.add(f.compra);
+        const shouldSearchOc = !search_fields || search_fields.includes("oc");
+        const shouldSearchFactura = !search_fields || search_fields.includes("factura");
+
+        if (shouldSearchOc) {
+          promises.push(
+            pb.collection("ordenes_compra").getFullList({
+              filter: `oc ~ "${val}"`,
+              fields: "compra",
+            }),
+          );
+        }
+
+        if (shouldSearchFactura) {
+          promises.push(
+            pb.collection("facturas").getFullList({
+              filter: `factura ~ "${val}"`,
+              fields: "compra",
+            }),
+          );
+        }
+
+        const results = await Promise.all(promises);
+
+        results.forEach((list) => {
+          list.forEach((item) => {
+            if (item.compra) relatedIds.add(item.compra);
+          });
         });
       } catch (e) {
         console.error("Error fuzzy searching related IDs:", e);
@@ -71,13 +86,10 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
         });
       }
 
-      // Coincidencia exacta de número si el valor es numérico
-      if (!Number.isNaN(Number(val))) {
-        searchParts.push(`numero_ordinario = ${val}`);
-      }
-
-      // Coincidencia parcial en descripción
-      searchParts.push(`descripcion ~ "${val}"`);
+      // Búsqueda en el índice normalizado si existe
+      // Esto cubre descripción y OC (si el índice está bien poblado)
+      const normalizedQuery = normalizeString(val);
+      searchParts.push(`busqueda_index ~ "${normalizedQuery}"`);
 
       if (searchParts.length > 0) {
         filters.push(`(${searchParts.join(" || ")})`);
@@ -197,6 +209,10 @@ export async function createCompra(data: CompraFormData): Promise<Compra> {
       formData.append("accion", data.accion);
     }
 
+    // Generar índice de búsqueda normalizado
+    const searchIndex = normalizeString(`${data.descripcion ?? ""} ${data.numero_ordinario ?? ""}`);
+    formData.append("busqueda_index", searchIndex);
+
     const record = await pb.collection(COMPRAS_COLLECTION).create<Compra>(formData, {
       expand: "comprador,unidad_requirente,accion",
     });
@@ -246,6 +262,13 @@ export async function updateCompra(id: string, data: Partial<CompraFormData>): P
     }
 
     if (data.accion) formData.append("accion", data.accion);
+
+    // Actualizar índice de búsqueda si cambian la descripción o el número
+    if (data.descripcion !== undefined || data.numero_ordinario !== undefined) {
+      const newDesc = data.descripcion ?? oldData.descripcion;
+      const newOrd = data.numero_ordinario ?? oldData.numero_ordinario;
+      formData.append("busqueda_index", normalizeString(`${newDesc} ${newOrd}`));
+    }
 
     const record = await pb.collection(COMPRAS_COLLECTION).update<Compra>(id, formData, {
       expand: "comprador,unidad_requirente,accion",

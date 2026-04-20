@@ -35,8 +35,14 @@ export default function ComprasPage() {
   const [comprasData, setComprasData] = useState<ListResult<Compra> | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState(urlSearch); // Initialize with URL param
-  const [debouncedSearch, setDebouncedSearch] = useState(urlSearch);
+
+  // Search states
+  const [ordinarioSearch, setOrdinarioSearch] = useState("");
+  const [debouncedOrdinario, setDebouncedOrdinario] = useState("");
+
+  const [globalSearch, setGlobalSearch] = useState(urlSearch);
+  const [debouncedGlobal, setDebouncedGlobal] = useState(urlSearch);
+
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   // Subventions state
@@ -46,7 +52,7 @@ export default function ComprasPage() {
 
   // Sync local search when URL changes (e.g. from global search)
   useEffect(() => {
-    setSearch(urlSearch);
+    setGlobalSearch(urlSearch);
   }, [urlSearch]);
 
   // Filtros de columna
@@ -73,15 +79,23 @@ export default function ComprasPage() {
     fetchSubvenciones();
   }, []);
 
-  // Debounce search
+  // Debounce Ordinario search
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1); // Reset to first page on search
+      setDebouncedOrdinario(ordinarioSearch);
+      setPage(1);
     }, 500);
-
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [ordinarioSearch]);
+
+  // Debounce Global search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedGlobal(globalSearch);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [globalSearch]);
 
   const loadCompras = useCallback(async () => {
     setLoading(true);
@@ -97,9 +111,12 @@ export default function ComprasPage() {
       const data = await getCompras({
         page,
         perPage: 30,
-        search: debouncedSearch,
+        search: debouncedGlobal,
+        search_fields: ["descripcion", "oc"], // General search only in Description and OC
         sort: "-created",
         ...restrictedFilters,
+        // Override with top search if present
+        numero_ordinario: debouncedOrdinario || restrictedFilters.numero_ordinario,
       });
       setComprasData(data);
     } catch (error) {
@@ -107,7 +124,7 @@ export default function ComprasPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, filters, user?.role, user?.dependencia]);
+  }, [page, debouncedOrdinario, debouncedGlobal, filters, user?.role, user?.dependencia]);
 
   useEffect(() => {
     loadCompras();
@@ -143,17 +160,26 @@ export default function ComprasPage() {
         )}
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative max-w-sm flex-1">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="relative max-w-[200px] flex-1">
           <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por numero de Ordinario..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            placeholder="N° Ordinario..."
+            value={ordinarioSearch}
+            onChange={(e) => setOrdinarioSearch(e.target.value)}
             className="pl-9"
           />
         </div>
-        <div className="w-[300px]">
+        <div className="relative max-w-sm flex-1">
+          <Search className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Búsqueda General (Desc / OC)..."
+            value={globalSearch}
+            onChange={(e) => setGlobalSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <div className="w-[250px]">
           <Select
             value={filters.subvencion_filter || "all"}
             onValueChange={(value) => {

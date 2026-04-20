@@ -28,6 +28,7 @@ export interface Compra extends RecordModel {
   accion?: string; // Relation ID to acciones
   decreto_pago?: string;
   fecha_pago?: string;
+  busqueda_index?: string;
   expand?: {
     unidad_requirente?: Requirente;
     comprador?: User;
@@ -60,6 +61,7 @@ export interface CompraFormData {
   accion?: string;
   decreto_pago?: string;
   fecha_pago?: string;
+  busqueda_index?: string;
 }
 
 /**
@@ -83,6 +85,7 @@ export interface GetComprasParams {
   accion_filter?: string;
   subvencion_filter?: string;
   unidad_requirente_id?: string;
+  search_fields?: ("descripcion" | "oc" | "factura" | "numero_ordinario")[];
 }
 
 /**
