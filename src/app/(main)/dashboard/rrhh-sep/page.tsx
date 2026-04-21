@@ -16,6 +16,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/use-auth";
 import { getRequirentes } from "@/services/requirentes.service";
 import { getRrhhSepList } from "@/services/rrhh-sep.service";
 import type { Requirente } from "@/types/requirente";
@@ -26,16 +27,19 @@ import { RrhhSepDialog } from "./components/rrhh-sep-dialog";
 import { RrhhSepTable } from "./components/rrhh-sep-table";
 
 export default function RrhhSepPage() {
+  const { user } = useAuth();
   const [data, setData] = useState<ListResult<RrhhSep> | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [schools, setSchools] = useState<Requirente[]>([]);
 
+  const isObservador = user?.role.includes("Observador");
+
   // Filter states - Default to current month and year
   const [selectedMonth, setSelectedMonth] = useState<string>(MONTHS[new Date().getMonth()]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
-  const [selectedSchool, setSelectedSchool] = useState<string>("");
+  const [selectedSchool, setSelectedSchool] = useState<string>(isObservador ? user?.dependencia || "" : "");
 
   // Debounce is not strictly needed for month select, but good if we add text search later.
   // Since we filtered by exact match on month and relation on school, currently only month filter is implemented in UI for simplicity,
@@ -84,10 +88,12 @@ export default function RrhhSepPage() {
           <h1 className="font-bold text-3xl tracking-tight">RRHH SEP</h1>
           <p className="text-muted-foreground">Gestiona el gasto en personal por establecimiento</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo Registro
-        </Button>
+        {!isObservador && (
+          <Button onClick={() => setIsCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Nuevo Registro
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-4">
@@ -123,27 +129,29 @@ export default function RrhhSepPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="w-[250px]">
-          <Select
-            value={selectedSchool}
-            onValueChange={(value) => {
-              setSelectedSchool(value);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Filtrar por establecimiento" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los establecimientos</SelectItem>
-              {schools.map((school) => (
-                <SelectItem key={school.id} value={school.id}>
-                  {school.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {!isObservador && (
+          <div className="w-[250px]">
+            <Select
+              value={selectedSchool}
+              onValueChange={(value) => {
+                setSelectedSchool(value);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Filtrar por establecimiento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los establecimientos</SelectItem>
+                {schools.map((school) => (
+                  <SelectItem key={school.id} value={school.id}>
+                    {school.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {loading ? (
@@ -152,7 +160,7 @@ export default function RrhhSepPage() {
         </div>
       ) : (
         <>
-          <RrhhSepTable data={data?.items || []} onDataChanged={loadData} />
+          <RrhhSepTable data={data?.items || []} onDataChanged={loadData} isReadOnly={isObservador} />
 
           {data && data.totalPages > 1 && (
             <Pagination>

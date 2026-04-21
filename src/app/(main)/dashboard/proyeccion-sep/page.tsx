@@ -142,9 +142,16 @@ export default function ProyeccionSepPage() {
         return targetIndex === -1 ? 999 : targetIndex;
       };
 
-      const sortedSchools = [...schoolsResult.items].sort((a, b) => {
-        return getOrderIndex(a.nombre) - getOrderIndex(b.nombre);
-      });
+      const sortedSchools = [...schoolsResult.items]
+        .filter((school) => {
+          if (user?.role.includes("Observador")) {
+            return school.id === user.dependencia;
+          }
+          return true;
+        })
+        .sort((a, b) => {
+          return getOrderIndex(a.nombre) - getOrderIndex(b.nombre);
+        });
 
       setSchools(sortedSchools);
 
@@ -404,7 +411,7 @@ export default function ProyeccionSepPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedYear]);
+  }, [selectedYear, user?.dependencia, user?.role.includes]);
 
   useEffect(() => {
     loadData();

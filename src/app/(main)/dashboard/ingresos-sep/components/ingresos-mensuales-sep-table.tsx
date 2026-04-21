@@ -16,9 +16,17 @@ interface IngresosMensualesSepTableProps {
   onRefresh: () => void;
   sort: string;
   onSort: (field: string) => void;
+  isReadOnly?: boolean;
 }
 
-export function IngresosMensualesSepTable({ data, onEdit, onRefresh, sort, onSort }: IngresosMensualesSepTableProps) {
+export function IngresosMensualesSepTable({
+  data,
+  onEdit,
+  onRefresh,
+  sort,
+  onSort,
+  isReadOnly,
+}: IngresosMensualesSepTableProps) {
   const handleDelete = async (id: string) => {
     if (!confirm("¿Está seguro de eliminar este registro?")) return;
 
@@ -123,7 +131,7 @@ export function IngresosMensualesSepTable({ data, onEdit, onRefresh, sort, onSor
                 <SortIcon field="total_reflejar" />
               </div>
             </TableHead>
-            <TableHead className="w-[100px] text-right">Acciones</TableHead>
+            {!isReadOnly && <TableHead className="w-[100px] text-right">Acciones</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -187,29 +195,31 @@ export function IngresosMensualesSepTable({ data, onEdit, onRefresh, sort, onSor
                   <TableCell className="bg-blue-50/50 text-right font-bold">
                     {formatCurrency(item.total_reflejar || 0, { currency: "CLP", locale: "es-CL", noDecimals: true })}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => onEdit(item)} className="h-8 w-8 p-0">
-                        <span className="sr-only">{item.id.startsWith("new-") ? "Agregar" : "Editar"}</span>
-                        {item.id.startsWith("new-") ? (
-                          <Plus className="h-4 w-4 text-emerald-600" />
-                        ) : (
-                          <Edit className="h-4 w-4" />
-                        )}
-                      </Button>
-                      {!item.id.startsWith("new-") && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(item.id)}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                        >
-                          <span className="sr-only">Eliminar</span>
-                          <Trash2 className="h-4 w-4" />
+                  {!isReadOnly && (
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => onEdit(item)} className="h-8 w-8 p-0">
+                          <span className="sr-only">{item.id.startsWith("new-") ? "Agregar" : "Editar"}</span>
+                          {item.id.startsWith("new-") ? (
+                            <Plus className="h-4 w-4 text-emerald-600" />
+                          ) : (
+                            <Edit className="h-4 w-4" />
+                          )}
                         </Button>
-                      )}
-                    </div>
-                  </TableCell>
+                        {!item.id.startsWith("new-") && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(item.id)}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                          >
+                            <span className="sr-only">Eliminar</span>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               );
             })
@@ -236,7 +246,7 @@ export function IngresosMensualesSepTable({ data, onEdit, onRefresh, sort, onSor
               <TableCell className="h-12 border-emerald-200 border-t-2 bg-emerald-100/40 text-right font-extrabold text-emerald-900">
                 {formatCurrency(grandTotal, { currency: "CLP", locale: "es-CL", noDecimals: true })}
               </TableCell>
-              <TableCell className="h-12 border-emerald-100 border-t-2" />
+              {!isReadOnly && <TableCell className="h-12 border-emerald-100 border-t-2" />}
             </TableRow>
           </TableFooter>
         )}

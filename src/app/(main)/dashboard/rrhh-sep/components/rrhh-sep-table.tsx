@@ -15,9 +15,10 @@ import { RrhhSepDialog } from "./rrhh-sep-dialog";
 interface RrhhSepTableProps {
   data: RrhhSep[];
   onDataChanged: () => void;
+  isReadOnly?: boolean;
 }
 
-export function RrhhSepTable({ data, onDataChanged }: RrhhSepTableProps) {
+export function RrhhSepTable({ data, onDataChanged, isReadOnly }: RrhhSepTableProps) {
   const [editingRecord, setEditingRecord] = useState<RrhhSep | undefined>(undefined);
   const [deletingRecord, setDeletingRecord] = useState<RrhhSep | undefined>(undefined);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -50,7 +51,7 @@ export function RrhhSepTable({ data, onDataChanged }: RrhhSepTableProps) {
               <TableHead>Mes</TableHead>
               <TableHead>Escuela</TableHead>
               <TableHead className="text-right">Total Gasto</TableHead>
-              <TableHead className="w-[100px]">Acciones</TableHead>
+              {!isReadOnly && <TableHead className="w-[100px]">Acciones</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -69,23 +70,25 @@ export function RrhhSepTable({ data, onDataChanged }: RrhhSepTableProps) {
                   </TableCell>
                   <TableCell>{record.expand?.escuelas?.nombre || "Sin escuela"}</TableCell>
                   <TableCell className="text-right font-mono">{formatCurrency(record.total)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(record)} className="h-8 w-8">
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Editar</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(record)}
-                        className="h-8 w-8 text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Eliminar</span>
-                      </Button>
-                    </div>
-                  </TableCell>
+                  {!isReadOnly && (
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(record)} className="h-8 w-8">
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Editar</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(record)}
+                          className="h-8 w-8 text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Eliminar</span>
+                        </Button>
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}

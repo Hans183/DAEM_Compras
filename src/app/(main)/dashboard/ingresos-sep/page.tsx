@@ -6,6 +6,7 @@ import { Loader2, Plus, Wallet } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/use-auth";
 import { getIngresosMensualesSep } from "@/services/ingresos-mensuales-sep.service";
 import { getRequirentes } from "@/services/requirentes.service";
 import type { IngresoMensualSep, Mes } from "@/types/ingreso-mensual-sep";
@@ -57,6 +58,7 @@ const CUSTOM_ORDER = [
 ];
 
 export default function IngresosSepPage() {
+  const { user } = useAuth();
   const [data, setData] = useState<{
     items: IngresoMensualSep[];
     totalItems: number;
@@ -97,9 +99,16 @@ export default function IngresosSepPage() {
           return targetIndex === -1 ? 999 : targetIndex;
         };
 
-        const sortedItems = [...result.items].sort((a, b) => {
-          return getOrderIndex(a.nombre) - getOrderIndex(b.nombre);
-        });
+        const sortedItems = [...result.items]
+          .filter((req) => {
+            if (user?.role.includes("Observador")) {
+              return req.id === user.dependencia;
+            }
+            return true;
+          })
+          .sort((a, b) => {
+            return getOrderIndex(a.nombre) - getOrderIndex(b.nombre);
+          });
 
         setAllRequirentes(sortedItems);
       } catch (error) {
@@ -107,7 +116,7 @@ export default function IngresosSepPage() {
       }
     };
     fetchRequirentes();
-  }, []);
+  }, [user?.dependencia, user?.role.includes]);
 
   const loadIngresos = useCallback(async () => {
     if (allRequirentes.length === 0) return;
@@ -198,10 +207,12 @@ export default function IngresosSepPage() {
             <p className="text-gray-500 text-sm">Gestión de ingresos por establecimiento y mes</p>
           </div>
         </div>
-        <Button onClick={handleCreate} className="bg-emerald-600 text-white shadow-sm hover:bg-emerald-700">
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo Ingreso
-        </Button>
+        {!user?.role.includes("Observador") && (
+          <Button onClick={handleCreate} className="bg-emerald-600 text-white shadow-sm hover:bg-emerald-700">
+            <Plus className="mr-2 h-4 w-4" />
+            Nuevo Ingreso
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-4 rounded-xl border bg-white p-4 shadow-sm">
@@ -261,6 +272,7 @@ export default function IngresosSepPage() {
             onRefresh={loadIngresos}
             sort={sort}
             onSort={handleSort}
+            isReadOnly={user?.role.includes("Observador")}
           />
         </div>
       )}

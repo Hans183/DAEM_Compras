@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/pagination";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { getAcciones } from "@/services/acciones.service";
 import { getCompras } from "@/services/compras.service";
@@ -34,6 +35,7 @@ import { AccionDialog } from "./components/accion-dialog";
 import { AccionesTable } from "./components/acciones-table";
 
 export default function AccionesPage() {
+  const { user } = useAuth();
   const [data, setData] = useState<ListResult<Accion> | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -105,18 +107,29 @@ export default function AccionesPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
+      const isObservador = user?.role.includes("Observador");
+      const establishmentId = isObservador
+        ? user?.dependencia
+        : selectedEstablecimiento === "all"
+          ? ""
+          : selectedEstablecimiento;
+
       const [accionesResult, comprasResult] = await Promise.all([
         getAcciones({
           page,
           perPage: 30,
           search: debouncedSearch,
-          establecimiento_filter: selectedEstablecimiento === "all" ? "" : selectedEstablecimiento,
+          establecimiento_filter: establishmentId,
           dimension_filter: selectedDimension === "all" ? "" : selectedDimension,
           subdimencion_filter: selectedSubdimencion === "all" ? "" : selectedSubdimencion,
         }),
         // Fetch ALL compras to calculate usage correctly across all actions
         // Optimization: In a real large app, we might want to aggregate this on the backend
-        getCompras({ perPage: 1000, sort: "-created" }),
+        getCompras({
+          perPage: 1000,
+          sort: "-created",
+          unidad_requirente_id: establishmentId || undefined,
+        }),
       ]);
 
       setData(accionesResult);
@@ -138,7 +151,15 @@ export default function AccionesPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, selectedEstablecimiento, selectedDimension, selectedSubdimencion]);
+  }, [
+    page,
+    debouncedSearch,
+    selectedEstablecimiento,
+    selectedDimension,
+    selectedSubdimencion,
+    user?.dependencia,
+    user?.role.includes,
+  ]);
 
   useEffect(() => {
     loadData();
@@ -174,76 +195,63 @@ export default function AccionesPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/dashboard/compras-sep">
-              <ClipboardList className="mr-2 h-4 w-4" />
-              VER ORDENES
-            </Link>
-          </Button>
-          <Button variant="outline" size="sm" asChild>
-            <Link href="/dashboard/rrhh-sep">
-              <Users className="mr-2 h-4 w-4" />
-              VER DOCENTES
-            </Link>
-          </Button>
+          {!user?.role.includes("Observador") && (
+            <>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/dashboard/compras-sep">
+                  <ClipboardList className="mr-2 h-4 w-4" />
+                  VER ORDENES
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/dashboard/rrhh-sep">
+                  <Users className="mr-2 h-4 w-4" />
+                  VER DOCENTES
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Center School Search Card */}
-      <div className="my-2 flex justify-center">
-        <div className="relative mt-4 flex w-[500px] flex-col items-center gap-6 rounded-md border p-6">
-          <div className="-top-3 absolute w-max bg-background px-2 text-center text-muted-foreground text-xs">
-            Buscar Colegio
-          </div>
+      {/* Center School Search Card - Hidden for Observador */}
+      {!user?.role.includes("Observador") && (
+        <div className="my-2 flex justify-center">
+          <div className="relative mt-4 flex w-[500px] flex-col items-center gap-6 rounded-md border p-6">
+            <div className="-top-3 absolute w-max bg-background px-2 text-center text-muted-foreground text-xs">
+              Buscar Colegio
+            </div>
 
-          <div className="w-full">
-            <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openCombobox}
-                  className="h-10 w-full justify-between bg-background font-normal"
-                >
-                  <span className="truncate">
-                    {selectedEstablecimiento
-                      ? selectedEstablecimiento === "all"
-                        ? "Todos"
-                        : establecimientos.find((school) => school.id === selectedEstablecimiento)?.nombre ||
-                          "Seleccione un colegio"
-                      : "Seleccione un colegio"}
-                  </span>
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[450px] p-0" align="center">
-                <Command>
-                  <CommandInput placeholder="Buscar colegio..." />
-                  <CommandList>
-                    <CommandEmpty>No se encontró ningún colegio.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem
-                        value="todos los colegios"
-                        onSelect={() => {
-                          setSelectedEstablecimiento("all");
-                          setPage(1);
-                          setOpenCombobox(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4 shrink-0",
-                            selectedEstablecimiento === "all" || !selectedEstablecimiento ? "opacity-100" : "opacity-0",
-                          )}
-                        />
-                        Todos
-                      </CommandItem>
-                      {establecimientos.map((school) => (
+            <div className="w-full">
+              <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openCombobox}
+                    className="h-10 w-full justify-between bg-background font-normal"
+                  >
+                    <span className="truncate">
+                      {selectedEstablecimiento
+                        ? selectedEstablecimiento === "all"
+                          ? "Todos"
+                          : establecimientos.find((school) => school.id === selectedEstablecimiento)?.nombre ||
+                            "Seleccione un colegio"
+                        : "Seleccione un colegio"}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[450px] p-0" align="center">
+                  <Command>
+                    <CommandInput placeholder="Buscar colegio..." />
+                    <CommandList>
+                      <CommandEmpty>No se encontró ningún colegio.</CommandEmpty>
+                      <CommandGroup>
                         <CommandItem
-                          key={school.id}
-                          value={`${school.nombre} ${school.id}`}
+                          value="todos los colegios"
                           onSelect={() => {
-                            setSelectedEstablecimiento(school.id);
+                            setSelectedEstablecimiento("all");
                             setPage(1);
                             setOpenCombobox(false);
                           }}
@@ -251,33 +259,54 @@ export default function AccionesPage() {
                           <Check
                             className={cn(
                               "mr-2 h-4 w-4 shrink-0",
-                              selectedEstablecimiento === school.id ? "opacity-100" : "opacity-0",
+                              selectedEstablecimiento === "all" || !selectedEstablecimiento
+                                ? "opacity-100"
+                                : "opacity-0",
                             )}
                           />
-                          <span className="truncate">{school.nombre}</span>
+                          Todos
                         </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
+                        {establecimientos.map((school) => (
+                          <CommandItem
+                            key={school.id}
+                            value={`${school.nombre} ${school.id}`}
+                            onSelect={() => {
+                              setSelectedEstablecimiento(school.id);
+                              setPage(1);
+                              setOpenCombobox(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4 shrink-0",
+                                selectedEstablecimiento === school.id ? "opacity-100" : "opacity-0",
+                              )}
+                            />
+                            <span className="truncate">{school.nombre}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
 
-          <Button className="w-[240px] font-semibold" size="lg" onClick={loadData}>
-            CONSULTAR ACCIONES
-          </Button>
+            <Button className="w-[240px] font-semibold" size="lg" onClick={loadData}>
+              CONSULTAR ACCIONES
+            </Button>
 
-          <div className="mt-2 text-sm">
-            Colegio consultado:{" "}
-            <span className="font-semibold text-muted-foreground">
-              {selectedEstablecimiento === "all" || !selectedEstablecimiento
-                ? "Todos"
-                : establecimientos.find((e) => e.id === selectedEstablecimiento)?.nombre}
-            </span>
+            <div className="mt-2 text-sm">
+              Colegio consultado:{" "}
+              <span className="font-semibold text-muted-foreground">
+                {selectedEstablecimiento === "all" || !selectedEstablecimiento
+                  ? "Todos"
+                  : establecimientos.find((e) => e.id === selectedEstablecimiento)?.nombre}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Bottom Actions Row */}
       <div className="mt-4 flex items-center justify-between">
@@ -293,10 +322,12 @@ export default function AccionesPage() {
           />
           <Search className="absolute top-3 right-3 h-4 w-4 text-muted-foreground" />
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} variant="secondary" className="px-6 font-semibold">
-          <Plus className="mr-2 h-4 w-4" />
-          AGREGAR ACCIÓN
-        </Button>
+        {!user?.role.includes("Observador") && (
+          <Button onClick={() => setIsCreateOpen(true)} variant="secondary" className="px-6 font-semibold">
+            <Plus className="mr-2 h-4 w-4" />
+            AGREGAR ACCIÓN
+          </Button>
+        )}
       </div>
 
       {loading ? (
@@ -310,6 +341,7 @@ export default function AccionesPage() {
             usageMap={usageMap}
             allCompras={allCompras}
             onDataChanged={loadData}
+            isReadOnly={user?.role.includes("Observador")}
           />
 
           {data && data.totalPages > 1 && (

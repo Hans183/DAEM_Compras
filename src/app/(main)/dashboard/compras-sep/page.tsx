@@ -32,6 +32,7 @@ import type { Requirente } from "@/types/requirente";
 import { ComprasSepTable } from "./components/compras-sep-table";
 
 export default function ComprasSepPage() {
+  const { user } = useAuth();
   const searchParams = useSearchParams();
   const search = searchParams.get("search") || "";
 
@@ -42,15 +43,17 @@ export default function ComprasSepPage() {
   const [error, setError] = useState<string | null>(null);
 
   // States for filters
+  const isObservador = user?.role.includes("Observador");
   const [establecimientos, setEstablecimientos] = useState<Requirente[]>([]);
-  const [selectedEstablecimientoId, setSelectedEstablecimientoId] = useState<string>("all");
+  const [selectedEstablecimientoId, setSelectedEstablecimientoId] = useState<string>(
+    isObservador ? user?.dependencia || "all" : "all",
+  );
   const [ordinarioSearch, setOrdinarioSearch] = useState<string>("");
 
   // States for column visibility
   const [showOC, setShowOC] = useState(true);
   const [showFacturas, setShowFacturas] = useState(true);
 
-  const { user } = useAuth();
   const storageKey = user ? `compras-sep-preferences-${user.id}` : null;
 
   // Load preferences from localStorage
@@ -179,33 +182,35 @@ export default function ComprasSepPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-4 rounded-lg border bg-card p-4 shadow-sm">
-        <div className="flex-1 min-w-[200px]">
-          <label
-            htmlFor="establecimiento-filter"
-            className="text-xs font-medium mb-1.5 block text-muted-foreground uppercase tracking-wider"
-          >
-            Establecimiento
-          </label>
-          <Select
-            value={selectedEstablecimientoId}
-            onValueChange={(val) => {
-              setSelectedEstablecimientoId(val);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger id="establecimiento-filter" className="w-full">
-              <SelectValue placeholder="Todos los establecimientos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los establecimientos</SelectItem>
-              {establecimientos.map((est) => (
-                <SelectItem key={est.id} value={est.id}>
-                  {est.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {!isObservador && (
+          <div className="flex-1 min-w-[200px]">
+            <label
+              htmlFor="establecimiento-filter"
+              className="text-xs font-medium mb-1.5 block text-muted-foreground uppercase tracking-wider"
+            >
+              Establecimiento
+            </label>
+            <Select
+              value={selectedEstablecimientoId}
+              onValueChange={(val) => {
+                setSelectedEstablecimientoId(val);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger id="establecimiento-filter" className="w-full">
+                <SelectValue placeholder="Todos los establecimientos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los establecimientos</SelectItem>
+                {establecimientos.map((est) => (
+                  <SelectItem key={est.id} value={est.id}>
+                    {est.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="flex-1 min-w-[200px]">
           <label
@@ -247,7 +252,7 @@ export default function ComprasSepPage() {
             <Switch id="show-oc" checked={showOC} onCheckedChange={(val) => updatePreference("showOC", val)} />
             <Label
               htmlFor="show-oc"
-              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer"
+              className="cursor-pointer font-semibold text-muted-foreground text-xs uppercase tracking-wider"
             >
               Mostrar OC
             </Label>
@@ -260,7 +265,7 @@ export default function ComprasSepPage() {
             />
             <Label
               htmlFor="show-facturas"
-              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground cursor-pointer"
+              className="cursor-pointer font-semibold text-muted-foreground text-xs uppercase tracking-wider"
             >
               Mostrar Facturas
             </Label>

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/use-auth";
 import { getSepReport, type SepReportStats } from "@/services/reports.service";
 import { getRequirentes } from "@/services/requirentes.service";
 import type { Requirente } from "@/types/requirente";
@@ -17,15 +18,18 @@ import type { Requirente } from "@/types/requirente";
 import { SepEvolutionChart } from "../../_components/charts/sep-evolution-chart";
 
 export default function SepReportPage() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<SepReportStats | null>(null);
   const [schools, setSchools] = useState<Requirente[]>([]);
+
+  const isObservador = user?.role.includes("Observador");
 
   // Filters
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
   const [month, setMonth] = useState<string>("all");
-  const [schoolId, setSchoolId] = useState<string>("all");
+  const [schoolId, setSchoolId] = useState<string>(isObservador ? user?.dependencia || "all" : "all");
 
   // Load Schools for Filter
   useEffect(() => {
@@ -107,19 +111,21 @@ export default function SepReportPage() {
 
           <div className="mx-1 h-4 w-[1px] bg-border" />
 
-          <Select value={schoolId} onValueChange={setSchoolId}>
-            <SelectTrigger className="h-8 w-[200px]">
-              <SelectValue placeholder="Todas las Escuelas" />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              <SelectItem value="all">Todas las Escuelas</SelectItem>
-              {schools.map((school) => (
-                <SelectItem key={school.id} value={school.id}>
-                  {school.nombre}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!isObservador && (
+            <Select value={schoolId} onValueChange={setSchoolId}>
+              <SelectTrigger className="h-8 w-[200px]">
+                <SelectValue placeholder="Todas las Escuelas" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                <SelectItem value="all">Todas las Escuelas</SelectItem>
+                {schools.map((school) => (
+                  <SelectItem key={school.id} value={school.id}>
+                    {school.nombre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           {/* Check if filtered to reset? */}
           {(month !== "all" || schoolId !== "all") && (

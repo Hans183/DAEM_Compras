@@ -5,9 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/hooks/use-auth";
 import { getIngresosMensualesSep } from "@/services/ingresos-mensuales-sep.service";
 import { getRequirentes } from "@/services/requirentes.service";
 import { getRrhhSepList } from "@/services/rrhh-sep.service";
+import type { Mes } from "@/types/ingreso-mensual-sep";
 import type { Requirente } from "@/types/requirente";
 import { MONTHS } from "@/types/rrhh-sep";
 
@@ -41,6 +43,7 @@ const CUSTOM_ORDER = [
 ];
 
 export default function PorcentajeGastoRrhhPage() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [schools, setSchools] = useState<Requirente[]>([]);
   const [rrhhData, setRrhhData] = useState<Record<string, number>>({});
@@ -71,9 +74,16 @@ export default function PorcentajeGastoRrhhPage() {
         return targetIndex === -1 ? 999 : targetIndex;
       };
 
-      const sortedSchools = [...schoolsResult.items].sort((a, b) => {
-        return getOrderIndex(a.nombre) - getOrderIndex(b.nombre);
-      });
+      const sortedSchools = [...schoolsResult.items]
+        .filter((school) => {
+          if (user?.role.includes("Observador")) {
+            return school.id === user.dependencia;
+          }
+          return true;
+        })
+        .sort((a, b) => {
+          return getOrderIndex(a.nombre) - getOrderIndex(b.nombre);
+        });
 
       setSchools(sortedSchools);
 
@@ -94,7 +104,7 @@ export default function PorcentajeGastoRrhhPage() {
       const ingresosResult = await getIngresosMensualesSep({
         perPage: 500,
         anio: selectedYear,
-        mes: selectedMonth as any,
+        mes: selectedMonth as Mes,
       });
 
       const ingresosMap: Record<string, number> = {};
@@ -108,7 +118,7 @@ export default function PorcentajeGastoRrhhPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedYear, selectedMonth]);
+  }, [selectedYear, selectedMonth, user?.dependencia, user?.role.includes]);
 
   useEffect(() => {
     loadData();

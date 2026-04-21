@@ -15,7 +15,6 @@
  * - You may optionally integrate it directly into a build step if preferred.
  */
 
-import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -108,18 +107,13 @@ const updated = fileContent.replace(
 );
 
 async function main() {
-  const formatted = execSync(`npx @biomejs/biome format --stdin-file-path "${outputPath}"`, {
-    input: updated,
-    encoding: "utf8",
-  });
-
-  if (formatted === fileContent) {
+  if (updated === fileContent) {
     console.log("ℹ️  No changes in theme.ts");
     return;
   }
 
-  fs.writeFileSync(outputPath, formatted);
-  console.log("✅ theme.ts updated with new theme presets");
+  fs.writeFileSync(outputPath, updated);
+  console.log("✅ theme.ts updated with new theme presets (formatting will be handled by lint-staged)");
 }
 
 main().catch((err) => {

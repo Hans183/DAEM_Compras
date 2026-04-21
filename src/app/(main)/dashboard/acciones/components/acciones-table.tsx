@@ -29,9 +29,10 @@ interface AccionesTableProps {
   usageMap: Record<string, number>;
   allCompras: Compra[];
   onDataChanged: () => void;
+  isReadOnly?: boolean;
 }
 
-export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: AccionesTableProps) {
+export function AccionesTable({ data, usageMap, allCompras, onDataChanged, isReadOnly }: AccionesTableProps) {
   const [editingAccion, setEditingAccion] = useState<Accion | null>(null);
   const [deletingAccion, setDeletingAccion] = useState<Accion | null>(null);
   const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
@@ -58,7 +59,7 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
               <TableHead>Dimensión</TableHead>
               <TableHead>Monto SEP</TableHead>
               <TableHead className="w-[180px]">% Uso / Disp.</TableHead>
-              <TableHead className="w-[100px]">Acciones</TableHead>
+              {!isReadOnly && <TableHead className="w-[100px]">Acciones</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -129,21 +130,23 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => setEditingAccion(item)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive"
-                            onClick={() => setDeletingAccion(item)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+                      {!isReadOnly && (
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => setEditingAccion(item)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                              onClick={() => setDeletingAccion(item)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
                     {isExpanded && (
                       <TableRow className="bg-muted/20 hover:bg-muted/20">
@@ -153,15 +156,17 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                               <h4 className="flex items-center gap-2 font-semibold text-sm">
                                 Compras Relacionadas ({relatedCompras.length})
                               </h4>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-8 border-primary border-dashed text-primary hover:bg-primary/5"
-                                onClick={() => setAddingSepTo(item)}
-                              >
-                                <Plus className="mr-2 h-4 w-4" />
-                                AGREGAR COMPRA SEP
-                              </Button>
+                              {!isReadOnly && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8 border-primary border-dashed text-primary hover:bg-primary/5"
+                                  onClick={() => setAddingSepTo(item)}
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  AGREGAR COMPRA SEP
+                                </Button>
+                              )}
                             </div>
                             {relatedCompras.length === 0 ? (
                               <div className="py-2 text-muted-foreground text-sm italic">
@@ -177,7 +182,7 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                                       <TableHead className="text-xs">OC</TableHead>
                                       <TableHead className="text-xs">Comprador</TableHead>
                                       <TableHead className="text-right text-xs">Monto</TableHead>
-                                      <TableHead className="w-[50px] text-xs">Acción</TableHead>
+                                      {!isReadOnly && <TableHead className="w-[50px] text-xs">Acción</TableHead>}
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
@@ -203,32 +208,34 @@ export function AccionesTable({ data, usageMap, allCompras, onDataChanged }: Acc
                                             ?.reduce((acc, current) => acc + (current.oc_valor || 0), 0)
                                             .toLocaleString("es-CL") || 0}
                                         </TableCell>
-                                        <TableCell>
-                                          <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                              <Button variant="ghost" className="h-7 w-7 p-0">
-                                                <span className="sr-only">Abrir menú</span>
-                                                <MoreHorizontal className="h-4 w-4" />
-                                              </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                              <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                                              <DropdownMenuItem onClick={() => setEditingCompra(compra)}>
-                                                <Edit className="mr-2 h-4 w-4" />
-                                                Editar
-                                              </DropdownMenuItem>
-                                              {currentUser?.role?.includes("SEP") && (
-                                                <DropdownMenuItem
-                                                  onClick={() => setDeletingCompra(compra)}
-                                                  className="text-destructive"
-                                                >
-                                                  <Trash2 className="mr-2 h-4 w-4" />
-                                                  Eliminar
+                                        {!isReadOnly && (
+                                          <TableCell>
+                                            <DropdownMenu>
+                                              <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-7 w-7 p-0">
+                                                  <span className="sr-only">Abrir menú</span>
+                                                  <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                              </DropdownMenuTrigger>
+                                              <DropdownMenuContent align="end">
+                                                <DropdownMenuLabel>Acciones</DropdownMenuLabel>
+                                                <DropdownMenuItem onClick={() => setEditingCompra(compra)}>
+                                                  <Edit className="mr-2 h-4 w-4" />
+                                                  Editar
                                                 </DropdownMenuItem>
-                                              )}
-                                            </DropdownMenuContent>
-                                          </DropdownMenu>
-                                        </TableCell>
+                                                {currentUser?.role?.includes("SEP") && (
+                                                  <DropdownMenuItem
+                                                    onClick={() => setDeletingCompra(compra)}
+                                                    className="text-destructive"
+                                                  >
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    Eliminar
+                                                  </DropdownMenuItem>
+                                                )}
+                                              </DropdownMenuContent>
+                                            </DropdownMenu>
+                                          </TableCell>
+                                        )}
                                       </TableRow>
                                     ))}
                                   </TableBody>
