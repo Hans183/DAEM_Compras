@@ -50,6 +50,12 @@ export const sidebarItems: NavGroup[] = [
         allowedRoles: ["Admin", "Comprador", "Observador", "SEP", "Bodega", "Encargado compras"],
       },
       {
+        title: "Reportes SEP",
+        url: "/dashboard/reportes/sep",
+        icon: Building2,
+        allowedRoles: ["Admin", "SEP", "Observador"],
+      },
+      {
         title: "Recepciones",
         url: "/dashboard/recepciones",
         icon: Package,
@@ -80,12 +86,7 @@ export const sidebarItems: NavGroup[] = [
         icon: Users,
         allowedRoles: ["Admin", "SEP", "Observador"],
       },
-      {
-        title: "Reportes SEP",
-        url: "/dashboard/reportes/sep",
-        icon: Building2,
-        allowedRoles: ["Admin", "SEP", "Observador"],
-      },
+
       {
         title: "Proyección SEP",
         url: "/dashboard/proyeccion-sep",

@@ -2,79 +2,94 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import { Building2, Calendar as CalendarIcon, DollarSign, ShoppingCart } from "lucide-react";
+import { Calendar as CalendarIcon, Check, ChevronsUpDown, RotateCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
-import { getSepReport, type SepReportStats } from "@/services/reports.service";
+import { cn } from "@/lib/utils";
+import { getSepSchoolReport, type SchoolSepKpis } from "@/services/reports.service";
 import { getRequirentes } from "@/services/requirentes.service";
 import type { Requirente } from "@/types/requirente";
 
-import { SepEvolutionChart } from "../../_components/charts/sep-evolution-chart";
+import { SepSchoolEvolutionChart, SepSchoolEvolutionChartSkeleton } from "./components/sep-school-evolution-chart";
+import { SepSchoolKpiCards, SepSchoolKpiCardsSkeleton } from "./components/sep-school-kpi-cards";
+import { SepSchoolProgressChart, SepSchoolProgressChartSkeleton } from "./components/sep-school-progress-chart";
 
 export default function SepReportPage() {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<SepReportStats | null>(null);
-  const [schools, setSchools] = useState<Requirente[]>([]);
-
   const isObservador = user?.role.includes("Observador");
+
+  const [schools, setSchools] = useState<Requirente[]>([]);
+  const [schoolsLoading, setSchoolsLoading] = useState(true);
 
   // Filters
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
-  const [month, setMonth] = useState<string>("all");
-  const [schoolId, setSchoolId] = useState<string>(isObservador ? user?.dependencia || "all" : "all");
+  const [schoolId, setSchoolId] = useState<string>(isObservador ? user?.dependencia || "" : "");
+  const [openCombobox, setOpenCombobox] = useState(false);
 
-  // Load Schools for Filter
+  // Data
+  const [kpis, setKpis] = useState<SchoolSepKpis | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Load schools
   useEffect(() => {
-    getRequirentes({ perPage: 100, sort: "nombre", sep_filter: true }).then((data) => {
-      setSchools(data.items);
-    });
-  }, []);
+    setSchoolsLoading(true);
+    getRequirentes({ perPage: 500, sort: "nombre", sep_filter: true })
+      .then((data) => {
+        let items = data.items;
+        if (isObservador && user?.dependencia) {
+          items = items.filter((s) => s.id === user.dependencia);
+        }
+        setSchools(items);
+
+        // Auto-select if Observador or only one school
+        if (isObservador && user?.dependencia) {
+          setSchoolId(user.dependencia);
+        }
+      })
+      .finally(() => setSchoolsLoading(false));
+  }, [isObservador, user?.dependencia]);
+
+  const selectedSchool = schools.find((s) => s.id === schoolId);
 
   const loadData = useCallback(async () => {
+    if (!schoolId || !selectedSchool) return;
+
     setLoading(true);
     try {
-      const m = month === "all" ? undefined : parseInt(month, 10);
-      const s = schoolId === "all" ? undefined : schoolId;
-
-      const data = await getSepReport(year, s, m);
-      setStats(data);
+      const data = await getSepSchoolReport(schoolId, selectedSchool.nombre, year);
+      setKpis(data);
     } catch (error) {
       console.error(error);
-      toast.error("Error al cargar reporte SEP");
+      toast.error("Error al cargar reporte SEP del establecimiento");
     } finally {
       setLoading(false);
     }
-  }, [year, month, schoolId]);
+  }, [schoolId, selectedSchool, year]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat("es-CL", {
-      style: "currency",
-      currency: "CLP",
-    }).format(val);
-  };
+    if (schoolId && selectedSchool) {
+      loadData();
+    }
+  }, [loadData, schoolId, selectedSchool]);
 
   return (
     <div className="flex flex-col gap-6 p-6">
+      {/* ── Header ── */}
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
           <h1 className="font-bold text-3xl tracking-tight">Reporte Ley SEP</h1>
-          <p className="text-muted-foreground">Seguimiento presupuestario de compras SEP</p>
+          <p className="text-muted-foreground">KPIs e indicadores individuales por establecimiento</p>
         </div>
 
-        {/* Filters Toolbar */}
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-background p-2 shadow-sm">
+        {/* ── Filters Toolbar ── */}
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-background p-2.5 shadow-sm">
+          {/* Year */}
           <div className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4 text-muted-foreground" />
             <Select value={year.toString()} onValueChange={(v) => setYear(parseInt(v, 10))}>
@@ -82,139 +97,150 @@ export default function SepReportPage() {
                 <SelectValue placeholder="Año" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2024">2024</SelectItem>
-                <SelectItem value="2025">2025</SelectItem>
-                <SelectItem value="2026">2026</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="mx-1 h-4 w-[1px] bg-border" />
-
-          <Select value={month} onValueChange={setMonth}>
-            <SelectTrigger className="h-8 w-[140px]">
-              <SelectValue placeholder="Todos los meses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos los meses</SelectItem>
-              {Array.from({ length: 12 }).map((_, i) => {
-                const date = new Date(year, i);
-                const monthName = format(date, "MMMM", { locale: es });
-                return (
-                  <SelectItem key={monthName} value={i.toString()}>
-                    {monthName}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-
-          <div className="mx-1 h-4 w-[1px] bg-border" />
-
-          {!isObservador && (
-            <Select value={schoolId} onValueChange={setSchoolId}>
-              <SelectTrigger className="h-8 w-[200px]">
-                <SelectValue placeholder="Todas las Escuelas" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
-                <SelectItem value="all">Todas las Escuelas</SelectItem>
-                {schools.map((school) => (
-                  <SelectItem key={school.id} value={school.id}>
-                    {school.nombre}
+                {Array.from({ length: 5 }, (_, i) => currentYear - i).map((y) => (
+                  <SelectItem key={y} value={y.toString()}>
+                    {y}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-          )}
+          </div>
 
-          {/* Check if filtered to reset? */}
-          {(month !== "all" || schoolId !== "all") && (
+          <div className="mx-1 h-6 w-[1px] bg-border" />
+
+          {/* Reload */}
+          {kpis && (
             <Button
               variant="ghost"
               size="sm"
               className="h-8 px-2 text-muted-foreground hover:text-foreground"
-              onClick={() => {
-                setMonth("all");
-                setSchoolId("all");
-              }}
+              onClick={loadData}
+              disabled={loading}
             >
-              Limpiar
+              <RotateCw className={cn("h-4 w-4", loading && "animate-spin")} />
             </Button>
           )}
         </div>
       </div>
 
-      {loading && !stats ? (
-        <div className="flex h-[400px] w-full items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-primary border-b-2" />
-        </div>
-      ) : stats ? (
-        <>
-          {/* KPI Cards */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="font-medium text-sm">Inversión Total SEP</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="font-bold text-2xl">{formatCurrency(stats.totalInvestment)}</div>
-                <p className="text-muted-foreground text-xs">En compras con órdenes generadas</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="font-medium text-sm">Solicitudes Gestionadas</CardTitle>
-                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="font-bold text-2xl">{stats.totalOrders}</div>
-                <p className="text-muted-foreground text-xs">Total de procesos de compra SEP</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="font-medium text-sm">Establecimientos</CardTitle>
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="font-bold text-2xl">{stats.bySchool.length}</div>
-                <p className="text-muted-foreground text-xs">Con movimientos este periodo</p>
-              </CardContent>
-            </Card>
-          </div>
+      {/* ── School Selector (centered, prominent) ── */}
+      {!isObservador && (
+        <div className="flex justify-center">
+          <div className="relative flex w-full max-w-[560px] flex-col items-center gap-5 rounded-xl border bg-card p-6 shadow-sm">
+            <div className="-top-3 absolute w-max bg-card px-3 text-center text-muted-foreground text-xs font-medium uppercase tracking-wider">
+              Seleccionar Establecimiento
+            </div>
 
-          {/* Charts & Details */}
-          <div className="grid gap-4 md:grid-cols-7">
-            <div className="col-span-4">
-              <SepEvolutionChart data={stats.monthlyEvolution} year={year} />
+            <div className="w-full">
+              <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openCombobox}
+                    className="h-11 w-full justify-between bg-background font-normal"
+                    disabled={schoolsLoading}
+                  >
+                    <span className="truncate">
+                      {schoolsLoading
+                        ? "Cargando establecimientos..."
+                        : selectedSchool
+                          ? selectedSchool.nombre
+                          : "Seleccione un establecimiento"}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[520px] p-0" align="center">
+                  <Command>
+                    <CommandInput placeholder="Buscar establecimiento..." />
+                    <CommandList>
+                      <CommandEmpty>No se encontró ningún establecimiento.</CommandEmpty>
+                      <CommandGroup>
+                        {schools.map((school) => (
+                          <CommandItem
+                            key={school.id}
+                            value={`${school.nombre} ${school.id}`}
+                            onSelect={() => {
+                              setSchoolId(school.id);
+                              setOpenCombobox(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4 shrink-0",
+                                schoolId === school.id ? "opacity-100" : "opacity-0",
+                              )}
+                            />
+                            <span className="truncate">{school.nombre}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
-            <div className="col-span-3">
-              <Card className="flex h-full flex-col">
-                <CardHeader>
-                  <CardTitle>Desglose por Escuela</CardTitle>
-                </CardHeader>
-                <CardContent className="max-h-[400px] flex-1 overflow-auto">
-                  <div className="space-y-4">
-                    {stats.bySchool.map((item) => (
-                      <div key={item.name} className="flex items-center">
-                        <div className="ml-4 flex-1 space-y-1">
-                          <p className="font-medium text-sm leading-none">{item.name}</p>
-                          <p className="text-muted-foreground text-xs">{item.count} compras</p>
-                        </div>
-                        <div className="font-medium text-sm">{formatCurrency(item.amount)}</div>
-                      </div>
-                    ))}
-                    {stats.bySchool.length === 0 && (
-                      <div className="py-8 text-center text-muted-foreground">Sin datos para mostrar</div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+
+            {selectedSchool && (
+              <p className="text-sm">
+                Establecimiento: <span className="font-semibold text-primary">{selectedSchool.nombre}</span>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Observador: show school name ── */}
+      {isObservador && selectedSchool && (
+        <div className="rounded-lg border bg-card p-4 text-center shadow-sm">
+          <p className="font-medium text-lg">{selectedSchool.nombre}</p>
+          <p className="text-muted-foreground text-sm">Reporte {year}</p>
+        </div>
+      )}
+
+      {/* ── Empty state ── */}
+      {!schoolId && !isObservador && (
+        <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed">
+          <div className="text-center">
+            <p className="font-medium text-muted-foreground">Seleccione un establecimiento para ver los indicadores</p>
+            <p className="mt-1 text-muted-foreground/60 text-sm">Los KPIs se calcularán automáticamente</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Loading state ── */}
+      {loading && schoolId && (
+        <div className="space-y-6">
+          <SepSchoolKpiCardsSkeleton />
+          <div className="grid gap-4 md:grid-cols-7">
+            <div className="md:col-span-4">
+              <SepSchoolEvolutionChartSkeleton />
+            </div>
+            <div className="md:col-span-3">
+              <SepSchoolProgressChartSkeleton />
             </div>
           </div>
-        </>
-      ) : null}
+        </div>
+      )}
+
+      {/* ── KPIs & Charts ── */}
+      {!loading && kpis && (
+        <div className="space-y-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+          {/* KPI Cards */}
+          <SepSchoolKpiCards kpis={kpis} />
+
+          {/* Charts */}
+          <div className="grid gap-4 md:grid-cols-7">
+            <div className="md:col-span-4">
+              <SepSchoolEvolutionChart kpis={kpis} year={year} />
+            </div>
+            <div className="md:col-span-3">
+              <SepSchoolProgressChart kpis={kpis} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
