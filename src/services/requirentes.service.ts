@@ -32,10 +32,13 @@ export async function getRequirentes(params: GetRequirentesParams = {}): Promise
 /**
  * Get a single requirente by ID
  */
-export async function getRequirenteById(id: string): Promise<Requirente> {
+export async function getRequirenteById(id: string): Promise<Requirente | null> {
   try {
     return await pb.collection(REQUIRENTES_COLLECTION).getOne<Requirente>(id);
-  } catch (error) {
+  } catch (error: any) {
+    if (error && typeof error === "object" && "status" in error && error.status === 404) {
+      return null;
+    }
     console.error(`Error fetching requirente ${id}:`, error);
     throw error;
   }

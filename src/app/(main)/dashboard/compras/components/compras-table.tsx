@@ -167,6 +167,8 @@ export function ComprasTable({
       estado_filter: undefined,
       created_from: "",
       created_to: "",
+      subvencion_filter: undefined,
+      unidad_requirente_id: undefined,
     });
   };
 

@@ -4,10 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 
 import { useSearchParams } from "next/navigation";
 
-import { Plus, Search } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Search } from "lucide-react";
 import type { ListResult } from "pocketbase";
 
 import { Button } from "@/components/ui/button";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import {
   Pagination,
@@ -17,11 +18,15 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
 import { getCompras } from "@/services/compras.service";
+import { getRequirenteById, getRequirentes } from "@/services/requirentes.service";
 import { getSubvenciones } from "@/services/subvenciones.service";
 import type { Compra, GetComprasParams } from "@/types/compra";
+import type { Requirente } from "@/types/requirente";
 import type { Subvencion } from "@/types/subvencion";
 import { canCreateCompra } from "@/utils/permissions";
 
@@ -47,8 +52,12 @@ export default function ComprasPage() {
 
   // Subventions state
   const [subvenciones, setSubvenciones] = useState<Subvencion[]>([]);
+  // Requirentes state
+  const [requirentes, setRequirentes] = useState<Requirente[]>([]);
+  const [loadingRequirentes, setLoadingRequirentes] = useState(true);
+  const [openRequirenteCombobox, setOpenRequirenteCombobox] = useState(false);
 
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   // Sync local search when URL changes (e.g. from global search)
   useEffect(() => {
@@ -65,9 +74,12 @@ export default function ComprasPage() {
     created_from: "",
     created_to: "",
     subvencion_filter: undefined,
+    unidad_requirente_id: undefined,
   });
 
   useEffect(() => {
+    if (authLoading) return;
+
     const fetchSubvenciones = async () => {
       try {
         const result = await getSubvenciones({ perPage: 100, sort: "nombre" });
@@ -76,8 +88,34 @@ export default function ComprasPage() {
         console.error("Error loading subvenciones:", error);
       }
     };
+    const fetchRequirentes = async () => {
+      setLoadingRequirentes(true);
+      try {
+        const isObservador = user?.role?.includes("Observador");
+        const isRestricted = isObservador && !!user?.dependencia;
+
+        if (isRestricted && user?.dependencia) {
+          const req = await getRequirenteById(user.dependencia);
+          if (req) {
+            setRequirentes([req]);
+          } else {
+            // Fallback since the dependency ID wasn't found (returned null)
+            const result = await getRequirentes({ perPage: 500, sort: "nombre" });
+            setRequirentes(result.items);
+          }
+        } else {
+          const result = await getRequirentes({ perPage: 500, sort: "nombre" });
+          setRequirentes(result.items);
+        }
+      } catch (error) {
+        console.error("Error loading requirentes:", error);
+      } finally {
+        setLoadingRequirentes(false);
+      }
+    };
     fetchSubvenciones();
-  }, []);
+    fetchRequirentes();
+  }, [authLoading, user?.role, user?.dependencia]);
 
   // Debounce Ordinario search
   useEffect(() => {
@@ -98,9 +136,10 @@ export default function ComprasPage() {
   }, [globalSearch]);
 
   const loadCompras = useCallback(async () => {
+    if (authLoading) return;
     setLoading(true);
     try {
-      const isObservador = user?.role.includes("Observador");
+      const isObservador = user?.role?.includes("Observador");
       const restrictedFilters = { ...filters };
 
       // Si es observador y tiene dependencia asignada, filtramos por ella
@@ -124,7 +163,7 @@ export default function ComprasPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedOrdinario, debouncedGlobal, filters, user?.role, user?.dependencia]);
+  }, [page, debouncedOrdinario, debouncedGlobal, filters, user?.role, user?.dependencia, authLoading]);
 
   useEffect(() => {
     loadCompras();
@@ -201,6 +240,99 @@ export default function ComprasPage() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+        <div className="w-[250px]">
+          {isObservadorRestricted ? (
+            <Select value={user?.dependencia || "restricted"} disabled={true}>
+              <SelectTrigger className="w-full">
+                <SelectValue>
+                  {loadingRequirentes
+                    ? "Cargando..."
+                    : requirentes.find((r) => r.id === user?.dependencia)?.nombre ||
+                      `Establecimiento N/A (${user?.dependencia})`}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={user?.dependencia || "restricted"}>
+                  {loadingRequirentes
+                    ? "Cargando..."
+                    : requirentes.find((r) => r.id === user?.dependencia)?.nombre ||
+                      `Establecimiento N/A (${user?.dependencia})`}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <Popover open={openRequirenteCombobox} onOpenChange={setOpenRequirenteCombobox}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openRequirenteCombobox}
+                  className="w-full justify-between bg-background font-normal"
+                  disabled={loadingRequirentes}
+                >
+                  <span className="truncate">
+                    {loadingRequirentes
+                      ? "Cargando..."
+                      : filters.unidad_requirente_id
+                        ? requirentes.find((r) => r.id === filters.unidad_requirente_id)?.nombre ||
+                          "Filtrar por Establecimiento"
+                        : "Todos los establecimientos"}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[300px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar establecimiento..." />
+                  <CommandList>
+                    <CommandEmpty>No se encontró ningún establecimiento.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="all-establishments Todos los establecimientos"
+                        onSelect={() => {
+                          handleFiltersChange({
+                            ...filters,
+                            unidad_requirente_id: undefined,
+                          });
+                          setOpenRequirenteCombobox(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4 shrink-0",
+                            !filters.unidad_requirente_id ? "opacity-100" : "opacity-0",
+                          )}
+                        />
+                        <span className="truncate">Todos los establecimientos</span>
+                      </CommandItem>
+                      {requirentes.map((req) => (
+                        <CommandItem
+                          key={req.id}
+                          value={`${req.nombre} ${req.id}`}
+                          onSelect={() => {
+                            handleFiltersChange({
+                              ...filters,
+                              unidad_requirente_id: req.id,
+                            });
+                            setOpenRequirenteCombobox(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4 shrink-0",
+                              filters.unidad_requirente_id === req.id ? "opacity-100" : "opacity-0",
+                            )}
+                          />
+                          <span className="truncate">{req.nombre}</span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
       </div>
 
