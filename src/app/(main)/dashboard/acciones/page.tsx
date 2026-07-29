@@ -32,6 +32,7 @@ import type { Dimension, Subdimencion } from "@/types/dimension";
 import type { Requirente } from "@/types/requirente";
 
 import { AccionDialog } from "./components/accion-dialog";
+import { AccionesPdfReport } from "./components/acciones-pdf-report";
 import { AccionesTable } from "./components/acciones-table";
 
 export default function AccionesPage() {
@@ -195,6 +196,19 @@ export default function AccionesPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <AccionesPdfReport
+            data={data?.items || []}
+            usageMap={usageMap}
+            selectedYear={selectedYear}
+            selectedEstablecimientoId={user?.role.includes("Observador") ? user?.dependencia : selectedEstablecimiento}
+            selectedEstablecimientoName={
+              user?.role.includes("Observador")
+                ? user?.expand?.dependencia?.nombre || "Mi Establecimiento"
+                : selectedEstablecimiento === "all" || !selectedEstablecimiento
+                  ? undefined
+                  : establecimientos.find((e) => e.id === selectedEstablecimiento)?.nombre
+            }
+          />
           {!user?.role.includes("Observador") && (
             <>
               <Button variant="outline" size="sm" asChild>
