@@ -1,5 +1,6 @@
 "use client";
 
+import type React from "react";
 import { useMemo } from "react";
 
 import { AlertCircle, FileText, Printer } from "lucide-react";
@@ -7,10 +8,12 @@ import { AlertCircle, FileText, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import type { Accion } from "@/types/accion";
+import type { Compra } from "@/types/compra";
 
 interface AccionesPdfReportProps {
   data: Accion[];
   usageMap: Record<string, number>;
+  allCompras?: Compra[];
   selectedYear: number;
   selectedEstablecimientoId?: string;
   selectedEstablecimientoName?: string;
@@ -31,11 +34,49 @@ interface SchoolSummary {
 export function AccionesPdfReport({
   data,
   usageMap,
+  allCompras = [],
   selectedYear,
   selectedEstablecimientoId,
   selectedEstablecimientoName,
   trigger,
 }: AccionesPdfReportProps) {
+  // Map purchases and OCs by action ID
+  const comprasByAccionMap = useMemo(() => {
+    const map: Record<string, Array<{ ord: string; descripcion: string; oc: string; monto: number }>> = {};
+
+    (allCompras || []).forEach((compra) => {
+      const accionId = compra.accion;
+      if (!accionId) return;
+
+      if (!map[accionId]) {
+        map[accionId] = [];
+      }
+      const ocs = compra.expand?.["ordenes_compra(compra)"];
+      const ordStr = compra.numero_ordinario ? `Ord. N° ${compra.numero_ordinario}` : "-";
+      const descStr = compra.descripcion || "-";
+
+      if (ocs && ocs.length > 0) {
+        ocs.forEach((ocItem) => {
+          map[accionId].push({
+            ord: ordStr,
+            descripcion: descStr,
+            oc: ocItem.oc || "Sin código",
+            monto: ocItem.oc_valor || 0,
+          });
+        });
+      } else {
+        map[accionId].push({
+          ord: ordStr,
+          descripcion: descStr,
+          oc: "Sin Orden de Compra asignada",
+          monto: compra.presupuesto || 0,
+        });
+      }
+    });
+
+    return map;
+  }, [allCompras]);
+
   // Filter actions strictly for the selected establishment if one is specified
   const filteredData = useMemo(() => {
     if (!selectedEstablecimientoId || selectedEstablecimientoId === "all") {
@@ -92,23 +133,6 @@ export function AccionesPdfReport({
     return result.sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [filteredData, usageMap, selectedEstablecimientoName]);
 
-  // Overall totals
-  const totalGlobals = useMemo(() => {
-    const totalAcciones = filteredData.length;
-    const totalSep = filteredData.reduce((acc, curr) => acc + (curr.monto_sep || 0), 0);
-    const totalEjecutado = filteredData.reduce((acc, curr) => acc + (usageMap[curr.id] || 0), 0);
-    const totalDisponible = totalSep - totalEjecutado;
-    const porcentajeGlobal = totalSep > 0 ? (totalEjecutado / totalSep) * 100 : 0;
-
-    return {
-      totalAcciones,
-      totalSep,
-      totalEjecutado,
-      totalDisponible,
-      porcentajeGlobal,
-    };
-  }, [filteredData, usageMap]);
-
   const currentDateStr = new Date().toLocaleDateString("es-CL", {
     day: "2-digit",
     month: "long",
@@ -144,11 +168,11 @@ export function AccionesPdfReport({
             body {
               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
               margin: 0;
-              padding: 24px;
+              padding: 16px;
               color: #0f172a;
               background-color: #ffffff;
-              font-size: 15px;
-              line-height: 1.5;
+              font-size: 13px;
+              line-height: 1.4;
             }
             .no-print {
               display: none !important;
@@ -161,38 +185,53 @@ export function AccionesPdfReport({
               border: none !important;
               box-shadow: none !important;
             }
-            /* Table formatting with explicit column percentages */
             table {
               width: 100% !important;
               border-collapse: collapse;
-              margin-top: 10px;
-              margin-bottom: 20px;
+              margin-top: 6px;
+              margin-bottom: 12px;
               table-layout: fixed !important;
-              page-break-inside: auto;
+            }
+            tbody {
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
             }
             tr {
-              page-break-inside: avoid;
-              page-break-after: auto;
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
             }
             th, td {
               border: 1px solid #94a3b8;
-              padding: 10px 12px;
+              padding: 6px 8px;
               text-align: left;
               word-wrap: break-word;
-              font-size: 15px !important;
+              overflow-wrap: break-word;
+              font-size: 12px !important;
             }
             th {
               background-color: #f1f5f9 !important;
               font-weight: 700;
               color: #0f172a;
-              font-size: 15px !important;
+              font-size: 12px !important;
             }
-            /* Explicit column widths for print window */
-            th:nth-child(1), td:nth-child(1) { width: 48% !important; }
-            th:nth-child(2), td:nth-child(2) { width: 16% !important; }
-            th:nth-child(3), td:nth-child(3) { width: 12% !important; }
-            th:nth-child(4), td:nth-child(4) { width: 12% !important; }
-            th:nth-child(5), td:nth-child(5) { width: 12% !important; }
+            /* Explicit column widths for main action table */
+            .main-table th:nth-child(1), .main-table td:nth-child(1) { width: 40% !important; }
+            .main-table th:nth-child(2), .main-table td:nth-child(2) { width: 20% !important; }
+            .main-table th:nth-child(3), .main-table td:nth-child(3) { width: 14% !important; }
+            .main-table th:nth-child(4), .main-table td:nth-child(4) { width: 14% !important; }
+            .main-table th:nth-child(5), .main-table td:nth-child(5) { width: 12% !important; }
+
+            .sub-table th, .sub-table td {
+              padding: 3px 6px !important;
+              font-size: 11px !important;
+            }
+            .sub-table th:nth-child(1), .sub-table td:nth-child(1) { width: 14% !important; }
+            .sub-table th:nth-child(2), .sub-table td:nth-child(2) { width: 54% !important; }
+            .sub-table th:nth-child(3), .sub-table td:nth-child(3) { width: 18% !important; }
+            .sub-table th:nth-child(4), .sub-table td:nth-child(4) { width: 14% !important; }
+            .sub-table th {
+              background-color: #e2e8f0 !important;
+            }
 
             .text-right { text-align: right; }
             .text-center { text-align: center; }
@@ -200,56 +239,45 @@ export function AccionesPdfReport({
             .font-semibold { font-weight: 600; }
             .font-medium { font-weight: 500; }
             .uppercase { text-transform: uppercase; }
+            .italic { font-style: italic; }
             .border-b { border-bottom: 1px solid #cbd5e1; }
             .border-b-2 { border-bottom: 2px solid #0f172a; }
             .border-t { border-top: 1px solid #cbd5e1; }
-            .pb-5 { padding-bottom: 20px; }
+            .pb-4 { padding-bottom: 16px; }
             .mb-2 { margin-bottom: 8px; }
             .mt-1 { margin-top: 4px; }
-            .mt-8 { margin-top: 32px; }
-            .pt-12 { padding-top: 48px; }
+            .mt-6 { margin-top: 24px; }
+            .pt-8 { padding-top: 32px; }
             .flex { display: flex; }
             .justify-between { justify-content: space-between; }
             .justify-center { justify-content: center; }
-            .grid { display: grid; }
-            .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-            .gap-4 { gap: 16px; }
             .rounded-xl { border-radius: 12px; }
             .rounded-lg { border-radius: 8px; }
             .bg-slate-50 { background-color: #f8fafc !important; }
             .bg-slate-100 { background-color: #f1f5f9 !important; }
             .bg-slate-200 { background-color: #e2e8f0 !important; }
             .border { border: 1px solid #cbd5e1; }
-            .p-3 { padding: 14px; }
-            .p-5 { padding: 22px; }
-            .py-2 { padding-top: 10px; padding-bottom: 10px; }
-            .px-3 { padding-left: 14px; padding-right: 14px; }
-            .text-xs { font-size: 13px !important; }
-            .text-sm { font-size: 15px !important; }
-            .text-base { font-size: 16px !important; }
-            .text-lg { font-size: 18px !important; }
-            .text-xl { font-size: 21px !important; }
-            .text-2xl { font-size: 24px !important; }
+            .p-2 { padding: 8px; }
+            .p-3 { padding: 12px; }
+            .text-xs { font-size: 11px !important; }
+            .text-sm { font-size: 13px !important; }
+            .text-base { font-size: 14px !important; }
+            .text-lg { font-size: 16px !important; }
+            .text-xl { font-size: 18px !important; }
+            .text-2xl { font-size: 22px !important; }
             .text-slate-500 { color: #64748b; }
             .text-slate-600 { color: #475569; }
             .text-slate-700 { color: #334155; }
             .text-slate-900 { color: #0f172a; }
-            .text-blue-700 { color: #1d4ed8; }
-            .text-emerald-700 { color: #047857; }
-            .space-y-1 > * + * { margin-top: 6px; }
-            .space-y-2 > * + * { margin-top: 10px; }
-            .space-y-3 > * + * { margin-top: 14px; }
-            .space-y-4 > * + * { margin-top: 18px; }
-            .space-y-6 > * + * { margin-top: 26px; }
-            .space-y-8 > * + * { margin-top: 34px; }
+            .space-y-1 > * + * { margin-top: 4px; }
+            .space-y-3 > * + * { margin-top: 12px; }
+            .space-y-6 > * + * { margin-top: 24px; }
             .w-64 { width: 256px; }
             .w-48 { width: 192px; }
             .mx-auto { margin-left: auto; margin-right: auto; }
-            .text-center { text-align: center; }
             @page {
               size: letter portrait;
-              margin: 12mm 10mm;
+              margin: 10mm 8mm;
             }
           </style>
         </head>
@@ -312,22 +340,22 @@ export function AccionesPdfReport({
             /* Main Printable Report for the Selected Establishment */
             <div
               id="printable-acciones-report"
-              className="mx-auto max-w-[1100px] bg-white p-8 md:p-12 border rounded-xl shadow-sm space-y-8"
+              className="mx-auto max-w-[1100px] bg-white p-6 md:p-10 border rounded-xl shadow-sm space-y-6"
             >
               {/* Header Documento DAEM */}
-              <div className="border-b-2 border-slate-900 pb-5 flex flex-col md:flex-row md:items-start justify-between gap-4">
+              <div className="border-b-2 border-slate-900 pb-4 flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div>
-                  <h1 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 uppercase">
+                  <h1 className="text-lg md:text-xl font-black tracking-tight text-slate-900 uppercase">
                     DEPARTAMENTO DE ADMINISTRACIÓN DE EDUCACIÓN MUNICIPAL (DAEM)
                   </h1>
-                  <h2 className="text-base md:text-lg font-bold text-slate-700 mt-1">
+                  <h2 className="text-sm md:text-base font-bold text-slate-700 mt-0.5">
                     Informe de Ejecución de Acciones SEP y Avance Financiero
                   </h2>
-                  <h3 className="text-base font-bold text-primary mt-1">
+                  <h3 className="text-sm font-bold text-primary mt-0.5">
                     ESTABLECIMIENTO: {selectedEstablecimientoName || "N/A"}
                   </h3>
                 </div>
-                <div className="text-left md:text-right text-sm text-slate-600 space-y-1 bg-slate-50 p-3 rounded-lg border md:border-none md:bg-transparent">
+                <div className="text-left md:text-right text-xs text-slate-600 space-y-0.5 bg-slate-50 p-2.5 rounded-lg border md:border-none md:bg-transparent">
                   <p>
                     <strong className="text-slate-900">Período:</strong> {selectedYear}
                   </p>
@@ -338,92 +366,177 @@ export function AccionesPdfReport({
               </div>
 
               {/* Detalle de Acciones del Establecimiento */}
-              <div className="space-y-6 pt-2">
-                <h3 className="font-bold text-base md:text-lg text-slate-900 border-b pb-2">
+              <div className="space-y-4 pt-1">
+                <h3 className="font-bold text-sm md:text-base text-slate-900 border-b pb-1.5">
                   Detalle de Acciones y Avance Financiero
                 </h3>
 
                 {schoolSummaries.map((school) => (
-                  <div key={school.id} className="space-y-3">
-                    <table className="w-full text-sm md:text-base text-left border-collapse border border-slate-400 table-fixed">
+                  <div key={school.id} className="space-y-4">
+                    <table className="main-table w-full text-xs md:text-sm border-collapse border border-slate-400 table-fixed">
                       <thead>
                         <tr className="bg-slate-100 text-slate-900 font-bold border-b border-slate-400">
-                          <th style={{ width: "48%" }} className="p-3 border border-slate-400 font-bold text-slate-900">
+                          <th style={{ width: "40%" }} className="p-2 border border-slate-400 font-bold text-slate-900">
                             Nombre de la Acción
                           </th>
-                          <th style={{ width: "16%" }} className="p-3 border border-slate-400 font-bold text-slate-900">
+                          <th style={{ width: "20%" }} className="p-2 border border-slate-400 font-bold text-slate-900">
                             Dimensión
                           </th>
                           <th
-                            style={{ width: "12%" }}
-                            className="p-3 border border-slate-400 text-right font-bold text-slate-900"
+                            style={{ width: "14%" }}
+                            className="p-2 border border-slate-400 text-right font-bold text-slate-900"
                           >
                             Monto SEP
                           </th>
                           <th
-                            style={{ width: "12%" }}
-                            className="p-3 border border-slate-400 text-right font-bold text-slate-900"
+                            style={{ width: "14%" }}
+                            className="p-2 border border-slate-400 text-right font-bold text-slate-900"
                           >
                             Ejecutado OC
                           </th>
                           <th
                             style={{ width: "12%" }}
-                            className="p-3 border border-slate-400 text-center font-bold text-slate-900"
+                            className="p-2 border border-slate-400 text-center font-bold text-slate-900"
                           >
                             % Avance
                           </th>
                         </tr>
                       </thead>
-                      <tbody>
-                        {school.acciones.map((accion) => {
-                          const usado = usageMap[accion.id] || 0;
-                          const pct = accion.monto_sep > 0 ? (usado / accion.monto_sep) * 100 : 0;
+                      {school.acciones.map((accion) => {
+                        const usado = usageMap[accion.id] || 0;
+                        const pct = accion.monto_sep > 0 ? (usado / accion.monto_sep) * 100 : 0;
+                        const comprasAsociadas = comprasByAccionMap[accion.id] || [];
 
-                          return (
-                            <tr key={accion.id} className="border-b border-slate-300">
+                        return (
+                          <tbody
+                            key={accion.id}
+                            style={{ breakInside: "avoid", pageBreakInside: "avoid" }}
+                            className="border-b-2 border-slate-400"
+                          >
+                            {/* Fila principal de la acción */}
+                            <tr className="bg-slate-100/70 border-t border-slate-400">
                               <td
-                                style={{ width: "48%" }}
-                                className="p-3 border border-slate-300 font-semibold text-slate-900"
+                                style={{ width: "40%" }}
+                                className="p-2 border border-slate-400 font-bold text-slate-900"
                               >
                                 {accion.nombre}
                               </td>
                               <td
-                                style={{ width: "16%" }}
-                                className="p-3 border border-slate-300 text-slate-800 font-medium"
+                                style={{ width: "20%" }}
+                                className="p-2 border border-slate-400 text-slate-800 font-medium"
                               >
                                 {accion.expand?.dimension?.nombre || accion.dimension || "N/A"}
                               </td>
                               <td
-                                style={{ width: "12%" }}
-                                className="p-3 border border-slate-300 text-right font-bold text-slate-900"
+                                style={{ width: "14%" }}
+                                className="p-2 border border-slate-400 text-right font-bold text-slate-900"
                               >
                                 ${accion.monto_sep?.toLocaleString("es-CL")}
                               </td>
                               <td
-                                style={{ width: "12%" }}
-                                className="p-3 border border-slate-300 text-right font-semibold text-slate-900"
+                                style={{ width: "14%" }}
+                                className="p-2 border border-slate-400 text-right font-semibold text-slate-900"
                               >
                                 ${usado.toLocaleString("es-CL")}
                               </td>
                               <td
                                 style={{ width: "12%" }}
-                                className="p-3 border border-slate-300 text-center font-bold text-slate-900"
+                                className="p-2 border border-slate-400 text-center font-bold text-slate-900"
                               >
                                 {pct.toFixed(1)}%
                               </td>
                             </tr>
-                          );
-                        })}
-                      </tbody>
+
+                            {/* Fila desglosada con compras y órdenes de compra */}
+                            <tr className="bg-white">
+                              <td colSpan={5} className="p-2 pl-4 border border-slate-300">
+                                {comprasAsociadas.length === 0 ? (
+                                  <p className="text-[11px] text-slate-500 italic py-0.5">Sin compras asociadas</p>
+                                ) : (
+                                  <div className="space-y-1 py-0.5">
+                                    <p className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                                      Compras y Órdenes de Compra vinculadas:
+                                    </p>
+                                    <table className="sub-table w-full text-[11px] border-collapse border border-slate-300 bg-slate-50/50">
+                                      <thead>
+                                        <tr className="bg-slate-200/80 text-slate-800 font-bold border-b border-slate-300">
+                                          <th
+                                            style={{ width: "14%" }}
+                                            className="p-1 border border-slate-300 text-left"
+                                          >
+                                            N° Ordinario
+                                          </th>
+                                          <th
+                                            style={{ width: "54%" }}
+                                            className="p-1 border border-slate-300 text-left"
+                                          >
+                                            Descripción Compra
+                                          </th>
+                                          <th
+                                            style={{ width: "18%" }}
+                                            className="p-1 border border-slate-300 text-left"
+                                          >
+                                            N° Orden Compra (OC)
+                                          </th>
+                                          <th
+                                            style={{ width: "14%" }}
+                                            className="p-1 border border-slate-300 text-right"
+                                          >
+                                            Monto ($)
+                                          </th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {comprasAsociadas.map((item, idx) => (
+                                          <tr key={`${accion.id}-item-${idx}`} className="border-b border-slate-200">
+                                            <td
+                                              style={{ width: "14%" }}
+                                              className="p-1 border border-slate-200 font-semibold text-slate-800"
+                                            >
+                                              {item.ord}
+                                            </td>
+                                            <td
+                                              style={{ width: "54%" }}
+                                              className="p-1 border border-slate-200 text-slate-700"
+                                            >
+                                              {item.descripcion}
+                                            </td>
+                                            <td
+                                              style={{ width: "18%" }}
+                                              className="p-1 border border-slate-200 font-medium text-slate-900"
+                                            >
+                                              {item.oc === "Sin Orden de Compra asignada" ? (
+                                                <span className="text-slate-400 italic">{item.oc}</span>
+                                              ) : (
+                                                item.oc
+                                              )}
+                                            </td>
+                                            <td
+                                              style={{ width: "14%" }}
+                                              className="p-1 border border-slate-200 text-right font-bold text-slate-900"
+                                            >
+                                              ${item.monto.toLocaleString("es-CL")}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          </tbody>
+                        );
+                      })}
                     </table>
                   </div>
                 ))}
               </div>
 
               {/* Firmas / Pie de página */}
-              <div className="pt-12 mt-8 border-t border-slate-400 flex justify-center text-center text-sm md:text-base">
+              <div className="pt-8 mt-6 border-t border-slate-400 flex justify-center text-center text-xs md:text-sm">
                 <div className="w-64">
-                  <div className="border-t border-slate-500 w-48 md:w-56 mx-auto mb-2" />
+                  <div className="border-t border-slate-500 w-48 md:w-56 mx-auto mb-1.5" />
                   <p className="font-bold text-slate-900">Coordinación Comunal S.E.P.</p>
                   <p className="text-slate-600">DAEM La Unión</p>
                 </div>

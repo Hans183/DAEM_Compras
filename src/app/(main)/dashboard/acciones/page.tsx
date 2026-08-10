@@ -199,6 +199,7 @@ export default function AccionesPage() {
           <AccionesPdfReport
             data={data?.items || []}
             usageMap={usageMap}
+            allCompras={allCompras}
             selectedYear={selectedYear}
             selectedEstablecimientoId={user?.role.includes("Observador") ? user?.dependencia : selectedEstablecimiento}
             selectedEstablecimientoName={
