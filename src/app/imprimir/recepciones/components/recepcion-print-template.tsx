@@ -49,7 +49,7 @@ export function RecepcionPrintTemplate({ recepcion, label }: RecepcionPrintTempl
       {/* Info quien envia */}
       <div className="grid grid-cols-1 gap-x-8 gap-y-4 rounded-sm border bg-gray-50/30 p-4">
         <div>
-          <p className="font-bold uppercase">De: Cristian Oyarzo Ulloa</p>
+          <p className="font-bold uppercase">De: Carolina Salazar</p>
           <p className="uppercase"> A: Jefe de Departamento Contabilidad y Finanzas DAEM.</p>
           <p className="font-bold uppercase">Mauricio Soto Herrera </p>
         </div>
