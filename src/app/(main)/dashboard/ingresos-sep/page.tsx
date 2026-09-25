@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { Loader2, Plus, Wallet } from "lucide-react";
+import { FileSpreadsheet, Loader2, Plus, Wallet } from "lucide-react";
+import * as XLSX from "xlsx";
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
+import { formatCurrency } from "@/lib/utils";
 import { getIngresosMensualesSep } from "@/services/ingresos-mensuales-sep.service";
 import { getRequirentes } from "@/services/requirentes.service";
 import type { IngresoMensualSep, Mes } from "@/types/ingreso-mensual-sep";
@@ -193,6 +195,78 @@ export default function IngresosSepPage() {
     setIsDialogOpen(true);
   };
 
+  const handleExportExcel = () => {
+    if (!data?.items.length) return;
+
+    const fmtCLP = (value: number) =>
+      formatCurrency(value || 0, { currency: "CLP", locale: "es-CL", noDecimals: true });
+
+    const exportData: Record<string, string | number>[] = data.items.map((item) => {
+      const isRedTrumao = item.expand?.requirente?.red_trumao;
+      const isSaldoInicial = item.mes === "Saldo Inicial";
+      const isExento = isRedTrumao || isSaldoInicial;
+      const exentoLabel = isSaldoInicial ? "S.I." : "Exento";
+
+      return {
+        Establecimiento: item.expand?.requirente?.nombre || "N/A",
+        Mes: item.mes,
+        Año: item.anio,
+        Prioritarios: fmtCLP(item.prioritarios),
+        Preferentes: fmtCLP(item.preferentes),
+        "10% Prio.": isExento ? exentoLabel : fmtCLP(item.prio_10),
+        "10% Pref.": isExento ? exentoLabel : fmtCLP(item.pref_10),
+        "Total a Reflejar Mensual prioritarios": fmtCLP(item.prio_reflejar),
+        "Total a Reflejar Mensual preferentes": fmtCLP(item.pref_reflejar),
+        "Total a Reflejar": fmtCLP(item.total_reflejar),
+      };
+    });
+
+    const totals = data.items.reduce(
+      (acc, item) => {
+        acc.prio10 += item.prio_10 || 0;
+        acc.pref10 += item.pref_10 || 0;
+        acc.prioReflejar += item.prio_reflejar || 0;
+        acc.prefReflejar += item.pref_reflejar || 0;
+        acc.grand += item.total_reflejar || 0;
+        return acc;
+      },
+      { prio10: 0, pref10: 0, prioReflejar: 0, prefReflejar: 0, grand: 0 },
+    );
+
+    exportData.push({
+      Establecimiento: "TOTAL GENERAL A REFLEJAR",
+      Mes: selectedMes === "all" ? "Todos los meses" : selectedMes,
+      Año: selectedAnio,
+      Prioritarios: "",
+      Preferentes: "",
+      "10% Prio.": fmtCLP(totals.prio10),
+      "10% Pref.": fmtCLP(totals.pref10),
+      "Total a Reflejar Mensual prioritarios": fmtCLP(totals.prioReflejar),
+      "Total a Reflejar Mensual preferentes": fmtCLP(totals.prefReflejar),
+      "Total a Reflejar": fmtCLP(totals.grand),
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Ingresos SEP");
+
+    worksheet["!cols"] = [
+      { wch: 45 }, // Establecimiento
+      { wch: 14 }, // Mes
+      { wch: 8 }, // Año
+      { wch: 16 }, // Prioritarios
+      { wch: 16 }, // Preferentes
+      { wch: 14 }, // 10% Prio.
+      { wch: 14 }, // 10% Pref.
+      { wch: 22 }, // Total Reflejar Prio.
+      { wch: 22 }, // Total Reflejar Pref.
+      { wch: 18 }, // Total a Reflejar
+    ];
+
+    const mesLabel = (selectedMes === "all" ? "Todos_los_meses" : selectedMes).replace(/\s+/g, "_");
+    XLSX.writeFile(workbook, `Ingresos_SEP_${mesLabel}_${selectedAnio}_${new Date().toISOString().split("T")[0]}.xlsx`);
+  };
+
   const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 
   return (
@@ -257,6 +331,18 @@ export default function IngresosSepPage() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="ml-auto flex items-end">
+          <Button
+            variant="outline"
+            onClick={handleExportExcel}
+            disabled={loading || !data?.items.length}
+            className="h-9"
+          >
+            <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-600" />
+            Descargar Excel
+          </Button>
         </div>
       </div>
 
