@@ -80,6 +80,7 @@ export function CompraDialog({
   const [_loadingData, setLoadingData] = useState(true);
   const [_loadingAcciones, setLoadingAcciones] = useState(false);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [duplicateYear, setDuplicateYear] = useState<number | null>(null);
   const isEditing = !!compra;
 
   // Determine available estados based on user role and current estado
@@ -233,18 +234,25 @@ export function CompraDialog({
     setIsSubmitting(true);
 
     try {
-      // Validar que el número de ordinario no esté duplicado por unidad requirente
-      if (data.numero_ordinario && data.unidad_requirente) {
+      // Determinar año objetivo desde fecha_inicio o fallback al año actual
+      const fechaInicioStr = data.fecha_inicio ? String(data.fecha_inicio) : "";
+      const selectedYear = fechaInicioStr ? parseInt(fechaInicioStr.substring(0, 4), 10) : new Date().getFullYear();
+      const targetYear = !isNaN(selectedYear) ? selectedYear : new Date().getFullYear();
+
+      // Validar que el número de ordinario no esté duplicado por unidad requirente en el mismo año
+      if (data.numero_ordinario && data.unidad_requirente && !isNaN(targetYear)) {
         const existingCompras = await getCompras({
           numero_ordinario: data.numero_ordinario,
           unidad_requirente_id: data.unidad_requirente,
-          perPage: 1,
+          anio: targetYear,
+          perPage: 10,
         });
 
         // Si estamos editando, ignoramos el registro actual
-        const isDuplicate = existingCompras.items.some((c) => c.id !== compra?.id);
+        const hasDuplicate = existingCompras.items.some((c) => c.id !== compra?.id);
 
-        if (isDuplicate) {
+        if (hasDuplicate) {
+          setDuplicateYear(targetYear);
           setShowDuplicateWarning(true);
           setIsSubmitting(false);
           return;
@@ -869,11 +877,11 @@ export function CompraDialog({
             <AlertDialogTitle className="font-bold text-2xl text-red-600">¡Oficio Duplicado!</AlertDialogTitle>
             <AlertDialogDescription className="text-base text-gray-700">
               El número de ordinario <strong>{form.getValues("numero_ordinario")}</strong> ya existe para el
-              establecimiento requirente seleccionado.
+              establecimiento requirente seleccionado en el año <strong>{duplicateYear}</strong>.
               <br />
               <br />
-              Esto indica una posible duplicidad en la compra. Por favor, revisa el número de ordinario o el
-              establecimiento antes de continuar.
+              Esto indica una posible duplicidad en la compra para este período anual. Por favor, revisa el número de
+              ordinario, el establecimiento o la fecha antes de continuar.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center">

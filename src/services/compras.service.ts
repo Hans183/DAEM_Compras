@@ -27,6 +27,7 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
     created_to,
     fecha_inicio_from,
     fecha_inicio_to,
+    anio,
     subvencion_filter,
     unidad_requirente_id,
     search_fields,
@@ -144,6 +145,15 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
 
     if (fecha_inicio_to) {
       filters.push(`fecha_inicio <= "${fecha_inicio_to}"`);
+    }
+
+    if (anio) {
+      const nextYear = Number(anio) + 1;
+      const startYearDate = `${anio}-01-01`;
+      const endYearDate = `${nextYear}-01-01`;
+      filters.push(
+        `((fecha_inicio >= "${startYearDate}" && fecha_inicio < "${endYearDate}") || (fecha_inicio = "" && created >= "${startYearDate}" && created < "${endYearDate}"))`,
+      );
     }
 
     // Combinar todos los filtros con AND

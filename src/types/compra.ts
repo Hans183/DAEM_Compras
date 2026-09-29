@@ -80,6 +80,7 @@ export interface GetComprasParams {
   estado_filter?: string;
   fecha_inicio_from?: string;
   fecha_inicio_to?: string;
+  anio?: number;
   created_from?: string;
   created_to?: string;
   accion_filter?: string;
