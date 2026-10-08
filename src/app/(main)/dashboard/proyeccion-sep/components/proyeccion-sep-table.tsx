@@ -35,6 +35,7 @@ type SortKey =
   | "nombre"
   | "presupuesto"
   | "total_utilizado"
+  | "total_utilizado_proyectado"
   | "compras_facturadas"
   | "compras_obligadas"
   | "rrhh"
@@ -69,6 +70,7 @@ export function ProyeccionSepTable({
     nombre: 130,
     presupuesto: 100,
     total_utilizado: 100,
+    total_utilizado_proyectado: 115,
     por_gastar: 100,
     porcentaje_utilizado: 75,
     porcentaje_pagado: 75,
@@ -131,6 +133,7 @@ export function ProyeccionSepTable({
 
       // New calculation per user request
       const totalUtilizado = comprasFacturadas + comprasObligadas + rrhhSum;
+      const totalUtilizadoProyectado = comprasFacturadas + comprasObligadas + rrhhSum + rrhhProjected;
 
       const sumaFacturadoRrhh = comprasFacturadas + rrhhSum;
       const porGastar = presupuesto - totalUtilizado;
@@ -140,7 +143,8 @@ export function ProyeccionSepTable({
       const totalIngresoProyectado = presupuesto + presupuestoProyectado;
       const porcentajeFacturaAnual =
         totalIngresoProyectado > 0 ? ((comprasFacturadas + rrhhSum + rrhhProjected) / totalIngresoProyectado) * 100 : 0;
-      const disponibleProyectado = totalIngresoProyectado - (comprasFacturadas + comprasObligadas + rrhhSum);
+      const disponibleProyectado =
+        totalIngresoProyectado - (comprasFacturadas + comprasObligadas + rrhhSum + rrhhProjected);
 
       const porcentajeAproxUtilizado =
         totalIngresoProyectado > 0
@@ -162,6 +166,7 @@ export function ProyeccionSepTable({
         nombre: shortName,
         presupuesto: presupuesto,
         total_utilizado: totalUtilizado,
+        total_utilizado_proyectado: totalUtilizadoProyectado,
         por_gastar: porGastar,
         porcentaje_utilizado: porcentajeUtilizado,
         porcentaje_pagado: porcentajePagado,
@@ -214,6 +219,7 @@ export function ProyeccionSepTable({
       Establecimiento: row.nombre,
       Presupuesto: row.presupuesto,
       "Total Utilizado": row.total_utilizado,
+      "Total Utilizado Proyectado": row.total_utilizado_proyectado,
       "Por Gastar": row.por_gastar,
       "% Utilizado": `${row.porcentaje_utilizado.toFixed(1)}%`,
       "% Pagado": `${row.porcentaje_pagado.toFixed(1)}%`,
@@ -238,6 +244,7 @@ export function ProyeccionSepTable({
       { wch: 30 }, // Establecimiento
       { wch: 15 }, // Presupuesto
       { wch: 15 }, // Total Utilizado
+      { wch: 20 }, // Total Utilizado Proyectado
       { wch: 15 }, // Por Gastar
       { wch: 10 }, // % Utilizado
       { wch: 10 }, // % Pagado
@@ -261,6 +268,7 @@ export function ProyeccionSepTable({
     nombre: "Establecimiento",
     presupuesto: "Presupuesto",
     total_utilizado: "Total Utilizado",
+    total_utilizado_proyectado: "Total Utilizado Proyectado",
     por_gastar: "Por Gastar",
     porcentaje_utilizado: "% Utilizado",
     porcentaje_pagado: "% Pagado",
@@ -292,6 +300,11 @@ export function ProyeccionSepTable({
     total_utilizado: {
       formula: "Compras Facturadas + Compras Obligadas + RRHH",
       description: "Total del gasto ejecutado más los compromisos vigentes y sueldos pagados a la fecha.",
+    },
+    total_utilizado_proyectado: {
+      formula: "Compras Facturadas + Compras Obligadas + RRHH + RRHH Proyectado",
+      description:
+        "Estimación del gasto total al término del año, integrando facturas emitidas, compromisos de compra vigentes (OCs) y remuneraciones de personal (reales + proyectadas).",
     },
     por_gastar: {
       formula: "Presupuesto - Total Utilizado",
@@ -339,7 +352,8 @@ export function ProyeccionSepTable({
       description: "Ingreso estimado por percibir en subvención SEP desde el próximo mes hasta diciembre.",
     },
     disponible_proyectado: {
-      formula: "(Presupuesto + Presupuesto Proyectado) - (Compras Facturadas + Compras Obligadas + RRHH)",
+      formula:
+        "(Presupuesto + Presupuesto Proyectado) - (Compras Facturadas + Compras Obligadas + RRHH + RRHH Proyectado)",
       description: "Saldo proyectado a favor o déficit estimado con el que cerrará el año el establecimiento.",
     },
     total_proyectado: {
@@ -517,6 +531,7 @@ export function ProyeccionSepTable({
                 </TableHead>
                 {renderHeader("Presupuesto", "presupuesto")}
                 {renderHeader("Total Utilizado", "total_utilizado")}
+                {renderHeader("Total Utilizado Proyectado", "total_utilizado_proyectado")}
                 {renderHeader("Por Gastar", "por_gastar")}
                 {renderHeader("% Utilizado", "porcentaje_utilizado")}
                 {renderHeader("% Pagado", "porcentaje_pagado")}
@@ -569,6 +584,18 @@ export function ProyeccionSepTable({
                         style={{ width: columnWidths.total_utilizado }}
                       >
                         {formatCurrency(row.total_utilizado, {
+                          locale: "es-CL",
+                          currency: "CLP",
+                          minimumFractionDigits: 0,
+                        })}
+                      </TableCell>
+                    )}
+                    {visibleColumns.total_utilizado_proyectado && (
+                      <TableCell
+                        className="truncate border-r bg-muted/10 px-2 py-1 text-right font-semibold text-xs"
+                        style={{ width: columnWidths.total_utilizado_proyectado }}
+                      >
+                        {formatCurrency(row.total_utilizado_proyectado, {
                           locale: "es-CL",
                           currency: "CLP",
                           minimumFractionDigits: 0,

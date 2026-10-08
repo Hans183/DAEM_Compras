@@ -80,6 +80,7 @@ export default function ProyeccionSepPage() {
     nombre: true,
     presupuesto: true,
     total_utilizado: true,
+    total_utilizado_proyectado: true,
     por_gastar: true,
     porcentaje_utilizado: true,
     porcentaje_pagado: true,
