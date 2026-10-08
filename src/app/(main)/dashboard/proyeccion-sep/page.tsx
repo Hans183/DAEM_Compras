@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useSearchParams } from "next/navigation";
 
@@ -48,6 +48,15 @@ const CUSTOM_ORDER = [
   "Escuela Rural Huacahue",
   "Escuela El Maitén",
 ];
+
+interface YearCacheData {
+  projections: ProyeccionSep[];
+  rrhhSums: Record<string, number>;
+  rrhhProjectedSums: Record<string, number>;
+  presupuestoProyectadoSums: Record<string, number>;
+  schoolLatestMonthNames: Record<string, string>;
+  schoolLatestRrhhMonthNames: Record<string, string>;
+}
 
 import { ProyeccionSepTable } from "./components/proyeccion-sep-table";
 
@@ -114,18 +123,29 @@ export default function ProyeccionSepPage() {
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      // 1. Fetch ALL SEP establishments
-      const schoolsResult = await getRequirentes({
-        perPage: 500,
-        sep_filter: true,
-        active_filter: true,
-        sort: "nombre",
-      });
+  // In-memory cache by year and reference to already fetched schools
+  const yearCacheRef = useRef<Record<number, YearCacheData>>({});
+  const schoolsRef = useRef<Requirente[]>([]);
 
-      // Sort by custom order
+  const loadData = useCallback(async () => {
+    // If already in memory for this year, show cached data immediately without blocking spinner
+    const cached = yearCacheRef.current[selectedYear];
+    if (cached) {
+      setProjections(cached.projections);
+      setRrhhSums(cached.rrhhSums);
+      setRrhhProjectedSums(cached.rrhhProjectedSums);
+      setPresupuestoProyectadoSums(cached.presupuestoProyectadoSums);
+      setSchoolLatestMonthNames(cached.schoolLatestMonthNames);
+      setSchoolLatestRrhhMonthNames(cached.schoolLatestRrhhMonthNames);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    try {
+      const startOfYear = `${selectedYear}-01-01 00:00:00`;
+      const endOfYear = `${selectedYear}-12-31 23:59:59`;
+
       const getOrderIndex = (name: string) => {
         const lowerName = name.toLowerCase();
         const targetIndex = CUSTOM_ORDER.findIndex((ordered) => {
@@ -142,34 +162,48 @@ export default function ProyeccionSepPage() {
         return targetIndex === -1 ? 999 : targetIndex;
       };
 
-      const sortedSchools = [...schoolsResult.items]
-        .filter((school) => {
-          if (user?.role.includes("Observador")) {
-            return school.id === user.dependencia;
-          }
-          return true;
-        })
-        .sort((a, b) => {
-          return getOrderIndex(a.nombre) - getOrderIndex(b.nombre);
-        });
+      // 1. Parallel fetch of all independent initial datasets
+      const [schoolsResult, projectionResult, rrhhResult, ingresosResult, comprasResult] = await Promise.all([
+        schoolsRef.current.length > 0
+          ? Promise.resolve({ items: schoolsRef.current })
+          : getRequirentes({
+              perPage: 500,
+              sep_filter: true,
+              active_filter: true,
+              sort: "nombre",
+            }),
+        getProyeccionSepList({ perPage: 500 }),
+        getRrhhSepList({
+          perPage: 500,
+          anio_filter: selectedYear,
+        }),
+        getIngresosMensualesSep({
+          perPage: 2000,
+          anio: selectedYear,
+        }),
+        pb.collection("compras").getFullList<Compra>({
+          filter: `subvencion.nombre = 'Ley SEP' && ((fecha_inicio >= '${startOfYear}' && fecha_inicio <= '${endOfYear}') || (fecha_inicio = '' && created >= '${startOfYear}' && created <= '${endOfYear}'))`,
+          sort: "-created",
+          fields: "id,unidad_requirente",
+        }),
+      ]);
 
-      setSchools(sortedSchools);
+      // Sort and memoize schools
+      let sortedSchools = schoolsRef.current;
+      if (sortedSchools.length === 0) {
+        sortedSchools = [...schoolsResult.items]
+          .filter((school) => {
+            if (user?.role.includes("Observador")) {
+              return school.id === user.dependencia;
+            }
+            return true;
+          })
+          .sort((a, b) => getOrderIndex(a.nombre) - getOrderIndex(b.nombre));
+        schoolsRef.current = sortedSchools;
+        setSchools(sortedSchools);
+      }
 
-      // 2. Fetch existing projections
-      const projectionResult = await getProyeccionSepList({ perPage: 500 });
       const existingProjections = projectionResult.items;
-
-      // 3. Fetch RRHH data for calculation (Filtered by Selected Year)
-      const rrhhResult = await getRrhhSepList({
-        perPage: 500,
-        anio_filter: selectedYear,
-      });
-
-      // 4. Fetch ALL Ingresos for selected year, calculate presupuesto and persist it
-      const ingresosResult = await getIngresosMensualesSep({
-        perPage: 2000,
-        anio: selectedYear,
-      });
 
       // Sum total_reflejar per establishment
       const iSums: Record<string, number> = {};
@@ -180,42 +214,46 @@ export default function ProyeccionSepPage() {
         }
       }
 
-      // Persist calculated budget to proyeccion_sep.presupuesto and compras_facturadas
-      // Step 5: Fetch all compras with subvencion 'Ley SEP' for the selected year
-      const startOfYear = `${selectedYear}-01-01 00:00:00`;
-      const endOfYear = `${selectedYear}-12-31 23:59:59`;
-
-      // First: get ALL compras that are Ley SEP (filter on compras table directly)
-      const comprasResult = await pb.collection("compras").getFullList<Compra>({
-        filter: `subvencion.nombre = 'Ley SEP' && ((fecha_inicio >= '${startOfYear}' && fecha_inicio <= '${endOfYear}') || (fecha_inicio = '' && created >= '${startOfYear}' && created <= '${endOfYear}'))`,
-        sort: "-created",
-      });
-
-      // Build a map of compraId -> unidad_requirente
+      // Build map of compraId -> unidad_requirente
       const compraSchoolMap: Record<string, string> = {};
       for (const compra of comprasResult) {
         compraSchoolMap[compra.id] = compra.unidad_requirente;
       }
       const compraIds = Object.keys(compraSchoolMap);
 
-      console.log("[DEBUG] Total compras SEP encontradas:", compraIds.length);
-
-      // Step 6: Fetch all facturas for those compras (in batches if needed)
+      // 2. Concurrently fetch all batches of Facturas and OCs
       let allFacturas: Factura[] = [];
+      let allOCs: OrdenCompra[] = [];
+
       if (compraIds.length > 0) {
-        // Build filter: compra = 'id1' || compra = 'id2' || ...
         const batchSize = 50;
+        const facPromises: Promise<Factura[]>[] = [];
+        const ocPromises: Promise<OrdenCompra[]>[] = [];
+
         for (let i = 0; i < compraIds.length; i += batchSize) {
           const batch = compraIds.slice(i, i + batchSize);
           const compraFilter = batch.map((id) => `compra = '${id}'`).join(" || ");
-          const facturasResult = await pb.collection(FACTURAS_COLLECTION).getFullList<Factura>({
-            filter: compraFilter,
-          });
-          allFacturas = allFacturas.concat(facturasResult);
+          facPromises.push(
+            pb.collection(FACTURAS_COLLECTION).getFullList<Factura>({
+              filter: compraFilter,
+              fields: "compra,monto",
+            }),
+          );
+          ocPromises.push(
+            pb.collection(ORDENES_COMPRA_COLLECTION).getFullList<OrdenCompra>({
+              filter: compraFilter,
+              fields: "compra,oc_valor",
+            }),
+          );
         }
+
+        const [facResults, ocResults] = await Promise.all([Promise.all(facPromises), Promise.all(ocPromises)]);
+
+        allFacturas = facResults.flat();
+        allOCs = ocResults.flat();
       }
 
-      // Sum monto per school using compraSchoolMap
+      // Sum facturas monto per school
       const fSums: Record<string, number> = {};
       for (const factura of allFacturas) {
         const schoolId = compraSchoolMap[factura.compra];
@@ -224,24 +262,7 @@ export default function ProyeccionSepPage() {
         }
       }
 
-      console.log("[DEBUG] Total facturas encontradas:", allFacturas.length);
-      console.log("[DEBUG] fSums (facturadas por escuela):", fSums);
-
-      // Step 7: Fetch all OCs for those compras (in batches if needed)
-      let allOCs: OrdenCompra[] = [];
-      if (compraIds.length > 0) {
-        const batchSize = 50;
-        for (let i = 0; i < compraIds.length; i += batchSize) {
-          const batch = compraIds.slice(i, i + batchSize);
-          const compraFilter = batch.map((id) => `compra = '${id}'`).join(" || ");
-          const ocsResult = await pb.collection(ORDENES_COMPRA_COLLECTION).getFullList<OrdenCompra>({
-            filter: compraFilter,
-          });
-          allOCs = allOCs.concat(ocsResult);
-        }
-      }
-
-      // Sum oc_valor per school using compraSchoolMap
+      // Sum OCs oc_valor per school
       const ocSums: Record<string, number> = {};
       for (const oc of allOCs) {
         const schoolId = compraSchoolMap[oc.compra];
@@ -250,51 +271,12 @@ export default function ProyeccionSepPage() {
         }
       }
 
-      // Subtract facturas from OCs to get the real "committed" amount (Saldo por facturar)
+      // Subtract facturas from OCs to get Saldo por facturar (compras obligadas)
       for (const schoolId in ocSums) {
         ocSums[schoolId] = Math.max(0, ocSums[schoolId] - (fSums[schoolId] || 0));
       }
 
-      console.log("[DEBUG] Total OCs encontradas:", allOCs.length);
-      console.log("[DEBUG] ocSums (obligadas/pendientes por escuela):", ocSums);
-
-      // DEBUG: Check Liceo RAAC specifically
-      const raacSchool = sortedSchools.find((s) => s.nombre.includes("RAAC"));
-      if (raacSchool) {
-        console.log("[DEBUG] Liceo RAAC id:", raacSchool.id);
-        console.log(
-          "[DEBUG] RAAC compras SEP:",
-          comprasResult.filter((c) => c.unidad_requirente === raacSchool.id).length,
-        );
-        console.log("[DEBUG] RAAC facturadas:", fSums[raacSchool.id] || 0);
-        console.log("[DEBUG] RAAC obligadas (Saldo OC - Fact):", ocSums[raacSchool.id] || 0);
-      }
-
-      const savePromises = sortedSchools.map(async (school) => {
-        const presupuesto = iSums[school.id] || 0;
-        const comprasFacturadas = fSums[school.id] || 0;
-        const comprasObligadas = ocSums[school.id] || 0;
-        const existing = existingProjections.find((p) => p.establecimiento === school.id);
-        if (existing) {
-          return updateProyeccionSep(existing.id, {
-            presupuesto,
-            compras_facturadas: comprasFacturadas,
-            compras_obligadas: comprasObligadas,
-          });
-        }
-        return createProyeccionSep({
-          establecimiento: school.id,
-          presupuesto,
-          total_utilizado: 0,
-          compras_facturadas: comprasFacturadas,
-          compras_obligadas: comprasObligadas,
-          rrhh: "",
-        });
-      });
-      const updatedProjections = await Promise.all(savePromises);
-      setProjections(updatedProjections);
-
-      // 7. Calculate Presupuesto Proyectado
+      // 3. Calculate Presupuesto Proyectado
       const MONTH_ORDER = [
         "Enero",
         "Febrero",
@@ -326,7 +308,7 @@ export default function ProyeccionSepPage() {
         }
       });
 
-      schoolsResult.items.forEach((school) => {
+      sortedSchools.forEach((school) => {
         const latest = schoolLatestIngreso[school.id];
         if (latest) {
           const remainingMonths = 11 - latest.monthIndex;
@@ -337,12 +319,9 @@ export default function ProyeccionSepPage() {
           monthNames[school.id] = "";
         }
       });
-      setPresupuestoProyectadoSums(pSums);
-      setSchoolLatestMonthNames(monthNames);
 
+      // 4. Calculate RRHH Real and Projected
       const sums: Record<string, number> = {};
-
-      // Logic for RRHH Projected: Fill forward 0 values
       const schoolMonthlyData: Record<string, Record<string, number>> = {};
       const projectedSums: Record<string, number> = {};
       const rrhhMonthNames: Record<string, string> = {};
@@ -356,7 +335,6 @@ export default function ProyeccionSepPage() {
         if (!schoolMonthlyData[schoolId]) schoolMonthlyData[schoolId] = {};
         schoolMonthlyData[schoolId][item.mes] = item.total;
       });
-      setRrhhSums(sums);
 
       // Second pass: Calculate projected sums
       const MONTHS = [
@@ -374,7 +352,7 @@ export default function ProyeccionSepPage() {
         "Diciembre",
       ];
 
-      schoolsResult.items.forEach((school) => {
+      sortedSchools.forEach((school) => {
         const schoolId = school.id;
         const monthlyData = schoolMonthlyData[schoolId] || {};
 
@@ -388,12 +366,9 @@ export default function ProyeccionSepPage() {
           const val = recordValue || 0;
 
           if (hasRecord) {
-            // Si el registro existe (sea 0 o mayor), se convierte en la nueva base para proyecciones
             lastValue = val;
             lastMonthName = month;
           } else {
-            // Solo proyectamos en meses donde NO existe el registro (NULL)
-            // Si la última base conocida es > 0, sumamos a la proyección
             if (lastValue > 0) {
               projectedSum += lastValue;
             }
@@ -403,15 +378,99 @@ export default function ProyeccionSepPage() {
         projectedSums[schoolId] = projectedSum;
         rrhhMonthNames[schoolId] = lastMonthName;
       });
+
+      // 5. Build calculated projections directly in memory (zero UI wait for DB writes)
+      const calculatedProjections: ProyeccionSep[] = sortedSchools.map((school) => {
+        const existing = existingProjections.find((p) => p.establecimiento === school.id);
+        const presupuesto = iSums[school.id] || 0;
+        const comprasFacturadas = fSums[school.id] || 0;
+        const comprasObligadas = ocSums[school.id] || 0;
+
+        return {
+          id: existing?.id || school.id,
+          collectionId: existing?.collectionId || "",
+          collectionName: existing?.collectionName || "proyeccion_sep",
+          created: existing?.created || "",
+          updated: existing?.updated || "",
+          establecimiento: school.id,
+          presupuesto,
+          total_utilizado: 0,
+          compras_facturadas: comprasFacturadas,
+          compras_obligadas: comprasObligadas,
+          rrhh: "",
+        };
+      });
+
+      // Update UI state immediately!
+      setProjections(calculatedProjections);
+      setPresupuestoProyectadoSums(pSums);
+      setSchoolLatestMonthNames(monthNames);
+      setRrhhSums(sums);
       setRrhhProjectedSums(projectedSums);
       setSchoolLatestRrhhMonthNames(rrhhMonthNames);
+
+      // Save into cache for instantaneous retrieval if switching years
+      yearCacheRef.current[selectedYear] = {
+        projections: calculatedProjections,
+        rrhhSums: sums,
+        rrhhProjectedSums: projectedSums,
+        presupuestoProyectadoSums: pSums,
+        schoolLatestMonthNames: monthNames,
+        schoolLatestRrhhMonthNames: rrhhMonthNames,
+      };
+
+      // 6. Non-blocking background sync for changed records (dirty check)
+      const dirtySync = async () => {
+        try {
+          const syncPromises: Promise<unknown>[] = [];
+          for (const school of sortedSchools) {
+            const presupuesto = iSums[school.id] || 0;
+            const comprasFacturadas = fSums[school.id] || 0;
+            const comprasObligadas = ocSums[school.id] || 0;
+            const existing = existingProjections.find((p) => p.establecimiento === school.id);
+
+            if (existing) {
+              if (
+                existing.presupuesto !== presupuesto ||
+                existing.compras_facturadas !== comprasFacturadas ||
+                existing.compras_obligadas !== comprasObligadas
+              ) {
+                syncPromises.push(
+                  updateProyeccionSep(existing.id, {
+                    presupuesto,
+                    compras_facturadas: comprasFacturadas,
+                    compras_obligadas: comprasObligadas,
+                  }),
+                );
+              }
+            } else {
+              syncPromises.push(
+                createProyeccionSep({
+                  establecimiento: school.id,
+                  presupuesto,
+                  total_utilizado: 0,
+                  compras_facturadas: comprasFacturadas,
+                  compras_obligadas: comprasObligadas,
+                  rrhh: "",
+                }),
+              );
+            }
+          }
+          if (syncPromises.length > 0) {
+            await Promise.allSettled(syncPromises);
+          }
+        } catch (syncErr) {
+          console.warn("[ProyeccionSEP] Advertencia en sincronización en segundo plano:", syncErr);
+        }
+      };
+      dirtySync();
     } catch (error) {
       console.error("Error loading Proyeccion SEP data:", error);
       toast.error("Error al cargar datos");
     } finally {
       setLoading(false);
     }
-  }, [selectedYear, user?.dependencia, user?.role.includes]);
+  }, [selectedYear, user?.dependencia, user?.role]);
 
   useEffect(() => {
     loadData();

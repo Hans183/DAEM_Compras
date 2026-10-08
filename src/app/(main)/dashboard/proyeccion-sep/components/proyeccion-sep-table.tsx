@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { ArrowDown, ArrowUp, ArrowUpDown, FileSpreadsheet, Settings2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, FileSpreadsheet, Info, Settings2 } from "lucide-react";
 import * as XLSX from "xlsx";
 
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatCurrency } from "@/lib/utils";
 import type { ProyeccionSep } from "@/types/proyeccion-sep";
 import type { Requirente } from "@/types/requirente";
@@ -256,20 +257,140 @@ export function ProyeccionSepTable({
     XLSX.writeFile(workbook, `Proyeccion_SEP_${new Date().toISOString().split("T")[0]}.xlsx`);
   };
 
+  const columnLabels: Record<SortKey, string> = {
+    nombre: "Establecimiento",
+    presupuesto: "Presupuesto",
+    total_utilizado: "Total Utilizado",
+    por_gastar: "Por Gastar",
+    porcentaje_utilizado: "% Utilizado",
+    porcentaje_pagado: "% Pagado",
+    compras_facturadas: "Compras Facturadas",
+    compras_obligadas: "Compras Obligadas",
+    rrhh: "RRHH",
+    rrhh_proyectado: "RRHH Proyectado",
+    suma_facturado_rrhh: "Facturado + RRHH",
+    presupuesto_proyectado: "Presupuesto Proyectado",
+    porcentaje_factura_anual: "% Factura Anual",
+    porcentaje_aprox_utilizado: "% APROX utilizado",
+    disponible_proyectado: "Disponible Proyectado",
+    total_proyectado: "Total Proyectado",
+  };
+
+  interface ColumnTooltipInfo {
+    formula?: string;
+    description: string;
+  }
+
+  const COLUMN_TOOLTIPS: Record<SortKey, ColumnTooltipInfo> = {
+    nombre: {
+      description: "Nombre del establecimiento educacional adscrito a la subvención SEP.",
+    },
+    presupuesto: {
+      formula: "Suma de Ingresos Percibidos (Año)",
+      description: "Total acumulado de ingresos mensuales SEP devengados/recibidos a la fecha para el establecimiento.",
+    },
+    total_utilizado: {
+      formula: "Compras Facturadas + Compras Obligadas + RRHH",
+      description: "Total del gasto ejecutado más los compromisos vigentes y sueldos pagados a la fecha.",
+    },
+    por_gastar: {
+      formula: "Presupuesto - Total Utilizado",
+      description: "Saldo presupuestario disponible inmediato sobre el ingreso real percibido actualmente.",
+    },
+    porcentaje_utilizado: {
+      formula: "(Total Utilizado / Presupuesto) × 100",
+      description: "Porcentaje del presupuesto real recibido que ya fue utilizado o comprometido.",
+    },
+    porcentaje_pagado: {
+      formula: "(Compras Facturadas + RRHH) / Presupuesto × 100",
+      description: "Porcentaje del presupuesto con respaldo de facturas emitidas y sueldos cancelados.",
+    },
+    compras_facturadas: {
+      formula: "Suma de Facturas SEP (Año)",
+      description: "Monto total facturado y registrado en adquisiciones Ley SEP durante el año seleccionado.",
+    },
+    compras_obligadas: {
+      formula: "max(0, Total OCs - Compras Facturadas)",
+      description: "Saldo pendiente por facturar de las Órdenes de Compra SEP comprometidas.",
+    },
+    rrhh: {
+      formula: "Suma de Sueldos y Honorarios SEP (Meses transcurridos)",
+      description: "Gasto real ejecutado en personal y recursos humanos SEP en los meses transcurridos.",
+    },
+    rrhh_proyectado: {
+      formula: "Último mes RRHH × Meses restantes del año",
+      description: "Estimación de gastos de personal para los meses restantes hasta fin de año.",
+    },
+    suma_facturado_rrhh: {
+      formula: "Compras Facturadas + RRHH",
+      description: "Total pagado con respaldo efectivo (bienes/servicios facturados + personal devengado).",
+    },
+    porcentaje_factura_anual: {
+      formula: "(Compras Facturadas + RRHH + RRHH Proyectado) / Total Proyectado × 100",
+      description:
+        "Porcentaje del ingreso anual estimado destinado a facturación real más todo el costo de RRHH del año.",
+    },
+    porcentaje_aprox_utilizado: {
+      formula: "(RRHH + RRHH Proyectado + Compras Obligadas + Compras Facturadas) / Total Proyectado × 100",
+      description: "Estimación porcentual del uso global del presupuesto proyectado al término del año.",
+    },
+    presupuesto_proyectado: {
+      formula: "Último Ingreso Mensual × Meses restantes del año",
+      description: "Ingreso estimado por percibir en subvención SEP desde el próximo mes hasta diciembre.",
+    },
+    disponible_proyectado: {
+      formula: "(Presupuesto + Presupuesto Proyectado) - (Compras Facturadas + Compras Obligadas + RRHH)",
+      description: "Saldo proyectado a favor o déficit estimado con el que cerrará el año el establecimiento.",
+    },
+    total_proyectado: {
+      formula: "Presupuesto + Presupuesto Proyectado",
+      description: "Ingreso total anual estimado que percibirá el establecimiento durante el año completo.",
+    },
+  };
+
   const renderHeader = (label: string | React.ReactNode, key: SortKey) => {
     if (!visibleColumns[key]) return null;
+    const tooltipInfo = COLUMN_TOOLTIPS[key];
 
     return (
       <TableHead className="relative px-0 py-0" style={{ width: columnWidths[key] }}>
-        <div className="flex h-full w-full items-center">
+        <div className="flex h-full w-full items-center justify-center px-1">
           <Button
             variant="ghost"
             onClick={() => handleSort(key)}
-            className="h-auto min-h-8 w-full justify-center whitespace-normal px-2 py-1 text-center font-medium text-xs hover:bg-transparent"
+            className="h-auto min-h-8 flex-1 justify-center whitespace-normal px-1 py-1 text-center font-medium text-xs hover:bg-transparent"
           >
-            <span className="flex-1 text-center">{label}</span>
-            <SortIcon column={key} />
+            <div className="flex items-center justify-center gap-1">
+              <span>{label}</span>
+              <SortIcon column={key} />
+            </div>
           </Button>
+          {tooltipInfo && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex cursor-help items-center rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  aria-label={`Información de cálculo para ${columnLabels[key]}`}
+                >
+                  <Info className="h-3 w-3 shrink-0" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                align="center"
+                className="z-50 max-w-xs space-y-1.5 rounded-lg border bg-popover p-3 text-left text-popover-foreground shadow-md"
+              >
+                <div className="font-semibold text-foreground text-xs">{columnLabels[key]}</div>
+                {tooltipInfo.formula && (
+                  <div className="rounded bg-muted/90 px-2 py-1 font-mono text-[11px] text-primary">
+                    {tooltipInfo.formula}
+                  </div>
+                )}
+                <div className="text-[11px] text-muted-foreground leading-relaxed">{tooltipInfo.description}</div>
+              </TooltipContent>
+            </Tooltip>
+          )}
           {/* biome-ignore lint/a11y/useSemanticElements: Resizer handle is not exactly a HR */}
           <div
             onMouseDown={(e) => handleResizeStart(e, key)}
@@ -293,25 +414,6 @@ export function ProyeccionSepTable({
     );
   };
 
-  const columnLabels: Record<SortKey, string> = {
-    nombre: "Establecimiento",
-    presupuesto: "Presupuesto",
-    total_utilizado: "Total Utilizado",
-    por_gastar: "Por Gastar",
-    porcentaje_utilizado: "% Utilizado",
-    porcentaje_pagado: "% Pagado",
-    compras_facturadas: "Compras Facturadas",
-    compras_obligadas: "Compras Obligadas",
-    rrhh: "RRHH",
-    rrhh_proyectado: "RRHH Proyectado",
-    suma_facturado_rrhh: "Facturado + RRHH",
-    presupuesto_proyectado: "Presupuesto Proyectado",
-    porcentaje_factura_anual: "% Factura Anual",
-    porcentaje_aprox_utilizado: "% APROX utilizado",
-    disponible_proyectado: "Disponible Proyectado",
-    total_proyectado: "Total Proyectado",
-  };
-
   const getPercentageColor = (percentage: number) => {
     if (percentage > 100) return "bg-black text-white border-black hover:bg-black";
     if (percentage >= 85) return "bg-red-100 text-red-800 border-red-200 hover:bg-red-100";
@@ -325,309 +427,334 @@ export function ProyeccionSepTable({
   };
 
   return (
-    <div className="min-w-0 max-w-full space-y-4">
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={handleExportExcel} className="h-8">
-          <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-600" />
-          Descargar Excel
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="flex h-8">
-              <Settings2 className="mr-2 h-4 w-4" />
-              Columnas
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {Object.keys(visibleColumns).map((key) => {
-              if (key === "nombre") return null; // Always show name
-              return (
-                <DropdownMenuCheckboxItem
-                  key={key}
-                  className="capitalize"
-                  checked={visibleColumns[key]}
-                  onCheckedChange={(checked) => onVisibleColumnsChange({ ...visibleColumns, [key]: !!checked })}
-                >
-                  {columnLabels[key as SortKey]}
-                </DropdownMenuCheckboxItem>
-              );
-            })}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      <div className="overflow-x-auto rounded-md border">
-        <Table className="w-full min-w-max">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="relative px-0 py-0" style={{ width: columnWidths.nombre }}>
-                <div className="flex h-full w-full items-center">
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleSort("nombre")}
-                    className="h-8 w-full justify-start truncate px-2 font-medium text-xs hover:bg-transparent"
+    <TooltipProvider delayDuration={150}>
+      <div className="min-w-0 max-w-full space-y-4">
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={handleExportExcel} className="h-8">
+            <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-600" />
+            Descargar Excel
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="flex h-8">
+                <Settings2 className="mr-2 h-4 w-4" />
+                Columnas
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {Object.keys(visibleColumns).map((key) => {
+                if (key === "nombre") return null; // Always show name
+                return (
+                  <DropdownMenuCheckboxItem
+                    key={key}
+                    className="capitalize"
+                    checked={visibleColumns[key]}
+                    onCheckedChange={(checked) => onVisibleColumnsChange({ ...visibleColumns, [key]: !!checked })}
                   >
-                    Establecimiento
-                    <SortIcon column="nombre" />
-                  </Button>
-                  {/* biome-ignore lint/a11y/useSemanticElements: Resizer handle is not exactly a HR */}
-                  <div
-                    onMouseDown={(e) => handleResizeStart(e, "nombre")}
-                    className="absolute top-0 right-0 h-full w-1 cursor-col-resize hover:bg-primary/50"
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => {
-                      if (e.key === "ArrowLeft") {
-                        setColumnWidths((prev) => ({ ...prev, nombre: Math.max(50, prev.nombre - 10) }));
-                      } else if (e.key === "ArrowRight") {
-                        setColumnWidths((prev) => ({ ...prev, nombre: prev.nombre + 10 }));
-                      }
-                    }}
-                    role="separator"
-                    aria-orientation="vertical"
-                    aria-valuenow={columnWidths.nombre}
-                    tabIndex={0}
-                    aria-label="Redimensionar columna nombre"
-                  />
-                </div>
-              </TableHead>
-              {renderHeader("Presupuesto", "presupuesto")}
-              {renderHeader("Total Utilizado", "total_utilizado")}
-              {renderHeader("Por Gastar", "por_gastar")}
-              {renderHeader("% Utilizado", "porcentaje_utilizado")}
-              {renderHeader("% Pagado", "porcentaje_pagado")}
-              {renderHeader("Compras Facturadas", "compras_facturadas")}
-              {renderHeader("Compras Obligadas", "compras_obligadas")}
-              {renderHeader(`RRHH Total`, "rrhh")}
-              {renderHeader("RRHH Proyectado", "rrhh_proyectado")}
-              {renderHeader("Facturado + RRHH", "suma_facturado_rrhh")}
-              {renderHeader("% Factura Anual", "porcentaje_factura_anual")}
-              {renderHeader("% APROX utilizado", "porcentaje_aprox_utilizado")}
-              {renderHeader("Presupuesto Proyectado", "presupuesto_proyectado")}
-              {renderHeader("Disponible Proyectado", "disponible_proyectado")}
-              {renderHeader("Total Proyectado", "total_proyectado")}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedData.length === 0 ? (
+                    {columnLabels[key as SortKey]}
+                  </DropdownMenuCheckboxItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <div className="overflow-x-auto rounded-md border">
+          <Table className="w-full min-w-max">
+            <TableHeader>
               <TableRow>
-                <TableCell
-                  colSpan={Object.values(visibleColumns).filter(Boolean).length}
-                  className="h-12 text-center text-xs"
-                >
-                  No se encontraron establecimientos SEP activos.
-                </TableCell>
+                <TableHead className="relative px-0 py-0" style={{ width: columnWidths.nombre }}>
+                  <div className="flex h-full w-full items-center px-1">
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSort("nombre")}
+                      className="h-8 flex-1 justify-start truncate px-2 font-medium text-xs hover:bg-transparent"
+                    >
+                      <div className="flex items-center gap-1 truncate">
+                        <span className="truncate">Establecimiento</span>
+                        <SortIcon column="nombre" />
+                      </div>
+                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex cursor-help items-center rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          aria-label="Información para Establecimiento"
+                        >
+                          <Info className="h-3 w-3 shrink-0" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        align="center"
+                        className="z-50 max-w-xs space-y-1.5 rounded-lg border bg-popover p-3 text-left text-popover-foreground shadow-md"
+                      >
+                        <div className="font-semibold text-foreground text-xs">Establecimiento</div>
+                        <div className="text-[11px] text-muted-foreground leading-relaxed">
+                          {COLUMN_TOOLTIPS.nombre.description}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                    {/* biome-ignore lint/a11y/useSemanticElements: Resizer handle is not exactly a HR */}
+                    <div
+                      onMouseDown={(e) => handleResizeStart(e, "nombre")}
+                      className="absolute top-0 right-0 h-full w-1 cursor-col-resize hover:bg-primary/50"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowLeft") {
+                          setColumnWidths((prev) => ({ ...prev, nombre: Math.max(50, prev.nombre - 10) }));
+                        } else if (e.key === "ArrowRight") {
+                          setColumnWidths((prev) => ({ ...prev, nombre: prev.nombre + 10 }));
+                        }
+                      }}
+                      role="separator"
+                      aria-orientation="vertical"
+                      aria-valuenow={columnWidths.nombre}
+                      tabIndex={0}
+                      aria-label="Redimensionar columna nombre"
+                    />
+                  </div>
+                </TableHead>
+                {renderHeader("Presupuesto", "presupuesto")}
+                {renderHeader("Total Utilizado", "total_utilizado")}
+                {renderHeader("Por Gastar", "por_gastar")}
+                {renderHeader("% Utilizado", "porcentaje_utilizado")}
+                {renderHeader("% Pagado", "porcentaje_pagado")}
+                {renderHeader("Compras Facturadas", "compras_facturadas")}
+                {renderHeader("Compras Obligadas", "compras_obligadas")}
+                {renderHeader(`RRHH Total`, "rrhh")}
+                {renderHeader("RRHH Proyectado", "rrhh_proyectado")}
+                {renderHeader("Facturado + RRHH", "suma_facturado_rrhh")}
+                {renderHeader("% Factura Anual", "porcentaje_factura_anual")}
+                {renderHeader("% APROX utilizado", "porcentaje_aprox_utilizado")}
+                {renderHeader("Presupuesto Proyectado", "presupuesto_proyectado")}
+                {renderHeader("Disponible Proyectado", "disponible_proyectado")}
+                {renderHeader("Total Proyectado", "total_proyectado")}
               </TableRow>
-            ) : (
-              sortedData.map((row) => (
-                <TableRow key={row.id}>
+            </TableHeader>
+            <TableBody>
+              {sortedData.length === 0 ? (
+                <TableRow>
                   <TableCell
-                    className="truncate border-r px-1 font-medium text-xs"
-                    style={{ width: columnWidths.nombre, maxWidth: columnWidths.nombre }}
+                    colSpan={Object.values(visibleColumns).filter(Boolean).length}
+                    className="h-12 text-center text-xs"
                   >
-                    {row.nombre}
+                    No se encontraron establecimientos SEP activos.
                   </TableCell>
-                  {visibleColumns.presupuesto && (
-                    <TableCell
-                      className="truncate border-r px-2 py-1 text-right font-semibold text-primary text-xs"
-                      style={{ width: columnWidths.presupuesto }}
-                    >
-                      {formatCurrency(row.presupuesto, {
-                        locale: "es-CL",
-                        currency: "CLP",
-                        minimumFractionDigits: 0,
-                      })}
-                    </TableCell>
-                  )}
-                  {visibleColumns.total_utilizado && (
-                    <TableCell
-                      className="truncate border-r px-2 py-1 text-right font-semibold text-xs"
-                      style={{ width: columnWidths.total_utilizado }}
-                    >
-                      {formatCurrency(row.total_utilizado, {
-                        locale: "es-CL",
-                        currency: "CLP",
-                        minimumFractionDigits: 0,
-                      })}
-                    </TableCell>
-                  )}
-                  {visibleColumns.por_gastar && (
-                    <TableCell
-                      className={`truncate border-r px-2 py-1 text-right text-xs ${getPorGastarStyle(row.por_gastar)}`}
-                      style={{ width: columnWidths.por_gastar }}
-                    >
-                      {formatCurrency(row.por_gastar, { locale: "es-CL", currency: "CLP", minimumFractionDigits: 0 })}
-                    </TableCell>
-                  )}
-                  {visibleColumns.porcentaje_utilizado && (
-                    <TableCell
-                      className="truncate border-r px-1 py-1 text-right text-xs"
-                      style={{ width: columnWidths.porcentaje_utilizado }}
-                    >
-                      <Badge
-                        variant="outline"
-                        className={`w-full justify-center ${getPercentageColor(row.porcentaje_utilizado)}`}
-                      >
-                        {row.porcentaje_utilizado.toFixed(1)}%
-                      </Badge>
-                    </TableCell>
-                  )}
-                  {visibleColumns.porcentaje_pagado && (
-                    <TableCell
-                      className="truncate border-r px-1 py-1 text-right text-xs"
-                      style={{ width: columnWidths.porcentaje_pagado }}
-                    >
-                      <Badge
-                        variant="outline"
-                        className={`w-full justify-center ${getPercentageColor(row.porcentaje_pagado)}`}
-                      >
-                        {row.porcentaje_pagado.toFixed(1)}%
-                      </Badge>
-                    </TableCell>
-                  )}
-                  {visibleColumns.compras_facturadas && (
-                    <TableCell
-                      className="truncate border-r px-2 py-1 text-right font-medium text-muted-foreground text-xs"
-                      style={{ width: columnWidths.compras_facturadas }}
-                    >
-                      {formatCurrency(row.compras_facturadas, {
-                        locale: "es-CL",
-                        currency: "CLP",
-                        minimumFractionDigits: 0,
-                      })}
-                    </TableCell>
-                  )}
-                  {visibleColumns.compras_obligadas && (
-                    <TableCell
-                      className="truncate border-r px-2 py-1 text-right font-medium text-muted-foreground text-xs"
-                      style={{ width: columnWidths.compras_obligadas }}
-                    >
-                      {formatCurrency(row.compras_obligadas, {
-                        locale: "es-CL",
-                        currency: "CLP",
-                        minimumFractionDigits: 0,
-                      })}
-                    </TableCell>
-                  )}
-                  {visibleColumns.rrhh && (
-                    <TableCell
-                      className="truncate border-r bg-muted/20 px-2 py-1 text-right text-muted-foreground text-xs"
-                      style={{ width: columnWidths.rrhh }}
-                    >
-                      {formatCurrency(row.rrhh, { locale: "es-CL", currency: "CLP", minimumFractionDigits: 0 })}
-                    </TableCell>
-                  )}
-                  {visibleColumns.rrhh_proyectado && (
-                    <TableCell
-                      className="truncate border-r bg-amber-500/10 px-2 py-1 text-right text-muted-foreground text-xs"
-                      style={{ width: columnWidths.rrhh_proyectado }}
-                    >
-                      <div className="flex flex-col items-end gap-0.5 px-2">
-                        <span>
-                          {formatCurrency(row.rrhh_proyectado, {
-                            locale: "es-CL",
-                            currency: "CLP",
-                            minimumFractionDigits: 0,
-                          })}
-                        </span>
-                        {row.mes_base_rrhh && (
-                          <Badge
-                            variant="outline"
-                            className="h-4 border-amber-500/30 px-1 text-[10px] text-amber-600/70"
-                          >
-                            Base: {row.mes_base_rrhh}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                  )}
-                  {visibleColumns.suma_facturado_rrhh && (
-                    <TableCell
-                      className="truncate border-r bg-muted/20 px-2 py-1 text-right font-semibold text-muted-foreground text-xs"
-                      style={{ width: columnWidths.suma_facturado_rrhh }}
-                    >
-                      {formatCurrency(row.suma_facturado_rrhh, {
-                        locale: "es-CL",
-                        currency: "CLP",
-                        minimumFractionDigits: 0,
-                      })}
-                    </TableCell>
-                  )}
-                  {visibleColumns.porcentaje_factura_anual && (
-                    <TableCell
-                      className="truncate border-r px-1 py-1 text-right font-semibold text-xs"
-                      style={{ width: columnWidths.porcentaje_factura_anual }}
-                    >
-                      <Badge
-                        variant="outline"
-                        className={`w-full justify-center ${getPercentageColor(row.porcentaje_factura_anual)}`}
-                      >
-                        {row.porcentaje_factura_anual.toFixed(1)}%
-                      </Badge>
-                    </TableCell>
-                  )}
-                  {visibleColumns.porcentaje_aprox_utilizado && (
-                    <TableCell
-                      className="truncate border-r px-1 py-1 text-right font-semibold text-xs"
-                      style={{ width: columnWidths.porcentaje_aprox_utilizado }}
-                    >
-                      <Badge
-                        variant="outline"
-                        className={`w-full justify-center ${getPercentageColor(row.porcentaje_aprox_utilizado)}`}
-                      >
-                        {row.porcentaje_aprox_utilizado.toFixed(1)}%
-                      </Badge>
-                    </TableCell>
-                  )}
-                  {visibleColumns.presupuesto_proyectado && (
-                    <TableCell
-                      className="truncate border-r bg-blue-500/10 px-2 py-1 text-right font-semibold text-primary text-xs"
-                      style={{ width: columnWidths.presupuesto_proyectado }}
-                    >
-                      <div className="flex flex-col items-end gap-0.5 px-2">
-                        <span>
-                          {formatCurrency(row.presupuesto_proyectado, {
-                            locale: "es-CL",
-                            currency: "CLP",
-                            minimumFractionDigits: 0,
-                          })}
-                        </span>
-                        {row.mes_proyectado && (
-                          <Badge variant="outline" className="h-4 border-primary/30 px-1 text-[10px] text-primary/70">
-                            Base: {row.mes_proyectado}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                  )}
-                  {visibleColumns.disponible_proyectado && (
-                    <TableCell
-                      className={`truncate border-r px-2 py-1 text-right text-xs ${getPorGastarStyle(row.disponible_proyectado)}`}
-                      style={{ width: columnWidths.disponible_proyectado }}
-                    >
-                      {formatCurrency(row.disponible_proyectado, {
-                        locale: "es-CL",
-                        currency: "CLP",
-                        minimumFractionDigits: 0,
-                      })}
-                    </TableCell>
-                  )}
-                  {visibleColumns.total_proyectado && (
-                    <TableCell
-                      className="truncate border-r px-2 py-1 text-right font-bold text-xs"
-                      style={{ width: columnWidths.total_proyectado }}
-                    >
-                      {formatCurrency(row.total_proyectado, {
-                        locale: "es-CL",
-                        currency: "CLP",
-                        minimumFractionDigits: 0,
-                      })}
-                    </TableCell>
-                  )}
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                sortedData.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell
+                      className="truncate border-r px-1 font-medium text-xs"
+                      style={{ width: columnWidths.nombre, maxWidth: columnWidths.nombre }}
+                    >
+                      {row.nombre}
+                    </TableCell>
+                    {visibleColumns.presupuesto && (
+                      <TableCell
+                        className="truncate border-r px-2 py-1 text-right font-semibold text-primary text-xs"
+                        style={{ width: columnWidths.presupuesto }}
+                      >
+                        {formatCurrency(row.presupuesto, {
+                          locale: "es-CL",
+                          currency: "CLP",
+                          minimumFractionDigits: 0,
+                        })}
+                      </TableCell>
+                    )}
+                    {visibleColumns.total_utilizado && (
+                      <TableCell
+                        className="truncate border-r px-2 py-1 text-right font-semibold text-xs"
+                        style={{ width: columnWidths.total_utilizado }}
+                      >
+                        {formatCurrency(row.total_utilizado, {
+                          locale: "es-CL",
+                          currency: "CLP",
+                          minimumFractionDigits: 0,
+                        })}
+                      </TableCell>
+                    )}
+                    {visibleColumns.por_gastar && (
+                      <TableCell
+                        className={`truncate border-r px-2 py-1 text-right text-xs ${getPorGastarStyle(row.por_gastar)}`}
+                        style={{ width: columnWidths.por_gastar }}
+                      >
+                        {formatCurrency(row.por_gastar, { locale: "es-CL", currency: "CLP", minimumFractionDigits: 0 })}
+                      </TableCell>
+                    )}
+                    {visibleColumns.porcentaje_utilizado && (
+                      <TableCell
+                        className="truncate border-r px-1 py-1 text-right text-xs"
+                        style={{ width: columnWidths.porcentaje_utilizado }}
+                      >
+                        <Badge
+                          variant="outline"
+                          className={`w-full justify-center ${getPercentageColor(row.porcentaje_utilizado)}`}
+                        >
+                          {row.porcentaje_utilizado.toFixed(1)}%
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {visibleColumns.porcentaje_pagado && (
+                      <TableCell
+                        className="truncate border-r px-1 py-1 text-right text-xs"
+                        style={{ width: columnWidths.porcentaje_pagado }}
+                      >
+                        <Badge
+                          variant="outline"
+                          className={`w-full justify-center ${getPercentageColor(row.porcentaje_pagado)}`}
+                        >
+                          {row.porcentaje_pagado.toFixed(1)}%
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {visibleColumns.compras_facturadas && (
+                      <TableCell
+                        className="truncate border-r px-2 py-1 text-right font-medium text-muted-foreground text-xs"
+                        style={{ width: columnWidths.compras_facturadas }}
+                      >
+                        {formatCurrency(row.compras_facturadas, {
+                          locale: "es-CL",
+                          currency: "CLP",
+                          minimumFractionDigits: 0,
+                        })}
+                      </TableCell>
+                    )}
+                    {visibleColumns.compras_obligadas && (
+                      <TableCell
+                        className="truncate border-r px-2 py-1 text-right font-medium text-muted-foreground text-xs"
+                        style={{ width: columnWidths.compras_obligadas }}
+                      >
+                        {formatCurrency(row.compras_obligadas, {
+                          locale: "es-CL",
+                          currency: "CLP",
+                          minimumFractionDigits: 0,
+                        })}
+                      </TableCell>
+                    )}
+                    {visibleColumns.rrhh && (
+                      <TableCell
+                        className="truncate border-r bg-muted/20 px-2 py-1 text-right text-muted-foreground text-xs"
+                        style={{ width: columnWidths.rrhh }}
+                      >
+                        {formatCurrency(row.rrhh, { locale: "es-CL", currency: "CLP", minimumFractionDigits: 0 })}
+                      </TableCell>
+                    )}
+                    {visibleColumns.rrhh_proyectado && (
+                      <TableCell
+                        className="truncate border-r bg-amber-500/10 px-2 py-1 text-right text-muted-foreground text-xs"
+                        style={{ width: columnWidths.rrhh_proyectado }}
+                      >
+                        <div className="flex flex-col items-end gap-0.5 px-2">
+                          <span>
+                            {formatCurrency(row.rrhh_proyectado, {
+                              locale: "es-CL",
+                              currency: "CLP",
+                              minimumFractionDigits: 0,
+                            })}
+                          </span>
+                          {row.mes_base_rrhh && (
+                            <Badge
+                              variant="outline"
+                              className="h-4 border-amber-500/30 px-1 text-[10px] text-amber-600/70"
+                            >
+                              Base: {row.mes_base_rrhh}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                    {visibleColumns.suma_facturado_rrhh && (
+                      <TableCell
+                        className="truncate border-r bg-muted/20 px-2 py-1 text-right font-semibold text-muted-foreground text-xs"
+                        style={{ width: columnWidths.suma_facturado_rrhh }}
+                      >
+                        {formatCurrency(row.suma_facturado_rrhh, {
+                          locale: "es-CL",
+                          currency: "CLP",
+                          minimumFractionDigits: 0,
+                        })}
+                      </TableCell>
+                    )}
+                    {visibleColumns.porcentaje_factura_anual && (
+                      <TableCell
+                        className="truncate border-r px-1 py-1 text-right font-semibold text-xs"
+                        style={{ width: columnWidths.porcentaje_factura_anual }}
+                      >
+                        <Badge
+                          variant="outline"
+                          className={`w-full justify-center ${getPercentageColor(row.porcentaje_factura_anual)}`}
+                        >
+                          {row.porcentaje_factura_anual.toFixed(1)}%
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {visibleColumns.porcentaje_aprox_utilizado && (
+                      <TableCell
+                        className="truncate border-r px-1 py-1 text-right font-semibold text-xs"
+                        style={{ width: columnWidths.porcentaje_aprox_utilizado }}
+                      >
+                        <Badge
+                          variant="outline"
+                          className={`w-full justify-center ${getPercentageColor(row.porcentaje_aprox_utilizado)}`}
+                        >
+                          {row.porcentaje_aprox_utilizado.toFixed(1)}%
+                        </Badge>
+                      </TableCell>
+                    )}
+                    {visibleColumns.presupuesto_proyectado && (
+                      <TableCell
+                        className="truncate border-r bg-blue-500/10 px-2 py-1 text-right font-semibold text-primary text-xs"
+                        style={{ width: columnWidths.presupuesto_proyectado }}
+                      >
+                        <div className="flex flex-col items-end gap-0.5 px-2">
+                          <span>
+                            {formatCurrency(row.presupuesto_proyectado, {
+                              locale: "es-CL",
+                              currency: "CLP",
+                              minimumFractionDigits: 0,
+                            })}
+                          </span>
+                          {row.mes_proyectado && (
+                            <Badge variant="outline" className="h-4 border-primary/30 px-1 text-[10px] text-primary/70">
+                              Base: {row.mes_proyectado}
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                    {visibleColumns.disponible_proyectado && (
+                      <TableCell
+                        className={`truncate border-r px-2 py-1 text-right text-xs ${getPorGastarStyle(row.disponible_proyectado)}`}
+                        style={{ width: columnWidths.disponible_proyectado }}
+                      >
+                        {formatCurrency(row.disponible_proyectado, {
+                          locale: "es-CL",
+                          currency: "CLP",
+                          minimumFractionDigits: 0,
+                        })}
+                      </TableCell>
+                    )}
+                    {visibleColumns.total_proyectado && (
+                      <TableCell
+                        className="truncate border-r px-2 py-1 text-right font-bold text-xs"
+                        style={{ width: columnWidths.total_proyectado }}
+                      >
+                        {formatCurrency(row.total_proyectado, {
+                          locale: "es-CL",
+                          currency: "CLP",
+                          minimumFractionDigits: 0,
+                        })}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
