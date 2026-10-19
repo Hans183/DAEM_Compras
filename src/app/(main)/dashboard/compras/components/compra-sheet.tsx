@@ -5,10 +5,12 @@ import { es } from "date-fns/locale";
 import { AlertCircle, FileText, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
 import type { Compra } from "@/types/compra";
 import type { User } from "@/types/user";
 import { parseToLocalDate } from "@/utils/date-utils";
-import { canCreateRecepcion } from "@/utils/permissions";
+import { canCreateRecepcion, canViewPresupuesto } from "@/utils/permissions";
 
 import { HistorialTimeline } from "./historial-timeline";
 import { RecepcionDialog } from "./recepcion-dialog";
@@ -33,8 +35,12 @@ const safeFormat = (date: string | Date | undefined, formatStr: string, options?
 };
 
 export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProps) {
+  const { user: authUser } = useAuth();
+  const effectiveUser = currentUser ?? authUser;
   const [isRecepcionDialogOpen, setIsRecepcionDialogOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const showPresupuesto = canViewPresupuesto(effectiveUser?.role);
 
   return (
     <div
@@ -104,7 +110,7 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
         <h3 className="mb-4 border-b pb-1 font-bold text-muted-foreground text-sm uppercase">
           Datos de Gestión y Adjudicación
         </h3>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+        <div className={cn("grid gap-x-8 gap-y-4", showPresupuesto ? "grid-cols-3" : "grid-cols-2")}>
           <div className="flex flex-col">
             <span className="font-semibold text-muted-foreground text-xs uppercase">Comprador Asignado</span>
             <span className="mt-1 text-sm">{compra.expand?.comprador?.name || "Sin asignar"}</span>
@@ -113,8 +119,16 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
             <span className="font-semibold text-muted-foreground text-xs uppercase">Subvención</span>
             <span className="mt-1 text-sm">{compra.expand?.subvencion?.nombre || "No definida"}</span>
           </div>
+          {showPresupuesto && (
+            <div className="flex flex-col">
+              <span className="font-semibold text-muted-foreground text-xs uppercase">Presupuesto</span>
+              <span className="mt-1 font-semibold text-sm">
+                $ {Number(compra.presupuesto || 0).toLocaleString("es-CL")}
+              </span>
+            </div>
+          )}
 
-          <div className="col-span-2">
+          <div className="col-span-full">
             <h4 className="mb-2 font-semibold text-muted-foreground text-xs uppercase">Órdenes de Compra</h4>
             <div className="overflow-hidden rounded-md border">
               <table className="w-full text-sm">
@@ -174,7 +188,7 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
             </div>
           </div>
           {compra.observacion && (
-            <div className="col-span-2 mt-4 flex flex-col border-t pt-4">
+            <div className="col-span-full mt-4 flex flex-col border-t pt-4">
               <span className="mb-1 font-semibold text-muted-foreground text-xs uppercase">Observación Comprador</span>
               <div className="whitespace-pre-wrap rounded-md border bg-muted p-4 text-sm">{compra.observacion}</div>
             </div>
@@ -186,7 +200,7 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
       <div className="mb-8">
         <div className="mb-4 flex items-center justify-between border-b pb-1">
           <h3 className="font-bold text-muted-foreground text-sm uppercase">Recepciones de Bodega</h3>
-          {currentUser && canCreateRecepcion(currentUser.role) && (
+          {effectiveUser && canCreateRecepcion(effectiveUser.role) && (
             <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => setIsRecepcionDialogOpen(true)}>
               <Plus className="mr-2 h-3 w-3" />
               Nueva Recepción
@@ -215,12 +229,12 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
           {compra.usuario_modificador && <span className="mt-1 font-medium">Por: {compra.usuario_modificador}</span>}
         </div>
       </div>
-      {currentUser && (
+      {effectiveUser && (
         <RecepcionDialog
           compra={compra}
           open={isRecepcionDialogOpen}
           onOpenChange={setIsRecepcionDialogOpen}
-          currentUser={currentUser}
+          currentUser={effectiveUser}
           onSuccess={() => setRefreshTrigger((prev) => prev + 1)}
         />
       )}

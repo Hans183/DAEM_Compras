@@ -33,6 +33,14 @@ export function canCreateRecepcion(roles: UserRole[]): boolean {
 }
 
 /**
+ * Verifica si un rol puede ver el presupuesto
+ */
+export function canViewPresupuesto(roles?: UserRole[] | null): boolean {
+  if (!roles || !Array.isArray(roles)) return false;
+  return roles.includes("SEP") || roles.includes("Admin") || roles.includes("Encargado compras");
+}
+
+/**
  * Verifica si un rol puede editar una compra
  */
 export function canEditCompra(roles: UserRole[], compra?: Compra): boolean {
