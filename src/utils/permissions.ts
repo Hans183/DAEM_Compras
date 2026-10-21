@@ -5,7 +5,7 @@ import type { UserRole } from "@/types/user";
  * Verifica si un rol puede crear compras
  */
 export function canCreateCompra(roles: UserRole[]): boolean {
-  return roles.includes("Admin") || roles.includes("Encargado compras");
+  return roles.includes("Admin") || roles.includes("Encargado compras") || roles.includes("SEP");
 }
 
 /**
