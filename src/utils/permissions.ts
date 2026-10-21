@@ -4,11 +4,8 @@ import type { UserRole } from "@/types/user";
 /**
  * Verifica si un rol puede crear compras
  */
-/**
- * Verifica si un rol puede crear compras
- */
 export function canCreateCompra(roles: UserRole[]): boolean {
-  return roles.includes("Admin") || roles.includes("Encargado compras") || roles.includes("SEP");
+  return roles.includes("Admin") || roles.includes("Encargado compras");
 }
 
 /**
@@ -50,10 +47,10 @@ export function canEditCompra(roles: UserRole[], compra?: Compra): boolean {
   // Admin puede editar cualquier compra
   if (roles.includes("Admin")) return true;
 
-  // SEP puede crear y editar sus propias compras en estado Iniciado, Comprado o Facturado
+  // SEP puede crear y editar sus propias compras en estado Iniciado, En Proceso, Comprado o Facturado
   if (roles.includes("SEP")) {
     if (!compra) return true; // Creación permitida
-    if (["Iniciado", "Comprado", "Facturado"].includes(compra.estado)) return true;
+    if (["Iniciado", "En Proceso", "Comprado", "Facturado"].includes(compra.estado)) return true;
   }
 
   // Comprador puede editar compras en estado Asignado, En Proceso, Devuelto o Comprado
