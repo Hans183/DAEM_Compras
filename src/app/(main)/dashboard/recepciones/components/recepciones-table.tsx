@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import dynamic from "next/dynamic";
+
 import { format, parseISO } from "date-fns";
 import {
   Ban,
@@ -51,20 +53,28 @@ import type { Recepcion } from "@/types/recepcion";
 import type { Requirente } from "@/types/requirente";
 import type { User } from "@/types/user";
 
-import { CompraSheet } from "../../compras/components/compra-sheet";
-import { RecepcionDialog } from "../../compras/components/recepcion-dialog";
-import { AnularRecepcionDialog } from "./anular-recepcion-dialog";
+const CompraSheet = dynamic(() => import("../../compras/components/compra-sheet").then((m) => m.CompraSheet), {
+  ssr: false,
+});
+const RecepcionDialog = dynamic(
+  () => import("../../compras/components/recepcion-dialog").then((m) => m.RecepcionDialog),
+  { ssr: false },
+);
+const AnularRecepcionDialog = dynamic(() => import("./anular-recepcion-dialog").then((m) => m.AnularRecepcionDialog), {
+  ssr: false,
+});
 
-// Cache en memoria de sesión para evitar recargar 500 establecimientos al volver a la vista
+// Cache en memoria de sesión para carga instantánea al volver a la vista
 let cachedRequirentes: Requirente[] | null = null;
+let cachedInitialRecepciones: ListResult<Recepcion> | null = null;
 
 interface RecepcionesTableProps {
   currentUser: User | null;
 }
 
 export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
-  const [recepcionesData, setRecepcionesData] = useState<ListResult<Recepcion> | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [recepcionesData, setRecepcionesData] = useState<ListResult<Recepcion> | null>(cachedInitialRecepciones);
+  const [isLoading, setIsLoading] = useState(!cachedInitialRecepciones);
   const [page, setPage] = useState(1);
 
   // Filter inputs
@@ -84,9 +94,9 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
   const [estadoFilter, setEstadoFilter] = useState<string>("all");
   const [filterDate, setFilterDate] = useState<Date | undefined>(undefined);
 
-  // Requirentes combobox
+  // Requirentes combobox (se carga al abrir el selector para no competir con la carga inicial de la tabla)
   const [requirentes, setRequirentes] = useState<Requirente[]>(cachedRequirentes ?? []);
-  const [loadingRequirentes, setLoadingRequirentes] = useState(!cachedRequirentes);
+  const [loadingRequirentes, setLoadingRequirentes] = useState(false);
   const [openRequirenteCombobox, setOpenRequirenteCombobox] = useState(false);
 
   const [viewingRecepcion, setViewingRecepcion] = useState<Recepcion | null>(null);
@@ -95,7 +105,7 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
   const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (cachedRequirentes) return;
+    if (!openRequirenteCombobox || cachedRequirentes) return;
     let active = true;
     const fetchRequirentesList = async () => {
       setLoadingRequirentes(true);
@@ -113,7 +123,7 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [openRequirenteCombobox]);
 
   // Debounce text filters and reset to page 1 only when input changes
   useEffect(() => {
@@ -155,6 +165,16 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
   const fetchRecepciones = useCallback(async () => {
     setIsLoading(true);
     try {
+      const isDefaultQuery =
+        page === 1 &&
+        !debouncedOficio &&
+        !debouncedOc &&
+        !debouncedFolio &&
+        !unidadRequirenteId &&
+        !debouncedDocumento &&
+        estadoFilter === "all" &&
+        !filterDate;
+
       const result = await getAllRecepciones({
         page,
         perPage: 20,
@@ -166,6 +186,9 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
         estado: estadoFilter === "all" ? undefined : estadoFilter,
         fecha_recepcion: filterDate ? format(filterDate, "yyyy-MM-dd") : undefined,
       });
+      if (isDefaultQuery) {
+        cachedInitialRecepciones = result;
+      }
       setRecepcionesData(result);
     } catch (error) {
       console.error(error);
@@ -293,14 +316,11 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
                   role="combobox"
                   aria-expanded={openRequirenteCombobox}
                   className="w-full justify-between bg-background font-normal"
-                  disabled={loadingRequirentes}
                 >
                   <span className="truncate">
-                    {loadingRequirentes
-                      ? "Cargando establecimientos..."
-                      : unidadRequirenteId
-                        ? requirentes.find((r) => r.id === unidadRequirenteId)?.nombre || "Filtrar Establecimiento"
-                        : "Todos los establecimientos"}
+                    {unidadRequirenteId
+                      ? requirentes.find((r) => r.id === unidadRequirenteId)?.nombre || "Filtrar Establecimiento"
+                      : "Todos los establecimientos"}
                   </span>
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -309,7 +329,9 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
                 <Command>
                   <CommandInput placeholder="Buscar establecimiento..." />
                   <CommandList>
-                    <CommandEmpty>No se encontró ningún establecimiento.</CommandEmpty>
+                    <CommandEmpty>
+                      {loadingRequirentes ? "Cargando establecimientos..." : "No se encontró ningún establecimiento."}
+                    </CommandEmpty>
                     <CommandGroup>
                       <CommandItem
                         value="all-establishments Todos los establecimientos"

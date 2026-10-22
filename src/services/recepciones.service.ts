@@ -178,7 +178,7 @@ export async function getAllRecepciones(params: GetRecepcionesParams = {}) {
     fecha_recepcion,
   } = params;
 
-  const filterParts: string[] = ["compra.unidad_requirente.active = true"];
+  const filterParts: string[] = [];
 
   // 1. Filtro exacto por N° de Oficio (numero_ordinario)
   const activeOficio = numero_ordinario?.trim();
