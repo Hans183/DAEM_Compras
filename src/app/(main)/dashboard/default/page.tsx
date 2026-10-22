@@ -2,40 +2,75 @@
 
 import { useEffect, useState } from "react";
 
-import { AlertTriangle, Clock, DollarSign, ShoppingCart, TrendingUp } from "lucide-react";
+import {
+  AlertTriangle,
+  Calendar as CalendarIcon,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  DollarSign,
+  Loader2,
+  ShoppingCart,
+  TrendingUp,
+} from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { type DashboardStats, getDashboardStats } from "@/services/dashboard.service";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { type DashboardStats, getDashboardStats, STAGNATION_DAYS } from "@/services/dashboard.service";
 
+import { BuyersWorkloadChart } from "../_components/charts/buyers-workload-chart";
 import { OperationalFunnelChart } from "../_components/charts/operational-funnel-chart";
 import { ProcessingTimeChart } from "../_components/charts/processing-time-chart";
 import { SpendingBySubventionChart } from "../_components/charts/spending-by-subvention-chart";
 import { TopUnitsChart } from "../_components/charts/top-units-chart";
 import { VolumeTrendChart } from "../_components/charts/volume-trend-chart";
 
-let cachedDashboardStats: DashboardStats | null = null;
+// Caché en memoria por año para carga instantánea al volver a la vista
+const cachedDashboardStats: Record<number, DashboardStats> = {};
+
+const currencyFormatter = new Intl.NumberFormat("es-CL", {
+  style: "currency",
+  currency: "CLP",
+  maximumFractionDigits: 0,
+});
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(cachedDashboardStats);
-  const [loading, setLoading] = useState(!cachedDashboardStats);
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear);
+  const [stats, setStats] = useState<DashboardStats | null>(cachedDashboardStats[currentYear] ?? null);
+  const [loading, setLoading] = useState(!cachedDashboardStats[currentYear]);
+  const [showStagnant, setShowStagnant] = useState(false);
 
   useEffect(() => {
+    let active = true;
+    const cached = cachedDashboardStats[year];
+    if (cached) {
+      setStats(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     async function loadStats() {
       try {
-        const data = await getDashboardStats();
-        cachedDashboardStats = data;
-        setStats(data);
+        const data = await getDashboardStats(year);
+        cachedDashboardStats[year] = data;
+        if (active) setStats(data);
       } catch (error) {
         console.error("Error loading dashboard stats:", error);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     }
     loadStats();
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [year]);
 
-  if (loading) {
+  if (loading && !stats) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-muted-foreground">Cargando tablero...</div>
@@ -45,35 +80,57 @@ export default function DashboardPage() {
 
   if (!stats) return null;
 
-  const currencyFormatter = new Intl.NumberFormat("es-CL", {
-    style: "currency",
-    currency: "CLP",
-  });
-
   return (
     <div className="flex flex-col gap-6 p-6">
-      <h1 className="font-bold text-3xl tracking-tight">Dashboard General</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <h1 className="font-bold text-3xl tracking-tight">Dashboard General</h1>
+          {loading && (
+            <span className="inline-flex items-center gap-1 text-muted-foreground text-xs">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Actualizando...
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+          <Select value={year.toString()} onValueChange={(v) => setYear(Number(v))}>
+            <SelectTrigger className="h-9 w-[110px]">
+              <SelectValue placeholder="Año" />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 5 }, (_, i) => currentYear - i).map((y) => (
+                <SelectItem key={y} value={y.toString()}>
+                  {y}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="font-medium text-sm">Gasto Total (Año)</CardTitle>
+            <CardTitle className="font-medium text-sm">Gasto Total ({stats.year})</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="font-bold text-2xl">{currencyFormatter.format(stats.totalSpent)}</div>
-            <p className="text-muted-foreground text-xs">Pesos chilenos (CLP)</p>
+            <p className="text-muted-foreground text-xs">Suma de Órdenes de Compra</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="font-medium text-sm">Total Órdenes</CardTitle>
+            <CardTitle className="font-medium text-sm">Total Solicitudes</CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="font-bold text-2xl">{stats.totalOrders}</div>
-            <p className="text-muted-foreground text-xs">Órdenes procesadas</p>
+            <div className="font-bold text-2xl">{stats.totalOrders.toLocaleString("es-CL")}</div>
+            <p className="text-muted-foreground text-xs">
+              Sin anuladas{stats.totalAnuladas > 0 ? ` (${stats.totalAnuladas} anuladas excluidas)` : ""}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -82,7 +139,7 @@ export default function DashboardPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="font-bold text-2xl">{stats.rankingUnidades.length}</div>
+            <div className="font-bold text-2xl">{stats.activeUnits}</div>
             <p className="text-muted-foreground text-xs">Unidades con compras</p>
           </CardContent>
         </Card>
@@ -124,8 +181,49 @@ export default function DashboardPage() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Atención Operativa</AlertTitle>
           <AlertDescription>
-            Hay <strong>{stats.stagnationCount} solicitudes estancadas</strong> sin movimiento por más de 10 días. Se
-            recomienda revisar el listado de pendientes.
+            <div className="flex w-full flex-col gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  Hay <strong>{stats.stagnationCount} solicitudes pendientes</strong> (Iniciado, Asignado o En Proceso)
+                  sin movimiento por más de {STAGNATION_DAYS} días.
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 border-red-300 bg-white text-red-900 hover:bg-red-100"
+                  onClick={() => setShowStagnant((v) => !v)}
+                >
+                  {showStagnant ? <ChevronUp className="mr-1 h-3 w-3" /> : <ChevronDown className="mr-1 h-3 w-3" />}
+                  {showStagnant ? "Ocultar" : "Ver detalle"}
+                </Button>
+              </div>
+              {showStagnant && (
+                <div className="max-h-[300px] overflow-y-auto rounded-md border border-red-200 bg-white">
+                  <table className="w-full text-xs">
+                    <thead className="sticky top-0 bg-red-100/80 text-left">
+                      <tr>
+                        <th className="px-3 py-2 font-semibold">N° Ord.</th>
+                        <th className="px-3 py-2 font-semibold">Unidad</th>
+                        <th className="px-3 py-2 font-semibold">Comprador</th>
+                        <th className="px-3 py-2 font-semibold">Estado</th>
+                        <th className="px-3 py-2 text-right font-semibold">Días sin movimiento</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-red-100">
+                      {stats.stagnantCompras.map((c) => (
+                        <tr key={c.id}>
+                          <td className="px-3 py-1.5 font-mono">{c.numero_ordinario}</td>
+                          <td className="px-3 py-1.5">{c.unidad}</td>
+                          <td className="px-3 py-1.5">{c.comprador}</td>
+                          <td className="px-3 py-1.5">{c.estado}</td>
+                          <td className="px-3 py-1.5 text-right font-semibold">{c.days}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </AlertDescription>
         </Alert>
       )}
@@ -151,6 +249,11 @@ export default function DashboardPage() {
         <div className="lg:col-span-2">
           <TopUnitsChart data={stats.rankingUnidades} />
         </div>
+      </div>
+
+      {/* Row 3: Buyers workload */}
+      <div className="grid gap-4">
+        <BuyersWorkloadChart data={stats.rankingCompradores} />
       </div>
     </div>
   );

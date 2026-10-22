@@ -57,7 +57,7 @@ export function SpendingBySubventionChart({ data }: SpendingBySubventionChartPro
     <Card className="flex flex-col">
       <CardHeader className="items-center pb-0">
         <CardTitle>Gasto por Subvención</CardTitle>
-        <CardDescription>Distribución del gasto total</CardDescription>
+        <CardDescription>Distribución del gasto real en Órdenes de Compra</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         <ChartContainer config={chartConfig} className="mx-auto aspect-square max-h-[300px]">

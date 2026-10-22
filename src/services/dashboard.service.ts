@@ -1,11 +1,25 @@
 import { differenceInDays, format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
-import { getCompras } from "./compras.service";
+import pb from "@/lib/pocketbase";
+import type { Compra } from "@/types/compra";
+import type { OrdenCompra } from "@/types/orden-compra";
+
+export interface StagnantCompra {
+  id: string;
+  numero_ordinario: number;
+  unidad: string;
+  comprador: string;
+  estado: string;
+  days: number;
+}
 
 export interface DashboardStats {
+  year: number;
   totalSpent: number;
   totalOrders: number;
+  totalAnuladas: number;
+  activeUnits: number;
   totalSavings: number;
   conversionRate: number;
   avgCycleTime: number;
@@ -13,114 +27,145 @@ export interface DashboardStats {
   volumeTrend: { month: string; count: number }[];
   funnelData: { stage: string; count: number; fill: string }[];
   stagnationCount: number;
+  stagnantCompras: StagnantCompra[];
   rankingCompradores: { name: string; amount: number; count: number }[];
   rankingUnidades: { name: string; amount: number; count: number }[];
   rankingSubvenciones: { name: string; amount: number; count: number }[];
 }
 
-export async function getDashboardStats(): Promise<DashboardStats> {
-  const currentYear = new Date().getFullYear();
-  const records = await getCompras({
-    perPage: 1000,
-    sort: "-created",
-    created_from: `${currentYear}-01-01 00:00:00`,
-  });
+/** Estados que se consideran "pendientes" para la alerta de estancamiento */
+const PENDING_STATES = ["Iniciado", "Asignado", "En Proceso"];
+/** Estados que se consideran compra terminada */
+const COMPLETED_STATES = ["Comprado", "Facturado", "En Bodega", "Entregado"];
+/** Días sin movimiento para considerar una solicitud estancada */
+export const STAGNATION_DAYS = 10;
 
-  const items = records.items;
+const getRequestDate = (item: Compra) => item.fecha_solicitud || item.fecha_inicio || item.created;
 
-  const totalSpent = items.reduce((sum, item) => sum + (item.presupuesto || 0), 0);
-  const totalOrders = items.length;
+export async function getDashboardStats(year: number = new Date().getFullYear()): Promise<DashboardStats> {
+  const start = `${year}-01-01`;
+  const end = `${year + 1}-01-01`;
 
-  // Aggregations
+  // Mismo criterio de año que el resto del sistema: fecha_inicio, con respaldo en created.
+  const yearFilter = `((fecha_inicio >= "${start}" && fecha_inicio < "${end}") || (fecha_inicio = "" && created >= "${start}" && created < "${end}"))`;
+
+  // Consultas en paralelo, trayendo TODOS los registros del año (sin tope de 1000)
+  // y solo los campos necesarios para minimizar el payload.
+  const [allCompras, allOcs] = await Promise.all([
+    pb.collection("compras").getFullList<Compra>({
+      filter: yearFilter,
+      sort: "-created",
+      expand: "unidad_requirente,comprador,subvencion",
+      fields:
+        "id,numero_ordinario,estado,presupuesto,comprador,unidad_requirente,subvencion,fecha_inicio,fecha_solicitud,created,updated,expand.unidad_requirente.nombre,expand.comprador.name,expand.subvencion.nombre",
+      batch: 1000,
+    }),
+    // Las OCs de compras del año se crean desde ese año en adelante
+    pb
+      .collection("ordenes_compra")
+      .getFullList<OrdenCompra>({
+        filter: `created >= "${start}"`,
+        fields: "compra,oc_valor,oc_fecha",
+        batch: 1000,
+      }),
+  ]);
+
+  // Agrupar OCs por compra
+  const ocsByCompra = new Map<string, OrdenCompra[]>();
+  for (const oc of allOcs) {
+    if (!oc.compra) continue;
+    const list = ocsByCompra.get(oc.compra);
+    if (list) list.push(oc);
+    else ocsByCompra.set(oc.compra, [oc]);
+  }
+
+  // Excluir anuladas de todos los indicadores
+  const totalAnuladas = allCompras.filter((c) => c.estado === "Anulado").length;
+  const items = allCompras.filter((c) => c.estado !== "Anulado");
+
   const compradoresMap = new Map<string, { amount: number; count: number }>();
   const unidadesMap = new Map<string, { amount: number; count: number }>();
   const subvencionesMap = new Map<string, { amount: number; count: number }>();
-
-  // Cycle Time & Stagnation Calculation
-  let totalDays = 0;
-  let validCycleCount = 0;
   const monthlyCycleMap = new Map<string, { totalDays: number; count: number }>();
   const monthlyVolumeMap = new Map<string, number>();
+
+  let totalSpent = 0;
+  let totalSavings = 0;
+  let totalDays = 0;
+  let validCycleCount = 0;
   let totalRequestsWithOc = 0;
-  let stagnationCount = 0;
+  let countAssigned = 0;
+  let countCompleted = 0;
+  const stagnantCompras: StagnantCompra[] = [];
   const now = new Date();
 
-  // Funnel Counters
-  let countAssigned = 0;
-  let countWithOC = 0;
-  let countCompleted = 0;
+  const addTo = (map: Map<string, { amount: number; count: number }>, key: string, amount: number) => {
+    const stats = map.get(key) || { amount: 0, count: 0 };
+    stats.amount += amount;
+    stats.count += 1;
+    map.set(key, stats);
+  };
 
-  items.forEach((item) => {
-    // Funnel Logic
+  for (const item of items) {
+    const ocs = ocsByCompra.get(item.id) || [];
+    const ocTotal = ocs.reduce((sum, oc) => sum + (oc.oc_valor || 0), 0);
+    const hasOC = ocs.length > 0;
+
+    // Gasto real = suma de las Órdenes de Compra
+    totalSpent += ocTotal;
+
+    // Ahorro: presupuesto vs valor OC (solo si hay ambos)
+    const budget = item.presupuesto || 0;
+    if (hasOC && budget > 0) totalSavings += Math.max(0, budget - ocTotal);
+
+    // Embudo
     if (item.comprador) countAssigned++;
+    if (hasOC) totalRequestsWithOc++;
+    if (COMPLETED_STATES.includes(item.estado)) countCompleted++;
 
-    const hasOC = item.expand?.["ordenes_compra(compra)"] && item.expand["ordenes_compra(compra)"].length > 0;
-    if (hasOC) countWithOC++;
-
-    const isCompleted = ["Comprado", "Entregado", "En Bodega", "Recepcionado"].includes(item.estado);
-    if (isCompleted) countCompleted++;
-
-    // Stagnation Logic
-    // Ignore terminal states
-    if (!["Anulado", "Entregado", "Comprado", "En Bodega"].includes(item.estado)) {
-      const lastUpdate = new Date(item.updated);
-      const daysSinceUpdate = differenceInDays(now, lastUpdate);
-      if (daysSinceUpdate > 10) {
-        stagnationCount++;
+    // Estancamiento: solo estados realmente pendientes
+    if (PENDING_STATES.includes(item.estado)) {
+      const days = differenceInDays(now, new Date(item.updated));
+      if (days > STAGNATION_DAYS) {
+        stagnantCompras.push({
+          id: item.id,
+          numero_ordinario: item.numero_ordinario,
+          unidad: item.expand?.unidad_requirente?.nombre || "Sin Unidad",
+          comprador: item.expand?.comprador?.name || "Sin Asignar",
+          estado: item.estado,
+          days,
+        });
       }
     }
 
-    // Stats aggregation
-    const compradorName = item.expand?.comprador?.name || "Sin Asignar";
-    const compStats = compradoresMap.get(compradorName) || { amount: 0, count: 0 };
-    compStats.amount += item.presupuesto || 0;
-    compStats.count += 1;
-    compradoresMap.set(compradorName, compStats);
+    // Rankings (monto = valor real de OCs)
+    addTo(compradoresMap, item.expand?.comprador?.name || "Sin Asignar", ocTotal);
+    addTo(unidadesMap, item.expand?.unidad_requirente?.nombre || "Sin Unidad", ocTotal);
+    addTo(subvencionesMap, item.expand?.subvencion?.nombre || "Sin Subvención", ocTotal);
 
-    const unidadName = item.expand?.unidad_requirente?.nombre || "Sin Unidad";
-    const uniStats = unidadesMap.get(unidadName) || { amount: 0, count: 0 };
-    uniStats.amount += item.presupuesto || 0;
-    uniStats.count += 1;
-    unidadesMap.set(unidadName, uniStats);
+    // Volumen mensual
+    const requestDateStr = getRequestDate(item);
+    const requestDate = parseISO(requestDateStr);
+    if (!Number.isNaN(requestDate.getTime()) && requestDate.getFullYear() === year) {
+      const key = format(requestDate, "yyyy-MM");
+      monthlyVolumeMap.set(key, (monthlyVolumeMap.get(key) || 0) + 1);
+    }
 
-    const subvName = item.expand?.subvencion?.nombre || "Sin Subvención";
-    const subStats = subvencionesMap.get(subvName) || { amount: 0, count: 0 };
-    subStats.amount += item.presupuesto || 0;
-    subStats.count += 1;
-    subvencionesMap.set(subvName, subStats);
-
-    // Track Monthly Volume (Seasonality)
-    const creationMonth = format(parseISO(item.fecha_solicitud || item.fecha_inicio || item.created), "yyyy-MM");
-    monthlyVolumeMap.set(creationMonth, (monthlyVolumeMap.get(creationMonth) || 0) + 1);
-
-    // Calculate Cycle Time
-    // Logic: Date of first OC - Date of Request (or Request assignment)
-    // We look for the earliest OC date for this purchase
-    const requestDateStr = item.fecha_solicitud || item.fecha_inicio || item.created;
-
-    if (requestDateStr && item.expand?.["ordenes_compra(compra)"] && item.expand["ordenes_compra(compra)"].length > 0) {
-      totalRequestsWithOc++;
-      const ocs = item.expand["ordenes_compra(compra)"];
-      // Find earliest OC date
+    // Tiempo de ciclo: primera OC - fecha de solicitud
+    if (hasOC && !Number.isNaN(requestDate.getTime())) {
       const dates = ocs
         .map((oc) => oc.oc_fecha)
         .filter(Boolean)
-        .map((d) => parseISO(d).getTime());
+        .map((d) => parseISO(d).getTime())
+        .filter((t) => !Number.isNaN(t));
 
       if (dates.length > 0) {
         const firstOcDate = new Date(Math.min(...dates));
-        const requestDate = parseISO(requestDateStr);
-
         const days = differenceInDays(firstOcDate, requestDate);
-
-        // Quality Filter:
-        // 1. Ignore negative days (likely bad data entry where OC predates request)
-        // 2. Ignore extreme outliers (e.g., > 120 days) that skew the average of "normal" operations
+        // Filtro de calidad: descartar negativos y outliers extremos
         if (days >= 0 && days < 120) {
           totalDays += days;
           validCycleCount++;
-
-          // Monthly Trend (based on OC creation date)
           const monthKey = format(firstOcDate, "yyyy-MM");
           const monthStats = monthlyCycleMap.get(monthKey) || { totalDays: 0, count: 0 };
           monthStats.totalDays += days;
@@ -129,79 +174,71 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         }
       }
     }
+  }
+
+  const totalOrders = items.length;
+  const avgCycleTime = validCycleCount > 0 ? Math.round(totalDays / validCycleCount) : 0;
+  const conversionRate = totalOrders > 0 ? Math.round((totalRequestsWithOc / totalOrders) * 100) : 0;
+
+  const monthLabel = (key: string) => {
+    const [y, m] = key.split("-");
+    return format(new Date(parseInt(y, 10), parseInt(m, 10) - 1), "MMM", { locale: es });
+  };
+
+  // Volumen: mostrar todos los meses del año (hasta el mes actual si es el año en curso), incluso con 0
+  const lastMonth = year === now.getFullYear() ? now.getMonth() : 11;
+  const volumeTrend = Array.from({ length: lastMonth + 1 }, (_, i) => {
+    const key = `${year}-${String(i + 1).padStart(2, "0")}`;
+    return { month: monthLabel(key), count: monthlyVolumeMap.get(key) || 0 };
   });
 
-  const avgCycleTime = validCycleCount > 0 ? Math.round(totalDays / validCycleCount) : 0;
-  const conversionRate = items.length > 0 ? Math.round((totalRequestsWithOc / items.length) * 100) : 0;
-
-  // Calculate Institutional Savings
-  // Based on (Budget of purchases with OC) - (Sum of OC values)
-  const totalSavings = items.reduce((acc, item) => {
-    const budget = item.presupuesto || 0;
-    const ocs = item.expand?.["ordenes_compra(compra)"] || [];
-    if (ocs.length === 0) return acc;
-
-    const ocTotal = ocs.reduce((sum, oc) => sum + (oc.oc_valor || 0), 0);
-    // Only count as savings if we have a budget and it's positive
-    return acc + Math.max(0, budget - ocTotal);
-  }, 0);
-
-  // Process Trend Data
   const cycleTimeTrend = Array.from(monthlyCycleMap.entries())
-    .sort((a, b) => a[0].localeCompare(b[0])) // Sort by YYYY-MM
-    .map(([key, stats]) => {
-      // Convert YYYY-MM to Month Name
-      const [year, month] = key.split("-");
-      const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1);
-      return {
-        month: format(date, "MMM", { locale: es }), // e.g. "ene"
-        days: Math.round(stats.totalDays / stats.count),
-      };
-    });
-
-  const volumeTrend = Array.from(monthlyVolumeMap.entries())
+    .filter(([key]) => key.startsWith(String(year)))
     .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([key, count]) => {
-      const [year, month] = key.split("-");
-      const date = new Date(parseInt(year, 10), parseInt(month, 10) - 1);
-      return {
-        month: format(date, "MMM", { locale: es }),
-        count,
-      };
-    });
+    .map(([key, stats]) => ({
+      month: monthLabel(key),
+      days: Math.round(stats.totalDays / stats.count),
+    }));
 
-  // Convert to arrays and sort rankings
-  const rankingCompradores = Array.from(compradoresMap.entries())
-    .map(([name, stats]) => ({ name, ...stats }))
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 10);
+  const toRanking = (map: Map<string, { amount: number; count: number }>) =>
+    Array.from(map.entries()).map(([name, stats]) => ({ name, ...stats }));
 
-  const rankingUnidades = Array.from(unidadesMap.entries())
-    .map(([name, stats]) => ({ name, ...stats }))
+  const rankingCompradores = toRanking(compradoresMap)
+    .filter((c) => c.name !== "Sin Asignar")
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
-  const rankingSubvenciones = Array.from(subvencionesMap.entries())
-    .map(([name, stats]) => ({ name, ...stats }))
+  const rankingUnidades = toRanking(unidadesMap)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  const rankingSubvenciones = toRanking(subvencionesMap)
+    .filter((s) => s.amount > 0)
     .sort((a, b) => b.amount - a.amount);
+
+  stagnantCompras.sort((a, b) => b.days - a.days);
 
   const funnelData = [
     { stage: "Solicitudes", count: totalOrders, fill: "var(--color-solicitudes)" },
     { stage: "Asignadas", count: countAssigned, fill: "var(--color-asignadas)" },
-    { stage: "Con OC", count: countWithOC, fill: "var(--color-con-oc)" },
+    { stage: "Con OC", count: totalRequestsWithOc, fill: "var(--color-con-oc)" },
     { stage: "Terminadas", count: countCompleted, fill: "var(--color-terminadas)" },
   ];
 
   return {
+    year,
     totalSpent,
     totalOrders,
+    totalAnuladas,
+    activeUnits: unidadesMap.size,
     totalSavings,
     conversionRate,
     avgCycleTime,
     cycleTimeTrend,
     volumeTrend,
     funnelData,
-    stagnationCount,
+    stagnationCount: stagnantCompras.length,
+    stagnantCompras,
     rankingCompradores,
     rankingUnidades,
     rankingSubvenciones,

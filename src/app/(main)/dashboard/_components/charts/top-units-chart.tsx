@@ -23,7 +23,7 @@ export function TopUnitsChart({ data }: TopUnitsChartProps) {
     <Card>
       <CardHeader>
         <CardTitle>Unidades con más compras</CardTitle>
-        <CardDescription>Por cantidad de órdenes (Año en curso)</CardDescription>
+        <CardDescription>Top 10 por cantidad de solicitudes (sin anuladas)</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
