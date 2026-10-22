@@ -51,7 +51,7 @@ interface RecepcionDialogProps {
   compra: Compra;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
+  onSuccess: (recepcion?: Recepcion) => void;
   currentUser: User | null;
   initialData?: Recepcion;
 }
@@ -236,8 +236,9 @@ export function RecepcionDialog({
       // Convert FileList to array
       const adjuntosArray = data.adjuntos && data.adjuntos.length > 0 ? Array.from(data.adjuntos as FileList) : [];
 
+      let savedRecepcion: Recepcion;
       if (initialData) {
-        await updateRecepcion(initialData.id, {
+        savedRecepcion = await updateRecepcion(initialData.id, {
           compra: compra.id,
           orden_compra: data.orden_compra,
           fecha_recepcion: new Date(data.fecha_recepcion),
@@ -251,7 +252,7 @@ export function RecepcionDialog({
         });
         toast.success("Recepción actualizada correctamente");
       } else {
-        await createRecepcion({
+        savedRecepcion = await createRecepcion({
           compra: compra.id,
           orden_compra: data.orden_compra,
           fecha_recepcion: new Date(data.fecha_recepcion), // Service formats this
@@ -267,7 +268,7 @@ export function RecepcionDialog({
       }
 
       form.reset();
-      onSuccess();
+      onSuccess(savedRecepcion);
       onOpenChange(false);
     } catch (error) {
       console.error("Error creating/updating reception:", error);
@@ -415,7 +416,7 @@ export function RecepcionDialog({
                   </div>
                 </div>
 
-                <Table>
+                <Table className="table-fixed">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[100px]">Cant.</TableHead>
@@ -426,7 +427,7 @@ export function RecepcionDialog({
                   <TableBody>
                     {fields.map((field, index) => (
                       <TableRow key={field.id}>
-                        <TableCell>
+                        <TableCell className="align-top">
                           <FormField
                             control={form.control}
                             name={`detalles.${index}.cantidad`}
@@ -444,24 +445,29 @@ export function RecepcionDialog({
                             )}
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-normal align-top">
                           <FormField
                             control={form.control}
                             name={`detalles.${index}.detalle`}
                             render={({ field }) => (
                               <FormControl>
-                                <Input placeholder="Descripción del producto..." className="h-8" {...field} />
+                                <Textarea
+                                  rows={1}
+                                  placeholder="Descripción del producto..."
+                                  className="min-h-8 w-full resize-y whitespace-pre-wrap break-words py-1.5 leading-snug"
+                                  {...field}
+                                />
                               </FormControl>
                             )}
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="align-top">
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
                             onClick={() => remove(index)}
-                            className="text-destructive hover:bg-destructive/10"
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
                             disabled={fields.length === 1}
                           >
                             <Trash2 className="h-4 w-4" />

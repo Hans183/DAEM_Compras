@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 
 import pb from "@/lib/pocketbase";
-import type { CreateRecepcionDTO, Recepcion, RecepcionDetalle } from "@/types/recepcion";
+import type { CreateRecepcionDTO, GetRecepcionesParams, Recepcion, RecepcionDetalle } from "@/types/recepcion";
 
 export const RECEPCIONES_COLLECTION = "recepciones";
 export const DETALLES_COLLECTION = "recepcion_detalles";
@@ -72,7 +72,9 @@ export async function createRecepcion(data: CreateRecepcionDTO) {
 
   const recepcion = await pb
     .collection(RECEPCIONES_COLLECTION)
-    .create<Recepcion>(formData)
+    .create<Recepcion>(formData, {
+      expand: "recepcionado_por,orden_compra",
+    })
     .catch((error: unknown) => {
       const err = error as { response?: { data?: unknown } };
       console.error("Validation errors:", JSON.stringify(err.response?.data, null, 2));
@@ -89,9 +91,15 @@ export async function createRecepcion(data: CreateRecepcionDTO) {
     });
   });
 
-  await Promise.all(detailPromises);
+  const createdDetalles = await Promise.all(detailPromises);
 
-  return recepcion;
+  return {
+    ...recepcion,
+    expand: {
+      ...recepcion.expand,
+      "recepcion_detalles(recepcion)": createdDetalles,
+    },
+  } as Recepcion;
 }
 
 export async function updateRecepcion(id: string, data: Partial<CreateRecepcionDTO>) {
@@ -111,7 +119,9 @@ export async function updateRecepcion(id: string, data: Partial<CreateRecepcionD
     });
   }
 
-  const recepcion = await pb.collection(RECEPCIONES_COLLECTION).update<Recepcion>(id, formData);
+  const recepcion = await pb.collection(RECEPCIONES_COLLECTION).update<Recepcion>(id, formData, {
+    expand: "recepcionado_por,orden_compra",
+  });
 
   // 2. Update Details: simplistic approach - delete all and recreate
   // Ideally we should diff, but for now this ensures consistency
@@ -126,6 +136,7 @@ export async function updateRecepcion(id: string, data: Partial<CreateRecepcionD
   await Promise.all(deletePromises);
 
   // Recreate them from data
+  let createdDetalles: RecepcionDetalle[] = [];
   if (data.detalles && data.detalles.length > 0) {
     const detailPromises = data.detalles.map((detalle) => {
       return pb.collection(DETALLES_COLLECTION).create<RecepcionDetalle>({
@@ -134,36 +145,160 @@ export async function updateRecepcion(id: string, data: Partial<CreateRecepcionD
         detalle: detalle.detalle,
       });
     });
-    await Promise.all(detailPromises);
+    createdDetalles = await Promise.all(detailPromises);
   }
 
-  return recepcion;
+  return {
+    ...recepcion,
+    expand: {
+      ...recepcion.expand,
+      "recepcion_detalles(recepcion)": createdDetalles,
+    },
+  } as Recepcion;
 }
 
 export async function getRecepcionesByCompra(compraId: string) {
   return await pb.collection(RECEPCIONES_COLLECTION).getFullList<Recepcion>({
     filter: `compra = "${compraId}"`,
     sort: "-created",
-    expand: "recepcionado_por,recepcion_detalles(recepcion)",
+    expand: "recepcionado_por,orden_compra,recepcion_detalles(recepcion)",
   });
 }
 
-export async function getAllRecepciones(page = 1, perPage = 50, filters = "") {
+export async function getAllRecepciones(params: GetRecepcionesParams = {}) {
+  const {
+    page = 1,
+    perPage = 30,
+    numero_ordinario,
+    oc,
+    folio,
+    unidad_requirente_id,
+    documento_numero,
+    estado,
+    fecha_recepcion,
+  } = params;
+
+  const filterParts: string[] = ["compra.unidad_requirente.active = true"];
+
+  // 1. Filtro exacto por N° de Oficio (numero_ordinario)
+  const activeOficio = numero_ordinario?.trim();
+  if (activeOficio) {
+    const cleanNum = activeOficio.replace(/^(?:oficio|ord(?:inario)?|n[°º]?)\.?\s*#?\s*/i, "").trim();
+    if (/^\d+$/.test(cleanNum)) {
+      const numOrdinario = Number(cleanNum);
+      const oficioParts: string[] = [`compra.numero_ordinario = ${numOrdinario}`];
+      try {
+        const compraResult = await pb.collection("compras").getList(1, 50, {
+          filter: `numero_ordinario = ${numOrdinario}`,
+          fields: "id",
+          sort: "-created",
+        });
+        compraResult.items.forEach((item) => {
+          if (item.id) oficioParts.push(`compra = "${item.id}"`);
+        });
+      } catch (error) {
+        console.error("Error filtering compras by numero_ordinario:", error);
+      }
+      filterParts.push(`(${oficioParts.join(" || ")})`);
+    } else {
+      filterParts.push(`id = "none"`);
+    }
+  }
+
+  // 2. Filtro por N° de Orden de Compra (OC)
+  const activeOc = oc?.trim();
+  if (activeOc) {
+    const escapedOc = activeOc.replace(/"/g, '\\"');
+    const cleanOc = activeOc
+      .replace(/^oc[:.\s-]*/i, "")
+      .trim()
+      .replace(/"/g, '\\"');
+    const ocFilter =
+      cleanOc && cleanOc !== escapedOc ? `(oc ~ "${escapedOc}" || oc ~ "${cleanOc}")` : `oc ~ "${escapedOc}"`;
+
+    try {
+      const ocResult = await pb.collection("ordenes_compra").getList(1, 50, {
+        filter: ocFilter,
+        fields: "id,compra",
+        sort: "-created",
+      });
+
+      const ocParts: string[] = [];
+      ocResult.items.forEach((item) => {
+        if (item.id) ocParts.push(`orden_compra = "${item.id}"`);
+        if (item.compra) ocParts.push(`(orden_compra = "" && compra = "${item.compra}")`);
+      });
+
+      if (ocParts.length > 0) {
+        filterParts.push(`(${ocParts.join(" || ")})`);
+      } else {
+        filterParts.push(`id = "none"`);
+      }
+    } catch (error) {
+      console.error("Error filtering ordenes_compra by oc:", error);
+      filterParts.push(`id = "none"`);
+    }
+  }
+
+  // 3. Filtro por Folio de Recepción
+  const activeFolio = folio?.trim();
+  if (activeFolio) {
+    const escapedFolio = activeFolio.replace(/"/g, '\\"');
+    if (/^\d+$/.test(activeFolio)) {
+      const padded = activeFolio.padStart(3, "0");
+      filterParts.push(`(folio ~ "-${padded}" || folio ~ "${escapedFolio}")`);
+    } else {
+      filterParts.push(`folio ~ "${escapedFolio}"`);
+    }
+  }
+
+  // 4. Filtro por Unidad Requirente / Establecimiento
+  if (unidad_requirente_id) {
+    filterParts.push(`compra.unidad_requirente = "${unidad_requirente_id}"`);
+  }
+
+  // 5. Filtro por N° de Documento de respaldo
+  const activeDoc = documento_numero?.trim();
+  if (activeDoc) {
+    const escapedDoc = activeDoc.replace(/"/g, '\\"');
+    filterParts.push(`documento_numero ~ "${escapedDoc}"`);
+  }
+
+  // 6. Filtro por Estado de la Recepción
+  if (estado && estado !== "all") {
+    if (estado === "Conforme") {
+      filterParts.push(`(estado = "Conforme" || estado = "")`);
+    } else {
+      const escapedEstado = estado.replace(/"/g, '\\"');
+      filterParts.push(`estado = "${escapedEstado}"`);
+    }
+  }
+
+  // 7. Filtro por Fecha de Recepción
+  if (fecha_recepcion) {
+    filterParts.push(`fecha_recepcion ~ "${fecha_recepcion}"`);
+  }
+
   return await pb.collection(RECEPCIONES_COLLECTION).getList<Recepcion>(page, perPage, {
     sort: "-created",
-    filter: filters
-      ? `(${filters}) && compra.unidad_requirente.active = true`
-      : "compra.unidad_requirente.active = true",
+    filter: filterParts.join(" && "),
     expand:
       "recepcionado_por,recepcion_detalles(recepcion),compra,compra.unidad_requirente,compra.comprador,orden_compra,compra.ordenes_compra(compra),compra.subvencion,compra.numero_ordinario(ordinario)",
   });
 }
 
 export async function getRecepcionById(id: string) {
-  return await pb.collection(RECEPCIONES_COLLECTION).getOne<Recepcion>(id, {
-    expand:
-      "recepcionado_por,recepcion_detalles(recepcion),compra,compra.unidad_requirente,compra.proveedor,compra.comprador,orden_compra,compra.ordenes_compra(compra),compra.subvencion,compra.numero_ordinario(ordinario)",
-  });
+  const expand =
+    "recepcionado_por,recepcion_detalles(recepcion),compra,compra.unidad_requirente,compra.proveedor,compra.comprador,orden_compra,compra.ordenes_compra(compra),compra.subvencion,compra.numero_ordinario(ordinario)";
+  try {
+    return await pb.collection(RECEPCIONES_COLLECTION).getOne<Recepcion>(id, {
+      expand,
+    });
+  } catch {
+    return await pb.collection(RECEPCIONES_COLLECTION).getFirstListItem<Recepcion>(`id = "${id}"`, {
+      expand,
+    });
+  }
 }
 
 export async function cancelRecepcion(id: string, motivo: string) {

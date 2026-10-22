@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import type { Compra } from "@/types/compra";
+import type { Recepcion } from "@/types/recepcion";
 import type { User } from "@/types/user";
 import { parseToLocalDate } from "@/utils/date-utils";
 import { canCreateRecepcion, canViewPresupuesto } from "@/utils/permissions";
@@ -39,6 +40,7 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
   const effectiveUser = currentUser ?? authUser;
   const [isRecepcionDialogOpen, setIsRecepcionDialogOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [latestRecepcion, setLatestRecepcion] = useState<Recepcion | null>(null);
 
   const showPresupuesto = canViewPresupuesto(effectiveUser?.role);
 
@@ -208,7 +210,7 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
           )}
         </div>
         <div className="rounded-md bg-background">
-          <RecepcionesList compraId={compra.id} refreshTrigger={refreshTrigger} />
+          <RecepcionesList compraId={compra.id} refreshTrigger={refreshTrigger} latestRecepcion={latestRecepcion} />
         </div>
       </div>
 
@@ -235,7 +237,12 @@ export function CompraSheet({ compra, currentUser, linkedOcId }: CompraSheetProp
           open={isRecepcionDialogOpen}
           onOpenChange={setIsRecepcionDialogOpen}
           currentUser={effectiveUser}
-          onSuccess={() => setRefreshTrigger((prev) => prev + 1)}
+          onSuccess={(newRecepcion) => {
+            if (newRecepcion) {
+              setLatestRecepcion(newRecepcion);
+            }
+            setRefreshTrigger((prev) => prev + 1);
+          }}
         />
       )}
     </div>

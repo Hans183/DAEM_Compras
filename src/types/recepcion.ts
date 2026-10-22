@@ -47,3 +47,15 @@ export interface CreateRecepcionDTO {
     detalle: string;
   }[];
 }
+
+export interface GetRecepcionesParams {
+  page?: number;
+  perPage?: number;
+  numero_ordinario?: string;
+  oc?: string;
+  folio?: string;
+  unidad_requirente_id?: string;
+  documento_numero?: string;
+  estado?: string;
+  fecha_recepcion?: string;
+}

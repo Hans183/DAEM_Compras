@@ -3,7 +3,16 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { format, parseISO } from "date-fns";
-import { Calendar, ChevronDown, ChevronRight, FileText, Loader2, Package, User as UserIcon } from "lucide-react";
+import {
+  Calendar,
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  Loader2,
+  Package,
+  Printer,
+  User as UserIcon,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,34 +25,55 @@ import type { Recepcion } from "@/types/recepcion";
 interface RecepcionesListProps {
   compraId: string;
   refreshTrigger?: number; // Prop to trigger refresh from parent
+  latestRecepcion?: Recepcion | null;
 }
 
-export function RecepcionesList({ compraId }: RecepcionesListProps) {
+export function RecepcionesList({ compraId, refreshTrigger = 0, latestRecepcion }: RecepcionesListProps) {
   const [recepciones, setRecepciones] = useState<Recepcion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
 
-  const fetchRecepciones = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const data = await getRecepcionesByCompra(compraId);
-      setRecepciones(data);
-      // Auto expand if there's only one? No, let's keep it collapsed by default or expand recent.
-      if (data.length > 0) {
-        setExpandedIds([data[0].id]); // Expand latest by default
+  const fetchRecepciones = useCallback(
+    async (isSilent = false) => {
+      if (!isSilent) {
+        setIsLoading(true);
       }
-    } catch (error) {
-      console.error("Error fetching recepciones:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [compraId]);
+      try {
+        const data = await getRecepcionesByCompra(compraId);
+        setRecepciones(data);
+        if (data.length > 0) {
+          setExpandedIds((prev) => (prev.includes(data[0].id) ? prev : [data[0].id, ...prev]));
+        }
+      } catch (error) {
+        console.error("Error fetching recepciones:", error);
+      } finally {
+        if (!isSilent) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [compraId],
+  );
 
   useEffect(() => {
     if (compraId) {
-      fetchRecepciones();
+      fetchRecepciones(refreshTrigger > 0);
     }
-  }, [compraId, fetchRecepciones]);
+  }, [compraId, refreshTrigger, fetchRecepciones]);
+
+  useEffect(() => {
+    if (latestRecepcion && latestRecepcion.compra === compraId) {
+      setRecepciones((prev) => {
+        const exists = prev.some((r) => r.id === latestRecepcion.id);
+        if (exists) {
+          return prev.map((r) => (r.id === latestRecepcion.id ? latestRecepcion : r));
+        }
+        return [latestRecepcion, ...prev];
+      });
+      setExpandedIds((prev) => (prev.includes(latestRecepcion.id) ? prev : [latestRecepcion.id, ...prev]));
+      setIsLoading(false);
+    }
+  }, [latestRecepcion, compraId]);
 
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
@@ -81,13 +111,26 @@ export function RecepcionesList({ compraId }: RecepcionesListProps) {
                   {format(parseISO(recepcion.fecha_recepcion), "dd/MM/yyyy")}
                 </span>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => toggleExpand(recepcion.id)} className="h-8 w-8 p-0">
-                {expandedIds.includes(recepcion.id) ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`/imprimir/recepciones/${recepcion.id}`, "_blank")}
+                  className="h-8 gap-1.5 text-xs print:hidden"
+                  title={`Imprimir recepción ${recepcion.folio}`}
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  Imprimir
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => toggleExpand(recepcion.id)} className="h-8 w-8 p-0">
+                  {expandedIds.includes(recepcion.id) ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
             <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-muted-foreground text-sm">
               <div className="flex items-center gap-1">
@@ -113,7 +156,7 @@ export function RecepcionesList({ compraId }: RecepcionesListProps) {
                 )}
 
                 <div className="px-4 py-2">
-                  <Table>
+                  <Table className="table-fixed">
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
                         <TableHead className="h-8 w-[80px]">Cant.</TableHead>
@@ -123,8 +166,10 @@ export function RecepcionesList({ compraId }: RecepcionesListProps) {
                     <TableBody className="text-sm">
                       {recepcion.expand?.["recepcion_detalles(recepcion)"]?.map((detalle) => (
                         <TableRow key={detalle.id} className="hover:bg-transparent">
-                          <TableCell className="py-2 font-medium">{detalle.cantidad}</TableCell>
-                          <TableCell className="py-2">{detalle.detalle}</TableCell>
+                          <TableCell className="py-2 align-top font-medium">{detalle.cantidad}</TableCell>
+                          <TableCell className="whitespace-pre-wrap break-words py-2 align-top leading-relaxed">
+                            {detalle.detalle}
+                          </TableCell>
                         </TableRow>
                       ))}
                       {(!recepcion.expand?.["recepcion_detalles(recepcion)"] ||

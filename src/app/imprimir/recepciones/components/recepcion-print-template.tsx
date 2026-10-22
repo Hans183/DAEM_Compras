@@ -83,10 +83,10 @@ export function RecepcionPrintTemplate({ recepcion, label }: RecepcionPrintTempl
 
         {/* Items Table */}
         <div className="min-h-[300px]">
-          <table className="w-full border-collapse">
+          <table className="w-full table-fixed border-collapse">
             <thead>
               <tr className="border-gray-300 border-b bg-gray-100">
-                <th className="w-20 px-3 py-1 text-left font-bold text-gray-600 text-xs uppercase">Cantidad</th>
+                <th className="w-24 px-3 py-1 text-left font-bold text-gray-600 text-xs uppercase">Cantidad</th>
                 <th className="px-3 py-1 text-left font-bold text-gray-600 text-xs uppercase">
                   Descripción del Artículo / Servicio
                 </th>
@@ -96,8 +96,10 @@ export function RecepcionPrintTemplate({ recepcion, label }: RecepcionPrintTempl
               {detalles.length > 0 ? (
                 detalles.map((detalle, index) => (
                   <tr key={detalle.id || index} className="border-gray-200 border-b">
-                    <td className="px-3 py-1 text-center align-top font-mono">{detalle.cantidad}</td>
-                    <td className="whitespace-nowrap px-3 py-1 align-top">{detalle.detalle}</td>
+                    <td className="px-3 py-1.5 text-center align-top font-mono">{detalle.cantidad}</td>
+                    <td className="whitespace-pre-wrap break-words px-3 py-1.5 align-top leading-snug">
+                      {detalle.detalle}
+                    </td>
                   </tr>
                 ))
               ) : (
