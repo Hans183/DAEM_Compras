@@ -168,7 +168,7 @@ export async function getRecepcionesByCompra(compraId: string) {
 export async function getAllRecepciones(params: GetRecepcionesParams = {}) {
   const {
     page = 1,
-    perPage = 30,
+    perPage = 20,
     numero_ordinario,
     oc,
     folio,
@@ -282,14 +282,15 @@ export async function getAllRecepciones(params: GetRecepcionesParams = {}) {
   return await pb.collection(RECEPCIONES_COLLECTION).getList<Recepcion>(page, perPage, {
     sort: "-created",
     filter: filterParts.join(" && "),
-    expand:
-      "recepcionado_por,recepcion_detalles(recepcion),compra,compra.unidad_requirente,compra.comprador,orden_compra,compra.ordenes_compra(compra),compra.subvencion,compra.numero_ordinario(ordinario)",
+    expand: "recepcionado_por,compra,compra.unidad_requirente,orden_compra",
+    fields:
+      "id,collectionId,collectionName,folio,fecha_recepcion,documento_tipo,documento_numero,estado,adjuntos,observaciones,compra,orden_compra,recepcionado_por,expand.recepcionado_por.id,expand.recepcionado_por.name,expand.orden_compra.id,expand.orden_compra.oc,expand.compra.id,expand.compra.numero_ordinario,expand.compra.descripcion,expand.compra.unidad_requirente,expand.compra.expand.unidad_requirente.id,expand.compra.expand.unidad_requirente.nombre",
   });
 }
 
 export async function getRecepcionById(id: string) {
   const expand =
-    "recepcionado_por,recepcion_detalles(recepcion),compra,compra.unidad_requirente,compra.proveedor,compra.comprador,orden_compra,compra.ordenes_compra(compra),compra.subvencion,compra.numero_ordinario(ordinario)";
+    "recepcionado_por,recepcion_detalles(recepcion),compra,compra.unidad_requirente,compra.comprador,orden_compra,compra.ordenes_compra(compra),compra.subvencion";
   try {
     return await pb.collection(RECEPCIONES_COLLECTION).getOne<Recepcion>(id, {
       expand,

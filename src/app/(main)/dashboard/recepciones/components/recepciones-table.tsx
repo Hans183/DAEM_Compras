@@ -45,7 +45,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { getAllRecepciones, getRecepcionFileUrl } from "@/services/recepciones.service";
+import { getAllRecepciones, getRecepcionById, getRecepcionFileUrl } from "@/services/recepciones.service";
 import { getRequirentes } from "@/services/requirentes.service";
 import type { Recepcion } from "@/types/recepcion";
 import type { Requirente } from "@/types/requirente";
@@ -54,6 +54,9 @@ import type { User } from "@/types/user";
 import { CompraSheet } from "../../compras/components/compra-sheet";
 import { RecepcionDialog } from "../../compras/components/recepcion-dialog";
 import { AnularRecepcionDialog } from "./anular-recepcion-dialog";
+
+// Cache en memoria de sesión para evitar recargar 500 establecimientos al volver a la vista
+let cachedRequirentes: Requirente[] | null = null;
 
 interface RecepcionesTableProps {
   currentUser: User | null;
@@ -82,68 +85,79 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
   const [filterDate, setFilterDate] = useState<Date | undefined>(undefined);
 
   // Requirentes combobox
-  const [requirentes, setRequirentes] = useState<Requirente[]>([]);
-  const [loadingRequirentes, setLoadingRequirentes] = useState(true);
+  const [requirentes, setRequirentes] = useState<Requirente[]>(cachedRequirentes ?? []);
+  const [loadingRequirentes, setLoadingRequirentes] = useState(!cachedRequirentes);
   const [openRequirenteCombobox, setOpenRequirenteCombobox] = useState(false);
 
   const [viewingRecepcion, setViewingRecepcion] = useState<Recepcion | null>(null);
   const [editingRecepcion, setEditingRecepcion] = useState<Recepcion | null>(null);
   const [cancelingRecepcion, setCancelingRecepcion] = useState<Recepcion | null>(null);
+  const [loadingDetailId, setLoadingDetailId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (cachedRequirentes) return;
+    let active = true;
     const fetchRequirentesList = async () => {
       setLoadingRequirentes(true);
       try {
         const result = await getRequirentes({ perPage: 500, sort: "nombre" });
-        setRequirentes(result.items);
+        cachedRequirentes = result.items;
+        if (active) setRequirentes(result.items);
       } catch (error) {
         console.error("Error loading requirentes:", error);
       } finally {
-        setLoadingRequirentes(false);
+        if (active) setLoadingRequirentes(false);
       }
     };
     fetchRequirentesList();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  // Debounce text filters and reset to page 1
+  // Debounce text filters and reset to page 1 only when input changes
   useEffect(() => {
+    if (oficioInput === debouncedOficio) return;
     const timer = setTimeout(() => {
       setDebouncedOficio(oficioInput);
       setPage(1);
-    }, 400);
+    }, 350);
     return () => clearTimeout(timer);
-  }, [oficioInput]);
+  }, [oficioInput, debouncedOficio]);
 
   useEffect(() => {
+    if (ocInput === debouncedOc) return;
     const timer = setTimeout(() => {
       setDebouncedOc(ocInput);
       setPage(1);
-    }, 400);
+    }, 350);
     return () => clearTimeout(timer);
-  }, [ocInput]);
+  }, [ocInput, debouncedOc]);
 
   useEffect(() => {
+    if (folioInput === debouncedFolio) return;
     const timer = setTimeout(() => {
       setDebouncedFolio(folioInput);
       setPage(1);
-    }, 400);
+    }, 350);
     return () => clearTimeout(timer);
-  }, [folioInput]);
+  }, [folioInput, debouncedFolio]);
 
   useEffect(() => {
+    if (documentoInput === debouncedDocumento) return;
     const timer = setTimeout(() => {
       setDebouncedDocumento(documentoInput);
       setPage(1);
-    }, 400);
+    }, 350);
     return () => clearTimeout(timer);
-  }, [documentoInput]);
+  }, [documentoInput, debouncedDocumento]);
 
   const fetchRecepciones = useCallback(async () => {
     setIsLoading(true);
     try {
       const result = await getAllRecepciones({
         page,
-        perPage: 30,
+        perPage: 20,
         numero_ordinario: debouncedOficio,
         oc: debouncedOc,
         folio: debouncedFolio,
@@ -173,6 +187,32 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
   useEffect(() => {
     fetchRecepciones();
   }, [fetchRecepciones]);
+
+  const handleViewRecepcion = async (recepcion: Recepcion) => {
+    setLoadingDetailId(recepcion.id);
+    try {
+      const fullRecepcion = await getRecepcionById(recepcion.id);
+      setViewingRecepcion(fullRecepcion);
+    } catch (error) {
+      console.error(error);
+      toast.error("Error al cargar el detalle de la compra");
+    } finally {
+      setLoadingDetailId(null);
+    }
+  };
+
+  const handleEditRecepcion = async (recepcion: Recepcion) => {
+    setLoadingDetailId(recepcion.id);
+    try {
+      const fullRecepcion = await getRecepcionById(recepcion.id);
+      setEditingRecepcion(fullRecepcion);
+    } catch (error) {
+      console.error(error);
+      toast.error("Error al cargar los detalles de la recepción para editar");
+    } finally {
+      setLoadingDetailId(null);
+    }
+  };
 
   const handleSuccess = () => {
     fetchRecepciones();
@@ -395,9 +435,18 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
       {/* Contador de resultados */}
       {recepcionesData && (
         <div className="flex items-center justify-between px-1 text-muted-foreground text-xs">
-          <span>
-            Mostrando <strong>{recepciones.length}</strong> de <strong>{recepcionesData.totalItems}</strong> recepciones
-          </span>
+          <div className="flex items-center gap-2">
+            <span>
+              Mostrando <strong>{recepciones.length}</strong> de <strong>{recepcionesData.totalItems}</strong>{" "}
+              recepciones
+            </span>
+            {isLoading && (
+              <span className="inline-flex items-center gap-1 text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Actualizando...
+              </span>
+            )}
+          </div>
           {recepcionesData.totalPages > 1 && (
             <span>
               Página {page} de {recepcionesData.totalPages}
@@ -406,7 +455,12 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
         </div>
       )}
 
-      <div className="rounded-md border bg-white">
+      <div
+        className={cn(
+          "rounded-md border bg-white transition-opacity",
+          isLoading && recepciones.length > 0 && "opacity-70",
+        )}
+      >
         <Table>
           <TableHeader>
             <TableRow>
@@ -422,7 +476,7 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {isLoading && !recepcionesData ? (
               <TableRow>
                 <TableCell colSpan={9} className="h-24 text-center">
                   <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
@@ -437,7 +491,7 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
             ) : (
               recepciones.map((recepcion) => {
                 const directOc = recepcion.expand?.orden_compra?.oc;
-                const compraOcs = recepcion.expand?.compra?.expand?.["ordenes_compra(compra)"] || [];
+                const isLoadingRowDetail = loadingDetailId === recepcion.id;
 
                 return (
                   <TableRow key={recepcion.id}>
@@ -459,14 +513,6 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
                     <TableCell>
                       {directOc ? (
                         <span className="font-medium font-mono text-xs">{directOc}</span>
-                      ) : compraOcs.length > 0 ? (
-                        <div className="flex flex-col gap-0.5">
-                          {compraOcs.map((ocItem) => (
-                            <span key={ocItem.id} className="font-mono text-muted-foreground text-xs">
-                              {ocItem.oc}
-                            </span>
-                          ))}
-                        </div>
                       ) : (
                         <span className="text-muted-foreground text-xs">-</span>
                       )}
@@ -501,13 +547,17 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
+                          <Button variant="ghost" className="h-8 w-8 p-0" disabled={isLoadingRowDetail}>
+                            {isLoadingRowDetail ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <MoreHorizontal className="h-4 w-4" />
+                            )}
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => setViewingRecepcion(recepcion)}>
+                          <DropdownMenuItem onClick={() => handleViewRecepcion(recepcion)}>
                             <Eye className="mr-2 h-4 w-4" />
                             Ver Detalle Compra
                           </DropdownMenuItem>
@@ -537,7 +587,7 @@ export function RecepcionesTable({ currentUser }: RecepcionesTableProps) {
                           </DropdownMenuItem>
 
                           {recepcion.estado !== "Anulado" && (
-                            <DropdownMenuItem onClick={() => setEditingRecepcion(recepcion)}>
+                            <DropdownMenuItem onClick={() => handleEditRecepcion(recepcion)}>
                               <Pencil className="mr-2 h-4 w-4" />
                               Editar
                             </DropdownMenuItem>
