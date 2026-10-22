@@ -84,9 +84,11 @@ export interface GetComprasParams {
   created_from?: string;
   created_to?: string;
   accion_filter?: string;
+  has_accion?: boolean;
   subvencion_filter?: string;
   unidad_requirente_id?: string;
   search_fields?: ("descripcion" | "oc" | "factura" | "numero_ordinario")[];
+  expand?: string;
 }
 
 /**

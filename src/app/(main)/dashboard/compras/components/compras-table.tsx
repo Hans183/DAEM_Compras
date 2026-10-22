@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import dynamic from "next/dynamic";
+
 import { format, isPast, isSameDay, parseISO } from "date-fns";
 import {
   Ban,
@@ -35,7 +37,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { getCompraFileUrl } from "@/services/compras.service";
-import { getHolidays, type Holiday } from "@/services/holidays.service";
 import { getOrdenCompraFileUrl } from "@/services/ordenes-compra.service";
 import { getUserAvatarUrl, getUsers } from "@/services/users.service";
 import type { Compra, GetComprasParams } from "@/types/compra";
@@ -44,10 +45,21 @@ import type { User } from "@/types/user";
 import { parseToLocalDate } from "@/utils/date-utils";
 import { canCancelCompra, canDeleteCompra, canEditCompra } from "@/utils/permissions";
 
-import { CancelCompraDialog } from "./cancel-compra-dialog";
-import { CompraDialog } from "./compra-dialog";
-import { CompraSheet } from "./compra-sheet";
-import { DeleteCompraDialog } from "./delete-compra-dialog";
+const CancelCompraDialog = dynamic(() => import("./cancel-compra-dialog").then((m) => m.CancelCompraDialog), {
+  ssr: false,
+});
+const CompraDialog = dynamic(() => import("./compra-dialog").then((m) => m.CompraDialog), {
+  ssr: false,
+});
+const CompraSheet = dynamic(() => import("./compra-sheet").then((m) => m.CompraSheet), {
+  ssr: false,
+});
+const DeleteCompraDialog = dynamic(() => import("./delete-compra-dialog").then((m) => m.DeleteCompraDialog), {
+  ssr: false,
+});
+
+// Caché en memoria de compradores para evitar recargas repetidas
+let cachedBuyers: User[] | null = null;
 
 interface ComprasTableProps {
   compras: Compra[];
@@ -102,28 +114,21 @@ export function ComprasTable({
   const [cancelingCompra, setCancelingCompra] = useState<Compra | null>(null);
   const [duplicatingCompra, setDuplicatingCompra] = useState<Compra | null>(null);
   const [viewingCompra, setViewingCompra] = useState<Compra | null>(null);
-  const [buyers, setBuyers] = useState<User[]>([]);
-  const [_holidays, setHolidays] = useState<Holiday[]>([]);
+  const [buyers, setBuyers] = useState<User[]>(cachedBuyers ?? []);
 
   useEffect(() => {
+    if (cachedBuyers) return;
     const fetchBuyers = async () => {
       try {
-        // Fetch all users to filter by role in UI or just fetch generic
-        // Assuming we want to show all possible buyers
         const result = await getUsers({ perPage: 100 });
-        setBuyers(result.items.filter((u) => u.role.includes("Comprador")));
+        const filteredBuyers = result.items.filter((u) => u.role.includes("Comprador"));
+        cachedBuyers = filteredBuyers;
+        setBuyers(filteredBuyers);
       } catch (error) {
         console.error("Error fetching buyers:", error);
       }
     };
     fetchBuyers();
-
-    const fetchHolidays = async () => {
-      const currentYear = new Date().getFullYear();
-      const data = await getHolidays(currentYear);
-      setHolidays(data);
-    };
-    fetchHolidays();
   }, []);
 
   const getEstadoColor = (estado: string) => {

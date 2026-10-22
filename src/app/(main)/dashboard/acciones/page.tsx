@@ -35,6 +35,9 @@ import { AccionDialog } from "./components/accion-dialog";
 import { AccionesPdfReport } from "./components/acciones-pdf-report";
 import { AccionesTable } from "./components/acciones-table";
 
+let cachedAccionesSchools: Requirente[] | null = null;
+let cachedAccionesDims: Dimension[] | null = null;
+
 export default function AccionesPage() {
   const { user } = useAuth();
   const [data, setData] = useState<ListResult<Accion> | null>(null);
@@ -46,8 +49,8 @@ export default function AccionesPage() {
   const [allCompras, setAllCompras] = useState<Compra[]>([]);
 
   // Filter states
-  const [establecimientos, setEstablecimientos] = useState<Requirente[]>([]);
-  const [_dimensiones, setDimensiones] = useState<Dimension[]>([]);
+  const [establecimientos, setEstablecimientos] = useState<Requirente[]>(cachedAccionesSchools ?? []);
+  const [_dimensiones, setDimensiones] = useState<Dimension[]>(cachedAccionesDims ?? []);
   const [_subdimenciones, setSubdimenciones] = useState<Subdimencion[]>([]);
 
   const [selectedEstablecimiento, setSelectedEstablecimiento] = useState<string>("");
@@ -57,16 +60,21 @@ export default function AccionesPage() {
 
   // Load filter options
   useEffect(() => {
+    if (cachedAccionesSchools && cachedAccionesDims) return;
     const loadOptions = async () => {
       try {
         const [schoolsMsg, dimsMsg] = await Promise.all([
-          getRequirentes({
-            perPage: 500,
-            sort: "nombre",
-            sep_filter: true,
-          }),
-          getDimensiones(),
+          cachedAccionesSchools
+            ? Promise.resolve({ items: cachedAccionesSchools })
+            : getRequirentes({
+                perPage: 500,
+                sort: "nombre",
+                sep_filter: true,
+              }),
+          cachedAccionesDims ? Promise.resolve(cachedAccionesDims) : getDimensiones(),
         ]);
+        cachedAccionesSchools = schoolsMsg.items;
+        cachedAccionesDims = dimsMsg;
         setEstablecimientos(schoolsMsg.items);
         setDimensiones(dimsMsg);
       } catch (error) {
@@ -99,9 +107,10 @@ export default function AccionesPage() {
   // Debounce search
   const [debouncedSearch, setDebouncedSearch] = useState("");
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 500);
+    if (searchTerm === debouncedSearch) return;
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 400);
     return () => clearTimeout(timer);
-  }, [searchTerm]);
+  }, [searchTerm, debouncedSearch]);
 
   const [usageMap, setUsageMap] = useState<Record<string, number>>({});
 
@@ -124,12 +133,13 @@ export default function AccionesPage() {
           dimension_filter: selectedDimension === "all" ? "" : selectedDimension,
           subdimencion_filter: selectedSubdimencion === "all" ? "" : selectedSubdimencion,
         }),
-        // Fetch ALL compras to calculate usage correctly across all actions
-        // Optimization: In a real large app, we might want to aggregate this on the backend
+        // Solo traer compras que tengan acción vinculada y con expansión liviana
         getCompras({
           perPage: 1000,
           sort: "-created",
+          has_accion: true,
           unidad_requirente_id: establishmentId || undefined,
+          expand: "unidad_requirente,ordenes_compra(compra)",
         }),
       ]);
 

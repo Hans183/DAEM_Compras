@@ -28,13 +28,16 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
     fecha_inicio_from,
     fecha_inicio_to,
     anio,
+    accion_filter,
+    has_accion,
     subvencion_filter,
     unidad_requirente_id,
     search_fields,
+    expand = "unidad_requirente,comprador,subvencion,ordenes_compra(compra)",
   } = params;
 
   try {
-    const filters: string[] = ["unidad_requirente.active = true"];
+    const filters: string[] = [];
 
     // 1. Búsqueda global (fuzzy search en OCs, Facturas, descripción)
     const activeSearch = search.trim();
@@ -130,6 +133,14 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
       filters.push(`subvencion = "${subvencion_filter}"`);
     }
 
+    if (accion_filter) {
+      filters.push(`accion = "${accion_filter}"`);
+    }
+
+    if (has_accion) {
+      filters.push(`accion != ""`);
+    }
+
     // Legacy created filters (optional, kept if needed but UI will use fecha_inicio)
     if (created_from) {
       filters.push(`created >= "${created_from}"`);
@@ -162,7 +173,7 @@ export async function getCompras(params: GetComprasParams = {}): Promise<ListRes
     return await pb.collection(COMPRAS_COLLECTION).getList<Compra>(page, perPage, {
       filter,
       sort,
-      expand: "unidad_requirente,comprador,subvencion,ordenes_compra(compra),facturas(compra),accion",
+      expand,
     });
   } catch (error) {
     console.error("Error fetching compras:", error);

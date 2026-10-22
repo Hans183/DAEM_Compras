@@ -31,24 +31,39 @@ import type { Requirente } from "@/types/requirente";
 
 import { ComprasSepTable } from "./components/compras-sep-table";
 
+let cachedSepSubvencionId: string | null = null;
+let cachedSepEstablecimientos: Requirente[] | null = null;
+let cachedInitialComprasSep: ListResult<Compra> | null = null;
+
 export default function ComprasSepPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const search = searchParams.get("search") || "";
 
-  const [data, setData] = useState<ListResult<Compra> | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<ListResult<Compra> | null>(search ? null : cachedInitialComprasSep);
+  const [loading, setLoading] = useState(search ? true : !cachedInitialComprasSep);
   const [page, setPage] = useState(1);
-  const [sepSubvencionId, setSepSubvencionId] = useState<string | null>(null);
+  const [sepSubvencionId, setSepSubvencionId] = useState<string | null>(cachedSepSubvencionId);
   const [error, setError] = useState<string | null>(null);
 
   // States for filters
   const isObservador = user?.role.includes("Observador");
-  const [establecimientos, setEstablecimientos] = useState<Requirente[]>([]);
+  const [establecimientos, setEstablecimientos] = useState<Requirente[]>(cachedSepEstablecimientos ?? []);
   const [selectedEstablecimientoId, setSelectedEstablecimientoId] = useState<string>(
     isObservador ? user?.dependencia || "all" : "all",
   );
   const [ordinarioSearch, setOrdinarioSearch] = useState<string>("");
+  const [debouncedOrdinarioSearch, setDebouncedOrdinarioSearch] = useState<string>("");
+
+  // Debounce ordinarioSearch so it doesn't query on every keystroke
+  useEffect(() => {
+    if (ordinarioSearch === debouncedOrdinarioSearch) return;
+    const timer = setTimeout(() => {
+      setDebouncedOrdinarioSearch(ordinarioSearch);
+      setPage(1);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [ordinarioSearch, debouncedOrdinarioSearch]);
 
   // States for column visibility
   const [showOC, setShowOC] = useState(true);
@@ -89,18 +104,16 @@ export default function ComprasSepPage() {
   // Initial load: Find the "Ley SEP" subvencion ID using a robust search
   useEffect(() => {
     const findSepId = async () => {
+      if (cachedSepSubvencionId) return;
       try {
-        // Try searching strictly first
         const result = await getSubvenciones({ search: "SEP", perPage: 50 });
-
-        // Logic: Look for "Ley SEP" or just "SEP". Ideally user configures this string.
-        // We'll pick the first one that contains "SEP" case insensitive if exact match fails.
 
         const foundSep = result.items.find(
           (s) => s.nombre.toLowerCase().includes("sep") || s.descripcion.toLowerCase().includes("sep"),
         );
 
         if (foundSep) {
+          cachedSepSubvencionId = foundSep.id;
           setSepSubvencionId(foundSep.id);
         } else {
           setError("No se pudo encontrar la subvención 'Ley SEP'. Por favor verifique que exista en el sistema.");
@@ -116,8 +129,10 @@ export default function ComprasSepPage() {
 
     // Load establishments for filter
     const loadEstablecimientos = async () => {
+      if (cachedSepEstablecimientos) return;
       try {
         const result = await getRequirentes({ perPage: 100, sort: "nombre", sep_filter: true });
+        cachedSepEstablecimientos = result.items;
         setEstablecimientos(result.items);
       } catch (err) {
         console.error("Error loading establishments:", err);
@@ -131,22 +146,28 @@ export default function ComprasSepPage() {
 
     setLoading(true);
     try {
+      const activeSearch = debouncedOrdinarioSearch || search;
+      const isDefaultQuery = page === 1 && !activeSearch && selectedEstablecimientoId === "all";
+
       const result = await getCompras({
         page,
         perPage: 30,
         sort: "-created",
         subvencion_filter: sepSubvencionId,
-        search: ordinarioSearch || search, // Pass to fuzzy search to match Ord/OC/Fac
+        search: activeSearch,
         unidad_requirente_id: selectedEstablecimientoId === "all" ? undefined : selectedEstablecimientoId,
+        expand: "unidad_requirente,ordenes_compra(compra),facturas(compra)",
       });
+      if (isDefaultQuery) {
+        cachedInitialComprasSep = result;
+      }
       setData(result);
     } catch (err) {
       console.error("Error loading compras:", err);
-      // setError("Error al cargar las compras.");
     } finally {
       setLoading(false);
     }
-  }, [page, sepSubvencionId, search, selectedEstablecimientoId, ordinarioSearch]);
+  }, [page, sepSubvencionId, search, selectedEstablecimientoId, debouncedOrdinarioSearch]);
 
   useEffect(() => {
     if (sepSubvencionId) {
@@ -227,7 +248,6 @@ export default function ComprasSepPage() {
               value={ordinarioSearch}
               onChange={(e) => {
                 setOrdinarioSearch(e.target.value);
-                setPage(1);
               }}
               className="pr-10"
             />
@@ -238,6 +258,7 @@ export default function ComprasSepPage() {
                 className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
                 onClick={() => {
                   setOrdinarioSearch("");
+                  setDebouncedOrdinarioSearch("");
                   setPage(1);
                 }}
               >

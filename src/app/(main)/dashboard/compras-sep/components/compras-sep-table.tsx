@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import dynamic from "next/dynamic";
+
 import { Check, ChevronsUpDown, Edit } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,7 +18,11 @@ import { updateCompra } from "@/services/compras.service";
 import type { Accion } from "@/types/accion";
 import type { Compra } from "@/types/compra";
 
-import { EditSepCompraDialog } from "./edit-sep-compra-dialog";
+const EditSepCompraDialog = dynamic(() => import("./edit-sep-compra-dialog").then((m) => m.EditSepCompraDialog), {
+  ssr: false,
+});
+
+let cachedSepAcciones: Accion[] | null = null;
 
 interface ComprasSepTableProps {
   data: Compra[];
@@ -26,20 +32,18 @@ interface ComprasSepTableProps {
 }
 
 export function ComprasSepTable({ data, onDataChanged, showOC = true, showFacturas = true }: ComprasSepTableProps) {
-  const [acciones, setAcciones] = useState<Accion[]>([]);
+  const [acciones, setAcciones] = useState<Accion[]>(cachedSepAcciones ?? []);
   const [_loadingAcciones, setLoadingAcciones] = useState(false);
   const [editingCompra, setEditingCompra] = useState<Compra | null>(null);
 
   // Initial load of actions
   useEffect(() => {
+    if (cachedSepAcciones) return;
     const loadAcciones = async () => {
       setLoadingAcciones(true);
       try {
-        // Fetch all actions for selection.
-        // Optimization: In the future, we might want to filter this per row dynamically
-        // based on the purchase's establishment, or just load ALL actions (could be heavy).
-        // For now, let's load a good chunk.
         const result = await getAcciones({ perPage: 1000, sort: "nombre" });
+        cachedSepAcciones = result.items;
         setAcciones(result.items);
       } catch (error) {
         console.error("Error loading acciones:", error);

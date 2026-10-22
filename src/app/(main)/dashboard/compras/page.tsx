@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 
 import { Check, ChevronsUpDown, Plus, Search } from "lucide-react";
@@ -30,15 +31,23 @@ import type { Requirente } from "@/types/requirente";
 import type { Subvencion } from "@/types/subvencion";
 import { canCreateCompra } from "@/utils/permissions";
 
-import { CompraDialog } from "./components/compra-dialog";
 import { ComprasTable } from "./components/compras-table";
+
+const CompraDialog = dynamic(() => import("./components/compra-dialog").then((m) => m.CompraDialog), {
+  ssr: false,
+});
+
+// Caché en memoria de sesión para carga instantánea al volver a la vista
+let cachedInitialCompras: ListResult<Compra> | null = null;
+let cachedSubvenciones: Subvencion[] | null = null;
+let cachedRequirentesCompras: Requirente[] | null = null;
 
 export default function ComprasPage() {
   const searchParams = useSearchParams();
   const urlSearch = searchParams.get("search") || "";
 
-  const [comprasData, setComprasData] = useState<ListResult<Compra> | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [comprasData, setComprasData] = useState<ListResult<Compra> | null>(urlSearch ? null : cachedInitialCompras);
+  const [loading, setLoading] = useState(urlSearch ? true : !cachedInitialCompras);
   const [page, setPage] = useState(1);
 
   // Search states
@@ -51,10 +60,10 @@ export default function ComprasPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   // Subventions state
-  const [subvenciones, setSubvenciones] = useState<Subvencion[]>([]);
+  const [subvenciones, setSubvenciones] = useState<Subvencion[]>(cachedSubvenciones ?? []);
   // Requirentes state
-  const [requirentes, setRequirentes] = useState<Requirente[]>([]);
-  const [loadingRequirentes, setLoadingRequirentes] = useState(true);
+  const [requirentes, setRequirentes] = useState<Requirente[]>(cachedRequirentesCompras ?? []);
+  const [loadingRequirentes, setLoadingRequirentes] = useState(!cachedRequirentesCompras);
   const [openRequirenteCombobox, setOpenRequirenteCombobox] = useState(false);
 
   const { user, loading: authLoading } = useAuth();
@@ -81,30 +90,39 @@ export default function ComprasPage() {
     if (authLoading) return;
 
     const fetchSubvenciones = async () => {
+      if (cachedSubvenciones) return;
       try {
         const result = await getSubvenciones({ perPage: 100, sort: "nombre" });
+        cachedSubvenciones = result.items;
         setSubvenciones(result.items);
       } catch (error) {
         console.error("Error loading subvenciones:", error);
       }
     };
     const fetchRequirentes = async () => {
+      const isObservador = user?.role?.includes("Observador");
+      const isRestricted = isObservador && !!user?.dependencia;
+
+      if (!isRestricted && cachedRequirentesCompras) {
+        setRequirentes(cachedRequirentesCompras);
+        setLoadingRequirentes(false);
+        return;
+      }
+
       setLoadingRequirentes(true);
       try {
-        const isObservador = user?.role?.includes("Observador");
-        const isRestricted = isObservador && !!user?.dependencia;
-
         if (isRestricted && user?.dependencia) {
           const req = await getRequirenteById(user.dependencia);
           if (req) {
             setRequirentes([req]);
           } else {
-            // Fallback since the dependency ID wasn't found (returned null)
             const result = await getRequirentes({ perPage: 500, sort: "nombre" });
+            cachedRequirentesCompras = result.items;
             setRequirentes(result.items);
           }
         } else {
           const result = await getRequirentes({ perPage: 500, sort: "nombre" });
+          cachedRequirentesCompras = result.items;
           setRequirentes(result.items);
         }
       } catch (error) {
@@ -119,21 +137,23 @@ export default function ComprasPage() {
 
   // Debounce Ordinario search
   useEffect(() => {
+    if (ordinarioSearch === debouncedOrdinario) return;
     const timer = setTimeout(() => {
       setDebouncedOrdinario(ordinarioSearch);
       setPage(1);
-    }, 500);
+    }, 400);
     return () => clearTimeout(timer);
-  }, [ordinarioSearch]);
+  }, [ordinarioSearch, debouncedOrdinario]);
 
   // Debounce Global search
   useEffect(() => {
+    if (globalSearch === debouncedGlobal) return;
     const timer = setTimeout(() => {
       setDebouncedGlobal(globalSearch);
       setPage(1);
-    }, 500);
+    }, 400);
     return () => clearTimeout(timer);
-  }, [globalSearch]);
+  }, [globalSearch, debouncedGlobal]);
 
   const loadCompras = useCallback(async () => {
     if (authLoading) return;
@@ -147,6 +167,9 @@ export default function ComprasPage() {
         restrictedFilters.unidad_requirente_id = user.dependencia;
       }
 
+      const hasColumnFilters = Object.values(restrictedFilters).some((v) => v !== undefined && v !== "");
+      const isDefaultQuery = page === 1 && !debouncedGlobal && !debouncedOrdinario && !hasColumnFilters;
+
       const data = await getCompras({
         page,
         perPage: 30,
@@ -157,6 +180,9 @@ export default function ComprasPage() {
         // Override with top search if present
         numero_ordinario: debouncedOrdinario || restrictedFilters.numero_ordinario,
       });
+      if (isDefaultQuery) {
+        cachedInitialCompras = data;
+      }
       setComprasData(data);
     } catch (error) {
       console.error("Error loading compras:", error);
@@ -404,15 +430,17 @@ export default function ComprasPage() {
         </>
       )}
 
-      <CompraDialog
-        open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-        onSuccess={() => {
-          setIsCreateDialogOpen(false);
-          loadCompras();
-        }}
-        currentUser={user}
-      />
+      {isCreateDialogOpen && (
+        <CompraDialog
+          open={isCreateDialogOpen}
+          onOpenChange={setIsCreateDialogOpen}
+          onSuccess={() => {
+            setIsCreateDialogOpen(false);
+            loadCompras();
+          }}
+          currentUser={user}
+        />
+      )}
     </div>
   );
 }

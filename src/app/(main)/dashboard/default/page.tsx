@@ -14,14 +14,17 @@ import { SpendingBySubventionChart } from "../_components/charts/spending-by-sub
 import { TopUnitsChart } from "../_components/charts/top-units-chart";
 import { VolumeTrendChart } from "../_components/charts/volume-trend-chart";
 
+let cachedDashboardStats: DashboardStats | null = null;
+
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats | null>(cachedDashboardStats);
+  const [loading, setLoading] = useState(!cachedDashboardStats);
 
   useEffect(() => {
     async function loadStats() {
       try {
         const data = await getDashboardStats();
+        cachedDashboardStats = data;
         setStats(data);
       } catch (error) {
         console.error("Error loading dashboard stats:", error);

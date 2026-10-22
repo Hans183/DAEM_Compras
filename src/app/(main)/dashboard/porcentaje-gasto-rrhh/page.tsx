@@ -55,13 +55,25 @@ export default function PorcentajeGastoRrhhPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Fetch schools (SEP filter)
-      const schoolsResult = await getRequirentes({
-        perPage: 500,
-        sep_filter: true,
-        active_filter: true,
-        sort: "nombre",
-      });
+      // Ejecutar las 3 consultas en paralelo en lugar de secuencialmente
+      const [schoolsResult, rrhhResult, ingresosResult] = await Promise.all([
+        getRequirentes({
+          perPage: 500,
+          sep_filter: true,
+          active_filter: true,
+          sort: "nombre",
+        }),
+        getRrhhSepList({
+          perPage: 500,
+          anio_filter: selectedYear,
+          mes_filter: selectedMonth,
+        }),
+        getIngresosMensualesSep({
+          perPage: 500,
+          anio: selectedYear,
+          mes: selectedMonth as Mes,
+        }),
+      ]);
 
       const getOrderIndex = (name: string) => {
         const lowerName = name.toLowerCase();
@@ -87,25 +99,11 @@ export default function PorcentajeGastoRrhhPage() {
 
       setSchools(sortedSchools);
 
-      // 2. Fetch RRHH data for selected period
-      const rrhhResult = await getRrhhSepList({
-        perPage: 500,
-        anio_filter: selectedYear,
-        mes_filter: selectedMonth,
-      });
-
       const rrhhMap: Record<string, number> = {};
       rrhhResult.items.forEach((item) => {
         rrhhMap[item.escuelas] = (rrhhMap[item.escuelas] || 0) + item.total;
       });
       setRrhhData(rrhhMap);
-
-      // 3. Fetch Income data for selected period
-      const ingresosResult = await getIngresosMensualesSep({
-        perPage: 500,
-        anio: selectedYear,
-        mes: selectedMonth as Mes,
-      });
 
       const ingresosMap: Record<string, number> = {};
       ingresosResult.items.forEach((item) => {

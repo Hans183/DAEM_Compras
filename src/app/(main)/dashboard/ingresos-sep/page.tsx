@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { FileSpreadsheet, Loader2, Plus, Wallet } from "lucide-react";
-import * as XLSX from "xlsx";
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,6 +15,8 @@ import type { Requirente } from "@/types/requirente";
 
 import { IngresoMensualSepDialog } from "./components/ingreso-mensual-sep-dialog";
 import { IngresosMensualesSepTable } from "./components/ingresos-mensuales-sep-table";
+
+let cachedIngresosRequirentes: Requirente[] | null = null;
 
 const MESES: Mes[] = [
   "Saldo Inicial",
@@ -70,7 +71,6 @@ export default function IngresosSepPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedIngreso, setSelectedIngreso] = useState<IngresoMensualSep | null>(null);
   const [sort, setSort] = useState("requirente.nombre");
-  const [allRequirentes, setAllRequirentes] = useState<Requirente[]>([]);
 
   // Filters state
   const currentMonthIndex = new Date().getMonth();
@@ -78,62 +78,51 @@ export default function IngresosSepPage() {
   const [selectedMes, setSelectedMes] = useState<Mes | "all">(MESES[currentMonthIndex + 1]);
   const [selectedAnio, setSelectedAnio] = useState<number>(currentYear);
 
-  useEffect(() => {
-    const fetchRequirentes = async () => {
-      try {
-        const result = await getRequirentes({ perPage: 200, sort: "nombre", sep_filter: true });
-
-        // Sort by custom order
-        const getOrderIndex = (name: string) => {
-          const lowerName = name.toLowerCase();
-          const targetIndex = CUSTOM_ORDER.findIndex((ordered) => {
-            const lowerOrdered = ordered.toLowerCase().replace(/\./g, ""); // Remove dots for better acronym matching
-            const cleanName = lowerName.replace(/\./g, "");
-
-            if (cleanName.includes(lowerOrdered) || lowerOrdered.includes(cleanName)) return true;
-
-            // Handle common acronyms like RAAC or JAR
-            const acronym = lowerOrdered.split(" ").pop() || "";
-            if (acronym.length >= 3 && cleanName.includes(acronym)) return true;
-
-            return false;
-          });
-          return targetIndex === -1 ? 999 : targetIndex;
-        };
-
-        const sortedItems = [...result.items]
-          .filter((req) => {
-            if (user?.role.includes("Observador")) {
-              return req.id === user.dependencia;
-            }
-            return true;
-          })
-          .sort((a, b) => {
-            return getOrderIndex(a.nombre) - getOrderIndex(b.nombre);
-          });
-
-        setAllRequirentes(sortedItems);
-      } catch (error) {
-        console.error("Error fetching requirentes:", error);
-      }
-    };
-    fetchRequirentes();
-  }, [user?.dependencia, user?.role.includes]);
-
   const loadIngresos = useCallback(async () => {
-    if (allRequirentes.length === 0) return;
     setLoading(true);
     try {
-      const result = await getIngresosMensualesSep({
-        page: 1,
-        perPage: 500, // Fetch all to merge
-        sort,
-        mes: selectedMes === "all" ? undefined : selectedMes,
-        anio: selectedAnio,
-      });
+      const [reqResult, result] = await Promise.all([
+        cachedIngresosRequirentes
+          ? Promise.resolve({ items: cachedIngresosRequirentes })
+          : getRequirentes({ perPage: 200, sort: "nombre", sep_filter: true }),
+        getIngresosMensualesSep({
+          page: 1,
+          perPage: 500, // Fetch all to merge
+          sort,
+          mes: selectedMes === "all" ? undefined : selectedMes,
+          anio: selectedAnio,
+        }),
+      ]);
 
-      // Merge allRequirentes with result.items
-      const mergedItems: IngresoMensualSep[] = allRequirentes.map((req) => {
+      cachedIngresosRequirentes = reqResult.items;
+
+      const getOrderIndex = (name: string) => {
+        const lowerName = name.toLowerCase();
+        const targetIndex = CUSTOM_ORDER.findIndex((ordered) => {
+          const lowerOrdered = ordered.toLowerCase().replace(/\./g, "");
+          const cleanName = lowerName.replace(/\./g, "");
+
+          if (cleanName.includes(lowerOrdered) || lowerOrdered.includes(cleanName)) return true;
+
+          const acronym = lowerOrdered.split(" ").pop() || "";
+          if (acronym.length >= 3 && cleanName.includes(acronym)) return true;
+
+          return false;
+        });
+        return targetIndex === -1 ? 999 : targetIndex;
+      };
+
+      const sortedRequirentes = [...reqResult.items]
+        .filter((req) => {
+          if (user?.role.includes("Observador")) {
+            return req.id === user.dependencia;
+          }
+          return true;
+        })
+        .sort((a, b) => getOrderIndex(a.nombre) - getOrderIndex(b.nombre));
+
+      // Merge sortedRequirentes with result.items
+      const mergedItems: IngresoMensualSep[] = sortedRequirentes.map((req) => {
         const existing = result.items.find((item) => item.requirente === req.id);
         if (existing) return existing;
 
@@ -169,13 +158,11 @@ export default function IngresosSepPage() {
     } finally {
       setLoading(false);
     }
-  }, [allRequirentes, selectedMes, selectedAnio, sort]);
+  }, [selectedMes, selectedAnio, sort, user?.dependencia, user?.role]);
 
   useEffect(() => {
-    if (allRequirentes.length > 0) {
-      loadIngresos();
-    }
-  }, [loadIngresos, allRequirentes]);
+    loadIngresos();
+  }, [loadIngresos]);
 
   const handleSort = (field: string) => {
     if (sort === field) {
@@ -195,8 +182,9 @@ export default function IngresosSepPage() {
     setIsDialogOpen(true);
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!data?.items.length) return;
+    const XLSX = await import("xlsx");
 
     const fmtCLP = (value: number) =>
       formatCurrency(value || 0, { currency: "CLP", locale: "es-CL", noDecimals: true });
